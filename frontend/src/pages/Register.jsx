@@ -11,6 +11,7 @@ import Logo from '../components/Logo';
 import SEO from '../components/SEO';
 import Turnstile from '../components/Turnstile';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { useAuthConfig } from '../hooks/useAuthConfig';
 import { facebookAuth } from '../utils/facebookAuth';
 import { commonSchemas, createResolver, getErrorMessage } from '../utils/formHelpers';
@@ -41,6 +42,8 @@ const Register = () => {
   const [isBackendReady, setIsBackendReady] = useState(false);
 
   const { register: authRegister, loginWithGoogle, loginWithFacebook, user } = useAuth();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
   const { data: authConfig } = useAuthConfig();
   const navigate = useNavigate();
 
@@ -181,13 +184,14 @@ const Register = () => {
         await googleAuth.initializeSignInButton(
           'google-signup-button',
           handleGoogleSuccess,
-          handleGoogleError
+          handleGoogleError,
+          isDark
         );
       } catch (error) {}
     };
 
     initializeGoogleSignIn();
-  }, [handleGoogleSuccess, handleGoogleError, isGoogleEnabled, googleClientId]);
+  }, [handleGoogleSuccess, handleGoogleError, isGoogleEnabled, googleClientId, isDark]);
 
   const onSubmit = async data => {
     // Only require Turnstile verification if it's enabled
@@ -228,18 +232,21 @@ const Register = () => {
         title='Create a Divemap Account | Join the Diving Community'
         description='Register for Divemap to start logging your scuba dives, discovering new dive sites, and planning trips with other divers.'
       />
-      <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
+      <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900 py-12 px-4 sm:px-6 lg:px-8'>
         <div className='max-w-md w-full space-y-8'>
           <div>
             <div className='mx-auto flex items-center justify-center'>
               <Logo size='large' showText={false} />
             </div>
-            <h2 className='mt-6 text-center text-3xl font-extrabold text-gray-900'>
+            <h2 className='mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-slate-100'>
               Create your account
             </h2>
-            <p className='mt-2 text-center text-sm text-gray-600'>
+            <p className='mt-2 text-center text-sm text-gray-600 dark:text-slate-400'>
               Or{' '}
-              <Link to='/login' className='font-medium text-divemap-blue hover:opacity-80'>
+              <Link
+                to='/login'
+                className='font-medium text-divemap-blue dark:text-sky-400 hover:opacity-80'
+              >
                 sign in to your existing account
               </Link>
             </p>
@@ -261,7 +268,7 @@ const Register = () => {
                     ></div>
                   )}
                   {googleLoading && (
-                    <div className='mt-2 text-center text-sm text-gray-600'>
+                    <div className='mt-2 text-center text-sm text-gray-600 dark:text-slate-400'>
                       Creating account with Google... (Account will be immediately active)
                     </div>
                   )}
@@ -284,10 +291,10 @@ const Register = () => {
 
                   <div className='relative flex items-center justify-center mt-4 mb-2'>
                     <div className='absolute inset-0 flex items-center'>
-                      <div className='w-full border-t border-gray-300' />
+                      <div className='w-full border-t border-gray-300 dark:border-slate-700' />
                     </div>
                     <div className='relative flex justify-center text-sm'>
-                      <span className='px-2 bg-gray-50 text-gray-500'>
+                      <span className='px-2 bg-gray-50 dark:bg-slate-900 text-gray-500 dark:text-slate-400'>
                         Or register with credentials
                       </span>
                     </div>
@@ -301,8 +308,8 @@ const Register = () => {
                     <input
                       id={name}
                       type='text'
-                      className={`mt-1 appearance-none relative block w-full px-3 py-2 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-                        errors.username ? 'border-red-500' : 'border-gray-300'
+                      className={`mt-1 appearance-none relative block w-full px-3 py-2 border placeholder-gray-500 dark:placeholder-slate-500 text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+                        errors.username ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
                       }`}
                       placeholder='Enter your username'
                       {...register(name)}
@@ -315,8 +322,8 @@ const Register = () => {
                     <input
                       id={name}
                       type='email'
-                      className={`mt-1 appearance-none relative block w-full px-3 py-2 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-                        errors.email ? 'border-red-500' : 'border-gray-300'
+                      className={`mt-1 appearance-none relative block w-full px-3 py-2 border placeholder-gray-500 dark:placeholder-slate-500 text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+                        errors.email ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
                       }`}
                       placeholder='Enter your email'
                       {...register(name)}
@@ -330,8 +337,10 @@ const Register = () => {
                       <input
                         id={name}
                         type={showPassword ? 'text' : 'password'}
-                        className={`mt-1 appearance-none relative block w-full px-3 py-2 pr-10 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-                          errors.password ? 'border-red-500' : 'border-gray-300'
+                        className={`mt-1 appearance-none relative block w-full px-3 py-2 pr-10 border placeholder-gray-500 dark:placeholder-slate-500 text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+                          errors.password
+                            ? 'border-red-500'
+                            : 'border-gray-300 dark:border-slate-600'
                         }`}
                         placeholder='Enter your password'
                         {...register(name)}
@@ -342,9 +351,9 @@ const Register = () => {
                         onClick={() => setShowPassword(!showPassword)}
                       >
                         {showPassword ? (
-                          <EyeOff className='h-5 w-5 text-gray-400' />
+                          <EyeOff className='h-5 w-5 text-gray-400 dark:text-slate-400' />
                         ) : (
-                          <Eye className='h-5 w-5 text-gray-400' />
+                          <Eye className='h-5 w-5 text-gray-400 dark:text-slate-400' />
                         )}
                       </button>
                     </div>
@@ -357,8 +366,10 @@ const Register = () => {
                       <input
                         id={name}
                         type={showConfirmPassword ? 'text' : 'password'}
-                        className={`mt-1 appearance-none relative block w-full px-3 py-2 pr-10 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-                          errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+                        className={`mt-1 appearance-none relative block w-full px-3 py-2 pr-10 border placeholder-gray-500 dark:placeholder-slate-500 text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+                          errors.confirmPassword
+                            ? 'border-red-500'
+                            : 'border-gray-300 dark:border-slate-600'
                         }`}
                         placeholder='Confirm your password'
                         {...register(name)}
@@ -369,9 +380,9 @@ const Register = () => {
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       >
                         {showConfirmPassword ? (
-                          <EyeOff className='h-5 w-5 text-gray-400' />
+                          <EyeOff className='h-5 w-5 text-gray-400 dark:text-slate-400' />
                         ) : (
-                          <Eye className='h-5 w-5 text-gray-400' />
+                          <Eye className='h-5 w-5 text-gray-400 dark:text-slate-400' />
                         )}
                       </button>
                     </div>
@@ -387,7 +398,7 @@ const Register = () => {
                     onVerify={handleTurnstileVerify}
                     onExpire={handleTurnstileExpire}
                     onError={handleTurnstileError}
-                    theme='light'
+                    theme='auto'
                     size='normal'
                     className='flex justify-center'
                   />
@@ -413,7 +424,7 @@ const Register = () => {
                 </button>
               </div>
 
-              <div className='bg-blue-50 border border-blue-200 rounded-md p-4'>
+              <div className='bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 rounded-md p-4'>
                 <div className='flex'>
                   <div className='flex-shrink-0'>
                     <svg className='h-5 w-5 text-blue-400' viewBox='0 0 20 20' fill='currentColor'>
@@ -425,8 +436,10 @@ const Register = () => {
                     </svg>
                   </div>
                   <div className='ml-3'>
-                    <h3 className='text-sm font-medium text-blue-800'>Account Activation</h3>
-                    <div className='mt-2 text-sm text-blue-700'>
+                    <h3 className='text-sm font-medium text-blue-800 dark:text-sky-300'>
+                      Account Activation
+                    </h3>
+                    <div className='mt-2 text-sm text-blue-700 dark:text-slate-300'>
                       <p className='mb-2'>
                         <strong>Google Sign-In:</strong> Your account will be automatically
                         activated and ready to use immediately.
@@ -442,9 +455,12 @@ const Register = () => {
               </div>
 
               <div className='text-center'>
-                <p className='text-sm text-gray-600'>
+                <p className='text-sm text-gray-600 dark:text-slate-400'>
                   Already have an account?{' '}
-                  <Link to='/login' className='font-medium text-divemap-blue hover:opacity-80'>
+                  <Link
+                    to='/login'
+                    className='font-medium text-divemap-blue dark:text-sky-400 hover:opacity-80'
+                  >
                     Sign in here
                   </Link>
                 </p>

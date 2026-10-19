@@ -11,6 +11,7 @@ import Logo from '../components/Logo';
 import SEO from '../components/SEO';
 import Turnstile from '../components/Turnstile';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { useAuthConfig } from '../hooks/useAuthConfig';
 import { formatDateForError } from '../utils/dateFormatting';
 import { facebookAuth } from '../utils/facebookAuth';
@@ -49,6 +50,8 @@ const Login = () => {
   const [isBackendReady, setIsBackendReady] = useState(false);
 
   const { login: authLogin, loginWithGoogle, loginWithFacebook } = useAuth();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
   const { data: authConfig } = useAuthConfig();
   const navigate = useNavigate();
   const location = useLocation();
@@ -183,13 +186,14 @@ const Login = () => {
         await googleAuth.initializeSignInButton(
           'google-signin-button',
           handleGoogleSuccess,
-          handleGoogleError
+          handleGoogleError,
+          isDark
         );
       } catch (error) {}
     };
 
     initializeGoogleSignIn();
-  }, [handleGoogleSuccess, handleGoogleError, isGoogleEnabled, googleClientId]);
+  }, [handleGoogleSuccess, handleGoogleError, isGoogleEnabled, googleClientId, isDark]);
 
   const onSubmit = async data => {
     // Only require Turnstile verification if it's enabled
@@ -233,18 +237,21 @@ const Login = () => {
         title='Login to Divemap | Your Scuba Logbook'
         description='Log in to Divemap to track your scuba dives, manage your certifications, and connect with diving buddies.'
       />
-      <div className='min-h-screen flex items-center justify-center bg-gray-50 py-8 sm:py-12 px-4 sm:px-6 lg:px-8'>
+      <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900 py-8 sm:py-12 px-4 sm:px-6 lg:px-8'>
         <div className='max-w-md w-full space-y-6 sm:space-y-8'>
           <div>
             <div className='mx-auto flex items-center justify-center'>
               <Logo size='large' showText={false} />
             </div>
-            <h2 className='mt-6 text-center text-2xl sm:text-3xl font-extrabold text-gray-900'>
+            <h2 className='mt-6 text-center text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-slate-100'>
               Sign in to your account
             </h2>
-            <p className='mt-2 text-center text-sm text-gray-600'>
+            <p className='mt-2 text-center text-sm text-gray-600 dark:text-slate-400'>
               Or{' '}
-              <Link to='/register' className='font-medium text-divemap-blue hover:opacity-80'>
+              <Link
+                to='/register'
+                className='font-medium text-divemap-blue dark:text-sky-400 hover:opacity-80'
+              >
                 create a new account
               </Link>
             </p>
@@ -285,10 +292,10 @@ const Login = () => {
 
                   <div className='relative flex items-center justify-center mt-4 mb-2'>
                     <div className='absolute inset-0 flex items-center' aria-hidden='true'>
-                      <div className='w-full border-t border-gray-300'></div>
+                      <div className='w-full border-t border-gray-300 dark:border-slate-700'></div>
                     </div>
                     <div className='relative flex justify-center text-sm'>
-                      <span className='px-2 bg-gray-50 text-gray-500'>
+                      <span className='px-2 bg-gray-50 dark:bg-slate-900 text-gray-500 dark:text-slate-400'>
                         Or connect with credentials
                       </span>
                     </div>
@@ -303,8 +310,8 @@ const Login = () => {
                       id={name}
                       type='text'
                       autoComplete='username'
-                      className={`appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${
-                        errors.username ? 'border-red-500' : 'border-gray-300'
+                      className={`appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 dark:placeholder-slate-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+                        errors.username ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
                       }`}
                       placeholder='Enter your username or email'
                       {...register(name)}
@@ -318,8 +325,10 @@ const Login = () => {
                       <input
                         id={name}
                         type={showPassword ? 'text' : 'password'}
-                        className={`block w-full px-3 py-2 pr-10 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm ${
-                          errors.password ? 'border-red-500' : 'border-gray-300'
+                        className={`block w-full px-3 py-2 pr-10 border rounded-md shadow-sm placeholder-gray-400 dark:placeholder-slate-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm ${
+                          errors.password
+                            ? 'border-red-500'
+                            : 'border-gray-300 dark:border-slate-600'
                         }`}
                         placeholder='Enter your password'
                         {...register(name)}
@@ -330,9 +339,9 @@ const Login = () => {
                         className='absolute inset-y-0 right-0 pr-3 flex items-center'
                       >
                         {showPassword ? (
-                          <EyeOff className='h-4 w-4 text-gray-400' />
+                          <EyeOff className='h-4 w-4 text-gray-400 dark:text-slate-400' />
                         ) : (
-                          <Eye className='h-4 w-4 text-gray-400' />
+                          <Eye className='h-4 w-4 text-gray-400 dark:text-slate-400' />
                         )}
                       </button>
                     </div>
@@ -342,7 +351,7 @@ const Login = () => {
                   <div className='text-sm'>
                     <Link
                       to='/forgot-password'
-                      className='font-medium text-divemap-blue hover:opacity-80'
+                      className='font-medium text-divemap-blue dark:text-sky-400 hover:opacity-80'
                     >
                       Forgot your password?
                     </Link>
@@ -358,7 +367,7 @@ const Login = () => {
                     onVerify={handleTurnstileVerify}
                     onExpire={handleTurnstileExpire}
                     onError={handleTurnstileError}
-                    theme='light'
+                    theme='auto'
                     size='normal'
                     className='flex justify-center'
                   />

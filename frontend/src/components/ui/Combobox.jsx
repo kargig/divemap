@@ -77,8 +77,8 @@ const Combobox = ({
         key={option.value}
         className={`
           relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none 
-          hover:bg-blue-100 hover:text-blue-900 transition-colors cursor-pointer
-          ${value?.toString() === option.value.toString() ? 'bg-blue-50 text-blue-900' : ''}
+          hover:bg-blue-100 hover:text-blue-900 dark:hover:bg-slate-700 dark:hover:text-blue-200 transition-colors cursor-pointer text-gray-900 dark:text-slate-100
+          ${value?.toString() === option.value.toString() ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-900 dark:text-blue-200' : ''}
         `}
         onClick={() => handleSelect(option.value)}
         onKeyDown={e => {
@@ -101,7 +101,7 @@ const Combobox = ({
   return (
     <div className={`flex flex-col gap-1 ${className}`}>
       {label && (
-        <label htmlFor={id} className='text-sm font-medium text-gray-700'>
+        <label htmlFor={id} className='text-sm font-medium text-gray-700 dark:text-slate-300'>
           {label} {required && <span className='text-red-500'>*</span>}
         </label>
       )}
@@ -115,13 +115,19 @@ const Combobox = ({
             aria-expanded={open}
             aria-controls={`${id}-content`}
             className={`
-              flex h-10 w-full items-center justify-between rounded-md border bg-white px-3 py-2 text-sm 
+              flex h-10 w-full items-center justify-between rounded-md border bg-white dark:bg-slate-700 px-3 py-2 text-sm 
               ring-offset-background focus:outline-none focus:ring-2 
               focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50
-              ${error ? 'border-red-500' : 'border-gray-300'}
+              ${error ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'}
             `}
           >
-            <span className={!selectedOption ? 'text-gray-500 truncate' : 'text-gray-900 truncate'}>
+            <span
+              className={
+                !selectedOption
+                  ? 'text-gray-500 dark:text-slate-400 truncate'
+                  : 'text-gray-900 dark:text-slate-100 truncate'
+              }
+            >
               {selectedOption ? selectedOption.label : placeholder}
             </span>
             <div className='flex items-center gap-1 flex-shrink-0'>
@@ -138,14 +144,14 @@ const Combobox = ({
         <PopoverPrimitive.Portal>
           <PopoverPrimitive.Content
             id={`${id}-content`}
-            className={`${popoverClassName} w-[var(--radix-popover-trigger-width)] overflow-hidden rounded-md border border-gray-200 bg-white p-0 text-gray-950 shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95`}
+            className={`${popoverClassName} w-[var(--radix-popover-trigger-width)] overflow-hidden rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-0 text-gray-950 dark:text-slate-100 shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95`}
             align='start'
             sideOffset={4}
           >
-            <div className='flex items-center border-b px-3 border-gray-100'>
+            <div className='flex items-center border-b px-3 border-gray-100 dark:border-slate-700'>
               <Search className='mr-2 h-4 w-4 shrink-0 opacity-50' />
               <input
-                className='flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-gray-500 disabled:cursor-not-allowed disabled:opacity-50'
+                className='flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none text-gray-900 dark:text-slate-100 placeholder:text-gray-500 dark:placeholder:text-slate-400 disabled:cursor-not-allowed disabled:opacity-50'
                 placeholder={searchPlaceholder}
                 value={searchTerm}
                 onChange={handleSearchInputChange}
@@ -154,7 +160,9 @@ const Combobox = ({
             </div>
             <div className='max-h-[350px] overflow-y-auto overflow-x-hidden p-1'>
               {!isLoading && !hasResults && searchTerm.length > 0 && (
-                <div className='py-6 text-center text-sm text-gray-500'>{emptyMessage}</div>
+                <div className='py-6 text-center text-sm text-gray-500 dark:text-slate-400'>
+                  {emptyMessage}
+                </div>
               )}
 
               {groups.length > 0
@@ -162,7 +170,7 @@ const Combobox = ({
                     group.options.length > 0 ? (
                       <div key={group.label || gIdx} className='mb-2 last:mb-0'>
                         {group.label && (
-                          <div className='px-2 py-1.5 text-xs font-semibold text-gray-500 uppercase flex items-center gap-2 bg-gray-50/50 rounded-sm mb-1'>
+                          <div className='px-2 py-1.5 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase flex items-center gap-2 bg-gray-50/50 dark:bg-slate-700/60 rounded-sm mb-1'>
                             {group.icon && <span className='h-3 w-3'>{group.icon}</span>}
                             {group.label}
                           </div>
@@ -174,7 +182,9 @@ const Combobox = ({
                 : renderOptionList(options)}
 
               {isLoading && !hasResults && (
-                <div className='py-6 text-center text-sm text-gray-500'>Searching...</div>
+                <div className='py-6 text-center text-sm text-gray-500 dark:text-slate-400'>
+                  Searching...
+                </div>
               )}
             </div>
           </PopoverPrimitive.Content>

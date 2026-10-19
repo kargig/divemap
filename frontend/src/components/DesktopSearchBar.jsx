@@ -30,9 +30,9 @@ const DesktopSearchBar = ({
           showScore={false}
           showClearButton={true}
           className='w-full'
-          inputClassName='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base'
-          suggestionsClassName='absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-96 overflow-y-auto'
-          highlightClass='bg-blue-100 font-medium'
+          inputClassName='w-full px-4 py-3 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base shadow-sm'
+          suggestionsClassName='absolute z-50 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-lg max-h-96 overflow-y-auto text-gray-900 dark:text-slate-100'
+          highlightClass='bg-blue-100 dark:bg-blue-900/60 text-blue-900 dark:text-blue-200 font-medium'
         />
       </div>
     </div>

@@ -28,15 +28,15 @@ const DivingTagsPage = () => {
         description='Explore the diving tags and categories used on Divemap to find dive sites that match your interests, like Wreck, Cave, Deep, and Reef diving.'
       />
       <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-0 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
-        <div className='bg-white shadow-sm rounded-lg overflow-hidden'>
-          <div className='p-4 sm:p-6 border-b border-gray-200'>
+        <div className='bg-white dark:bg-slate-800 shadow-sm rounded-lg overflow-hidden border border-gray-100 dark:border-slate-700'>
+          <div className='p-4 sm:p-6 border-b border-gray-200 dark:border-slate-700'>
             <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
               <div>
-                <h1 className='text-3xl font-bold text-gray-900 flex items-center'>
-                  <Tags className='h-8 w-8 mr-3 text-blue-600' />
+                <h1 className='text-3xl font-bold text-gray-900 dark:text-slate-100 flex items-center'>
+                  <Tags className='h-8 w-8 mr-3 text-blue-600 dark:text-blue-400' />
                   Diving Tags
                 </h1>
-                <p className='mt-1 text-gray-600'>
+                <p className='mt-1 text-gray-600 dark:text-slate-400'>
                   Explore the tags used to categorize dive sites and experiences.
                 </p>
               </div>
@@ -46,7 +46,7 @@ const DivingTagsPage = () => {
                 </div>
                 <input
                   type='text'
-                  className='block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out'
+                  className='block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md leading-5 bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out'
                   placeholder='Search tags...'
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
@@ -57,16 +57,16 @@ const DivingTagsPage = () => {
 
           {isLoading ? (
             <div className='flex justify-center items-center h-64'>
-              <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
+              <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400'></div>
             </div>
           ) : (
-            <div className='bg-gray-50 p-2 sm:p-4 lg:p-6'>
+            <div className='bg-gray-50 dark:bg-slate-900/60 p-2 sm:p-4 lg:p-6'>
               {filteredTags?.length > 0 ? (
                 <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
                   {filteredTags.map(tag => (
                     <div
                       key={tag.id}
-                      className='bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 p-4 sm:p-5 border border-gray-100'
+                      className='bg-white dark:bg-slate-800 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 p-4 sm:p-5 border border-gray-100 dark:border-slate-700'
                     >
                       <div className='flex items-start justify-between'>
                         <div className='flex items-center'>
@@ -77,7 +77,9 @@ const DivingTagsPage = () => {
                           >
                             <Hash className='h-4 w-4' />
                           </span>
-                          <h3 className='text-lg font-medium text-gray-900'>{tag.name}</h3>
+                          <h3 className='text-lg font-medium text-gray-900 dark:text-slate-100'>
+                            {tag.name}
+                          </h3>
                         </div>
                         <div className='flex flex-col items-end gap-1'>
                           <Link

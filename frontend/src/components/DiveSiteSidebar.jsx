@@ -20,6 +20,7 @@ const DiveSiteSidebar = ({
   diveSite,
   windData,
   isWindLoading,
+  isMarineExpanded = false,
   setIsMarineExpanded,
   divingCenters,
   recentDives,
@@ -54,15 +55,16 @@ const DiveSiteSidebar = ({
       )}
 
       {/* Weather Conditions - Collapsible (Desktop Only, Mobile is in main content) */}
-      <div className='hidden lg:block bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden'>
+      <div className='hidden lg:block bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden'>
         <Collapse
           ghost
+          activeKey={isMarineExpanded ? ['weather'] : []}
           onChange={keys => setIsMarineExpanded(keys.includes('weather'))}
           items={[
             {
               key: 'weather',
               label: (
-                <span className='text-base sm:text-lg font-bold text-gray-900'>
+                <span className='text-base sm:text-lg font-bold text-gray-900 dark:text-slate-100'>
                   Weather Conditions
                 </span>
               ),
@@ -79,31 +81,31 @@ const DiveSiteSidebar = ({
 
       {/* Associated Diving Centers - Moved to Sidebar */}
       {divingCenters && divingCenters.length > 0 && (
-        <div className='bg-white p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100'>
-          <h3 className='text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4'>
+        <div className='bg-white dark:bg-slate-800 p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700'>
+          <h3 className='text-base sm:text-lg font-bold text-gray-900 dark:text-slate-100 mb-3 sm:mb-4'>
             Diving Centers
           </h3>
           <div className='space-y-3'>
             {divingCenters.map(center => (
               <div
                 key={center.id}
-                className='border border-gray-100 rounded-xl p-3 bg-gray-50/30 hover:bg-gray-50 transition-colors'
+                className='border border-gray-100 dark:border-slate-700/60 rounded-xl p-3 bg-gray-50/30 dark:bg-slate-700/30 hover:bg-gray-50 dark:hover:bg-slate-700/60 transition-colors'
               >
                 <div className='flex flex-col gap-0.5 mb-1'>
                   <RouterLink
                     to={`/diving-centers/${center.id}/${getDivingCenterSlug(center)}`}
-                    className='font-bold text-blue-600 hover:text-blue-800 hover:underline text-sm leading-tight'
+                    className='font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline text-sm leading-tight'
                   >
                     {center.name}
                   </RouterLink>
                   {center.dive_cost && (
-                    <span className='text-green-600 font-bold text-[10px] uppercase tracking-wider'>
+                    <span className='text-green-600 dark:text-emerald-400 font-bold text-[10px] uppercase tracking-wider'>
                       {formatCost(center.dive_cost, center.currency || DEFAULT_CURRENCY)}
                     </span>
                   )}
                 </div>
                 {center.description && (
-                  <p className='text-gray-500 text-[11px] line-clamp-2 leading-relaxed'>
+                  <p className='text-gray-500 dark:text-slate-400 text-[11px] line-clamp-2 leading-relaxed'>
                     {decodeHtmlEntities(center.description)}
                   </p>
                 )}
@@ -117,21 +119,21 @@ const DiveSiteSidebar = ({
       {recentDives && recentDives.length > 0 && (
         <div
           id='dives'
-          className='bg-white p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100 scroll-mt-16'
+          className='bg-white dark:bg-slate-800 p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 scroll-mt-16'
         >
-          <h3 className='text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4'>
+          <h3 className='text-base sm:text-lg font-bold text-gray-900 dark:text-slate-100 mb-3 sm:mb-4'>
             Recent Dives
           </h3>
           <div className='space-y-3'>
             {recentDives.slice(0, 5).map(dive => (
               <div
                 key={dive.id}
-                className='border border-gray-100 rounded-xl p-3 bg-gray-50/30 hover:bg-gray-50 transition-colors'
+                className='border border-gray-100 dark:border-slate-700/60 rounded-xl p-3 bg-gray-50/30 dark:bg-slate-700/30 hover:bg-gray-50 dark:hover:bg-slate-700/60 transition-colors'
               >
                 <div className='flex items-start justify-between gap-1.5 mb-1'>
                   <RouterLink
                     to={`/dives/${dive.id}/${slugify(`${dive.name || dive.dive_site?.name || diveSite?.name || 'dive'}-${dive.dive_date}-dive-${dive.id}`)}`}
-                    className='font-bold text-blue-600 hover:text-blue-800 hover:underline text-xs sm:text-sm leading-tight truncate flex-1'
+                    className='font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline text-xs sm:text-sm leading-tight truncate flex-1'
                   >
                     {dive.name || dive.dive_site?.name || 'Unnamed Dive'}
                   </RouterLink>
@@ -221,7 +223,7 @@ const DiveSiteSidebar = ({
       {diveSite.latitude && diveSite.longitude && (
         <div
           id='nearby'
-          className='bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden scroll-mt-16'
+          className='bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden scroll-mt-16'
         >
           <Collapse
             ghost
@@ -231,7 +233,7 @@ const DiveSiteSidebar = ({
               {
                 key: 'nearby-sidebar',
                 label: (
-                  <span className='text-base sm:text-lg font-bold text-gray-900'>
+                  <span className='text-base sm:text-lg font-bold text-gray-900 dark:text-slate-100'>
                     Nearby Dive Sites
                   </span>
                 ),
@@ -248,14 +250,14 @@ const DiveSiteSidebar = ({
                           onClick={() =>
                             navigate(`/dive-sites/${site.id}/${getDiveSiteSlug(site)}`)
                           }
-                          className='flex items-center p-2 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors text-left w-full shadow-sm'
+                          className='flex items-center p-2 border border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-700/60 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left w-full shadow-sm'
                         >
                           <MapPin className='w-3.5 h-3.5 mr-2 flex-shrink-0 text-blue-500' />
                           <div className='min-w-0 flex-1'>
-                            <div className='font-bold text-gray-900 text-xs truncate leading-tight'>
+                            <div className='font-bold text-gray-900 dark:text-slate-100 text-xs truncate leading-tight'>
                               {site.name}
                             </div>
-                            <div className='text-[10px] text-gray-400 font-medium'>
+                            <div className='text-[10px] text-gray-400 dark:text-slate-400 font-medium'>
                               {site.distance_km} km away
                             </div>
                           </div>

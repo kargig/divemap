@@ -65,16 +65,19 @@ const DiveSiteRoutes = ({ diveSiteId, isMobileCollapsed = false }) => {
   const hasMoreRoutes = routes && routes.length > 3;
 
   return (
-    <div className='bg-white p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100'>
+    <div className='bg-white dark:bg-slate-800 p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700'>
       <div
         className={`flex items-center justify-between gap-2 ${routes && routes.length > 0 ? 'mb-3 sm:mb-4' : ''}`}
       >
-        <h2 className='text-base sm:text-xl font-bold text-gray-900 leading-tight'>
-          Routes <span className='text-gray-400 text-sm font-medium'>({routes?.length || 0})</span>
+        <h2 className='text-base sm:text-xl font-bold text-gray-900 dark:text-slate-100 leading-tight'>
+          Routes{' '}
+          <span className='text-gray-400 dark:text-slate-500 text-sm font-medium'>
+            ({routes?.length || 0})
+          </span>
         </h2>
         <button
           onClick={handleDrawNewRoute}
-          className='flex items-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors text-xs sm:text-sm font-medium shadow-sm shrink-0'
+          className='flex items-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-600 hover:text-gray-900 dark:hover:text-white transition-colors text-xs sm:text-sm font-medium shadow-sm shrink-0'
         >
           <Plus className='w-3.5 h-3.5 sm:w-4 sm:h-4' />
           Draw Route

@@ -411,7 +411,11 @@ const Changelog = () => {
   const renderReleaseContent = (release, isMobile) => (
     <Card
       variant={isMobile ? 'outlined' : 'borderless'}
-      className={isMobile ? 'bg-gray-50' : 'shadow-sm bg-white'}
+      className={
+        isMobile
+          ? 'bg-gray-50 dark:bg-slate-800'
+          : 'shadow-sm bg-white dark:bg-slate-800 border border-transparent dark:border-slate-700'
+      }
       styles={{ body: { padding: isMobile ? '12px' : '24px' } }}
     >
       {isMobile ? (
@@ -438,7 +442,7 @@ const Changelog = () => {
         title='Changelog & Updates | Divemap'
         description='Keep track of the latest features, improvements, and bug fixes to the Divemap platform.'
       />
-      <div className='min-h-screen bg-gray-50 pt-20 pb-12'>
+      <div className='min-h-screen bg-gray-50 dark:bg-slate-900 pt-20 pb-12'>
         <div className='max-w-5xl mx-auto'>
           {/* Header */}
           <div className='text-center mb-12'>
@@ -463,8 +467,12 @@ const Changelog = () => {
                     key={release.date}
                     title={
                       <div className='flex flex-col py-1'>
-                        <span className='font-bold text-gray-800'>{release.date}</span>
-                        <span className='text-xs text-gray-500'>{release.title}</span>
+                        <span className='font-bold text-gray-800 dark:text-slate-100'>
+                          {release.date}
+                        </span>
+                        <span className='text-xs text-gray-500 dark:text-slate-400'>
+                          {release.title}
+                        </span>
                       </div>
                     }
                   >
@@ -477,12 +485,12 @@ const Changelog = () => {
             /* Desktop View: Custom Vertical Feed */
             <div className='desktop-changelog-feed relative pl-8'>
               {/* Continuous vertical line background */}
-              <div className='absolute left-8 top-0 bottom-0 w-0.5 bg-gray-200 hidden md:block' />
+              <div className='absolute left-8 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-slate-700 hidden md:block' />
 
               {releases.map((release, idx) => (
                 <div key={idx} className='mb-16 relative md:pl-12'>
                   {/* Date Marker */}
-                  <div className='hidden md:flex absolute left-[25.5px] top-1.5 w-4 h-4 rounded-full bg-blue-500 border-4 border-white shadow-sm z-10 items-center justify-center' />
+                  <div className='hidden md:flex absolute left-[25.5px] top-1.5 w-4 h-4 rounded-full bg-blue-500 border-4 border-white dark:border-slate-800 shadow-sm z-10 items-center justify-center' />
 
                   <div className='mb-6'>
                     <Space align='center' className='mb-1'>
@@ -505,7 +513,7 @@ const Changelog = () => {
           <Divider />
 
           <div className='text-center mt-12'>
-            <Card className='bg-gray-50 border-none shadow-none'>
+            <Card className='bg-gray-50 dark:bg-slate-800/60 border-none shadow-none'>
               <Space direction='vertical' size='large'>
                 <GithubOutlined style={{ fontSize: '32px' }} />
                 <Title level={3}>View Complete Changelog</Title>

@@ -68,20 +68,20 @@ export const getDifficultyCodeFromLabel = label => {
  */
 export const getDifficultyColorClasses = code => {
   if (!code || code === null || code === undefined) {
-    return 'bg-gray-100 text-gray-800';
+    return 'bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-200 border-gray-200 dark:border-slate-600';
   }
 
   switch (code) {
     case 'OPEN_WATER':
-      return 'bg-green-100 text-green-800';
+      return 'bg-green-100 text-green-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-green-200 dark:border-emerald-800/60';
     case 'ADVANCED_OPEN_WATER':
-      return 'bg-yellow-100 text-yellow-800';
+      return 'bg-yellow-100 text-yellow-800 dark:bg-amber-950/60 dark:text-amber-300 border-yellow-200 dark:border-amber-800/60';
     case 'DEEP_NITROX':
-      return 'bg-orange-100 text-orange-800';
+      return 'bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-300 border-orange-200 dark:border-orange-800/60';
     case 'TECHNICAL_DIVING':
-      return 'bg-red-100 text-red-800';
+      return 'bg-red-100 text-red-800 dark:bg-rose-950/60 dark:text-rose-300 border-red-200 dark:border-rose-800/60';
     default:
-      return 'bg-gray-100 text-gray-800';
+      return 'bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-200 border-gray-200 dark:border-slate-600';
   }
 };
 

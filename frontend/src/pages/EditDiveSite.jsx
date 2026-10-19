@@ -1232,11 +1232,13 @@ const EditDiveSite = () => {
 
   if (error) {
     return (
-      <div className='min-h-screen bg-gray-50 py-8'>
+      <div className='min-h-screen bg-gray-50 dark:bg-slate-900 py-8'>
         <div className='max-w-4xl mx-auto'>
-          <div className='bg-white rounded-lg shadow-md p-6'>
+          <div className='bg-white dark:bg-slate-800 rounded-lg shadow-md border border-gray-100 dark:border-slate-700 p-6'>
             <h1 className='text-2xl font-bold text-red-600 mb-4'>Error</h1>
-            <p className='text-gray-600'>Failed to load dive site: {getErrorMessage(error)}</p>
+            <p className='text-gray-600 dark:text-slate-300'>
+              Failed to load dive site: {getErrorMessage(error)}
+            </p>
           </div>
         </div>
       </div>
@@ -1249,21 +1251,23 @@ const EditDiveSite = () => {
         title='Edit Dive Site | Divemap'
         description='Update details, add new media, or modify the description of an existing dive site.'
       />
-      <div className='min-h-screen bg-gray-50 py-8'>
+      <div className='min-h-screen bg-gray-50 dark:bg-slate-900 py-8'>
         <div className='max-w-4xl mx-auto'>
-          <div className='bg-white rounded-lg shadow-md p-6'>
+          <div className='bg-white dark:bg-slate-800 rounded-lg shadow-md border border-gray-100 dark:border-slate-700 p-6'>
             {/* Header */}
             <div className='flex items-center justify-between mb-6'>
               <div className='flex items-center space-x-4'>
                 <button
                   onClick={() => navigate(`/dive-sites/${id}`)}
-                  className='flex items-center text-gray-600 hover:text-gray-900'
+                  className='flex items-center text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100'
                 >
                   <ArrowLeft className='w-5 h-5 mr-2' />
                   Back to Dive Site
                 </button>
               </div>
-              <h1 className='text-3xl font-bold text-gray-900'>Edit Dive Site</h1>
+              <h1 className='text-3xl font-bold text-gray-900 dark:text-slate-100'>
+                Edit Dive Site
+              </h1>
             </div>
 
             {/* Main Dive Site Form */}
@@ -1278,8 +1282,8 @@ const EditDiveSite = () => {
                           id='dive-site-name'
                           type='text'
                           {...register(name)}
-                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            errors.name ? 'border-red-500' : 'border-gray-300'
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${
+                            errors.name ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
                           }`}
                         />
                       )}
@@ -1292,7 +1296,7 @@ const EditDiveSite = () => {
                         <select
                           id='difficulty-level'
                           {...register(name)}
-                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                          className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                         >
                           {getDifficultyOptions().map(option => (
                             <option
@@ -1309,13 +1313,15 @@ const EditDiveSite = () => {
                 </div>
 
                 {/* Add Alias Section */}
-                <div className='border-t pt-6 mb-6'>
+                <div className='border-t border-gray-200 dark:border-slate-700 pt-6 mb-6'>
                   <div className='flex items-center justify-between mb-4'>
-                    <h3 className='text-lg font-semibold text-gray-900'>Aliases</h3>
+                    <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100'>
+                      Aliases
+                    </h3>
                     <button
                       type='button'
                       onClick={() => setShowAliasForm(!showAliasForm)}
-                      className='flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors'
+                      className='flex items-center px-4 py-2 text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-600 hover:text-gray-900 dark:hover:text-white transition-colors'
                     >
                       <Plus className='w-4 h-4 mr-2' />
                       Add Alias
@@ -1347,7 +1353,7 @@ const EditDiveSite = () => {
                             type='button'
                             onClick={handleAddAlias}
                             disabled={addAliasMutation.isLoading}
-                            className='px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors disabled:opacity-50'
+                            className='px-4 py-2 text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-600 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-50'
                           >
                             {addAliasMutation.isLoading ? 'Adding...' : 'Add Alias'}
                           </button>
@@ -1374,7 +1380,7 @@ const EditDiveSite = () => {
                       aliases.map(alias => (
                         <div
                           key={alias.id}
-                          className='flex items-center justify-between p-3 bg-gray-50 rounded-md'
+                          className='flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-700/60 border border-gray-100 dark:border-slate-600 rounded-md'
                         >
                           {editingAlias?.id === alias.id ? (
                             <div className='flex-1 flex items-center space-x-2'>
@@ -1384,7 +1390,7 @@ const EditDiveSite = () => {
                                 onChange={e =>
                                   setEditingAlias({ ...editingAlias, alias: e.target.value })
                                 }
-                                className='flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                className='flex-1 px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                               />
                               <button
                                 type='button'
@@ -1407,7 +1413,9 @@ const EditDiveSite = () => {
                           ) : (
                             <>
                               <div className='flex items-center space-x-2'>
-                                <span className='font-medium'>{alias.alias}</span>
+                                <span className='font-medium text-gray-900 dark:text-slate-100'>
+                                  {alias.alias}
+                                </span>
                               </div>
                               <div className='flex space-x-2'>
                                 <button
@@ -1430,7 +1438,9 @@ const EditDiveSite = () => {
                         </div>
                       ))
                     ) : (
-                      <p className='text-gray-500 text-sm'>No aliases found for this dive site.</p>
+                      <p className='text-gray-500 dark:text-slate-400 text-sm'>
+                        No aliases found for this dive site.
+                      </p>
                     )}
                   </div>
                 </div>
@@ -1478,8 +1488,10 @@ const EditDiveSite = () => {
                               }
                             },
                           })}
-                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            errors.latitude ? 'border-red-500' : 'border-gray-300'
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${
+                            errors.latitude
+                              ? 'border-red-500'
+                              : 'border-gray-300 dark:border-slate-600'
                           }`}
                         />
                       )}
@@ -1494,8 +1506,10 @@ const EditDiveSite = () => {
                           type='text'
                           inputMode='decimal'
                           {...register(name)}
-                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            errors.longitude ? 'border-red-500' : 'border-gray-300'
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${
+                            errors.longitude
+                              ? 'border-red-500'
+                              : 'border-gray-300 dark:border-slate-600'
                           }`}
                         />
                       )}
@@ -1512,7 +1526,7 @@ const EditDiveSite = () => {
                           id='country'
                           type='text'
                           {...register(name)}
-                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                          className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                           placeholder='e.g., Australia'
                         />
                       )}
@@ -1526,7 +1540,7 @@ const EditDiveSite = () => {
                           id='region'
                           type='text'
                           {...register(name)}
-                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                          className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                           placeholder='e.g., Queensland'
                         />
                       )}
@@ -1540,7 +1554,7 @@ const EditDiveSite = () => {
                     type='button'
                     onClick={suggestLocation}
                     disabled={!formData.latitude || !formData.longitude}
-                    className='flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed gap-2'
+                    className='flex items-center px-4 py-2 text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-600 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed gap-2'
                   >
                     🗺️ Suggest Country & Region from Coordinates
                   </button>
@@ -1558,8 +1572,10 @@ const EditDiveSite = () => {
                           min='0'
                           max='360'
                           {...register(name)}
-                          className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            errors.shore_direction ? 'border-red-500' : 'border-gray-300'
+                          className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${
+                            errors.shore_direction
+                              ? 'border-red-500'
+                              : 'border-gray-300 dark:border-slate-600'
                           }`}
                           placeholder='Enter shore direction in degrees (0-360)'
                         />
@@ -1567,19 +1583,19 @@ const EditDiveSite = () => {
                           type='button'
                           onClick={detectShoreDirection}
                           disabled={!formData.latitude || !formData.longitude}
-                          className='flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap'
+                          className='flex items-center px-4 py-2 text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-600 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap'
                         >
                           🔍 Re-detect from Coordinates
                         </button>
                       </div>
                     )}
                   </FormField>
-                  <p className='mt-1 text-xs text-gray-500'>
+                  <p className='mt-1 text-xs text-gray-500 dark:text-slate-400'>
                     Shore direction in degrees (0-360). 0° = North, 90° = East, 180° = South, 270° =
                     West.
                   </p>
                   {formData.shore_direction_confidence && (
-                    <div className='mt-2 text-xs text-gray-600'>
+                    <div className='mt-2 text-xs text-gray-600 dark:text-slate-300'>
                       <span className='font-medium'>Confidence:</span>{' '}
                       {formData.shore_direction_confidence}
                       {formData.shore_direction_method && (
@@ -1613,8 +1629,10 @@ const EditDiveSite = () => {
                         max='1000'
                         step='any'
                         {...register(name)}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          errors.max_depth ? 'border-red-500' : 'border-gray-300'
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${
+                          errors.max_depth
+                            ? 'border-red-500'
+                            : 'border-gray-300 dark:border-slate-600'
                         }`}
                         placeholder='e.g., 25.5'
                       />
@@ -1671,9 +1689,11 @@ const EditDiveSite = () => {
                 </div>
 
                 {/* Media Management */}
-                <div className='border-t pt-6'>
+                <div className='border-t border-gray-200 dark:border-slate-700 pt-6'>
                   <div className='flex items-center justify-between mb-4'>
-                    <h3 className='text-lg font-semibold text-gray-900'>Media</h3>
+                    <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100'>
+                      Media
+                    </h3>
                   </div>
                   {/* Photo Upload */}
                   <div className='mb-3'>
@@ -1703,7 +1723,7 @@ const EditDiveSite = () => {
                                 <div>
                                   <label
                                     htmlFor='media_type'
-                                    className='block text-sm font-medium text-gray-700 mb-1'
+                                    className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
                                   >
                                     Media Type
                                   </label>
@@ -1713,7 +1733,7 @@ const EditDiveSite = () => {
                                     onChange={e =>
                                       setNewMedia(prev => ({ ...prev, media_type: e.target.value }))
                                     }
-                                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                    className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                   >
                                     <option value='photo'>Photo</option>
                                     <option value='video'>Video</option>
@@ -1722,7 +1742,7 @@ const EditDiveSite = () => {
                                 <div className='md:col-span-2'>
                                   <label
                                     htmlFor='media_url'
-                                    className='block text-sm font-medium text-gray-700 mb-1'
+                                    className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
                                   >
                                     URL
                                   </label>
@@ -1733,7 +1753,7 @@ const EditDiveSite = () => {
                                     onChange={e =>
                                       setNewMedia(prev => ({ ...prev, url: e.target.value }))
                                     }
-                                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                    className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                     placeholder='https://example.com/image.jpg'
                                   />
                                 </div>
@@ -1741,7 +1761,7 @@ const EditDiveSite = () => {
                               <div>
                                 <label
                                   htmlFor='media_description'
-                                  className='block text-sm font-medium text-gray-700 mb-1'
+                                  className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
                                 >
                                   Description
                                 </label>
@@ -1752,14 +1772,14 @@ const EditDiveSite = () => {
                                   onChange={e =>
                                     setNewMedia(prev => ({ ...prev, description: e.target.value }))
                                   }
-                                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                  className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                 />
                               </div>
                               <div className='flex space-x-2'>
                                 <button
                                   type='button'
                                   onClick={handleAddMedia}
-                                  className='flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors'
+                                  className='flex items-center px-4 py-2 text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-600 hover:text-gray-900 dark:hover:text-white transition-colors'
                                 >
                                   Add Media
                                 </button>
@@ -1888,13 +1908,15 @@ const EditDiveSite = () => {
             </FormProvider>
 
             {/* Diving Centers Management - Outside Main Form */}
-            <div className='border-t pt-6 mt-6'>
+            <div className='border-t border-gray-200 dark:border-slate-700 pt-6 mt-6'>
               <div className='flex items-center justify-between mb-4'>
-                <h3 className='text-lg font-semibold text-gray-900'>Diving Centers</h3>
+                <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100'>
+                  Diving Centers
+                </h3>
                 <button
                   type='button'
                   onClick={handleToggleDivingCenterForm}
-                  className='flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors'
+                  className='flex items-center px-4 py-2 text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-600 hover:text-gray-900 dark:hover:text-white transition-colors'
                 >
                   <Building className='w-4 h-4 mr-2' />
                   Add Diving Center
@@ -1903,13 +1925,13 @@ const EditDiveSite = () => {
 
               {/* Add Diving Center Form */}
               {showDivingCenterForm && (
-                <div className='bg-gray-50 p-4 rounded-md mb-4'>
+                <div className='bg-gray-50 dark:bg-slate-700/60 p-4 rounded-md mb-4 border border-gray-200 dark:border-slate-600'>
                   <div className='space-y-4'>
                     <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
                       <div>
                         <label
                           htmlFor='diving_center_search'
-                          className='block text-sm font-medium text-gray-700 mb-1'
+                          className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
                         >
                           Diving Center *
                         </label>
@@ -1923,12 +1945,14 @@ const EditDiveSite = () => {
                             if (e.key === 'Escape') setIsDivingCenterDropdownOpen(false);
                           }}
                           placeholder='Type to search...'
-                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                          className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                         />
                         {isDivingCenterDropdownOpen && (
-                          <div className='mt-2 max-h-56 overflow-auto border border-gray-200 rounded-md'>
+                          <div className='mt-2 max-h-56 overflow-auto border border-gray-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 shadow-md'>
                             {divingCenterLoading && (
-                              <div className='p-2 text-sm text-gray-500'>Loading...</div>
+                              <div className='p-2 text-sm text-gray-500 dark:text-slate-400'>
+                                Loading...
+                              </div>
                             )}
                             {divingCenterError && (
                               <div className='p-2 text-sm text-red-600'>{divingCenterError}</div>
@@ -1939,9 +1963,9 @@ const EditDiveSite = () => {
                                   <li key={option.id}>
                                     <button
                                       type='button'
-                                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 ${
+                                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 ${
                                         String(newDivingCenterId) === String(option.id)
-                                          ? 'bg-gray-50'
+                                          ? 'bg-gray-50 dark:bg-slate-700'
                                           : ''
                                       }`}
                                       onClick={() => {
@@ -1951,15 +1975,17 @@ const EditDiveSite = () => {
                                       }}
                                     >
                                       <div className='flex items-center justify-between'>
-                                        <span className='text-sm text-gray-800'>{option.name}</span>
+                                        <span className='text-sm text-gray-800 dark:text-slate-100'>
+                                          {option.name}
+                                        </span>
                                         {typeof option.distance_km === 'number' && (
-                                          <span className='text-xs text-gray-500'>
+                                          <span className='text-xs text-gray-500 dark:text-slate-400'>
                                             {option.distance_km} km
                                           </span>
                                         )}
                                       </div>
                                       {(option.city || option.region || option.country) && (
-                                        <div className='text-xs text-gray-500'>
+                                        <div className='text-xs text-gray-500 dark:text-slate-400'>
                                           {[option.city, option.region, option.country]
                                             .filter(Boolean)
                                             .join(', ')}
@@ -1970,7 +1996,7 @@ const EditDiveSite = () => {
                                 ))}
                                 {Array.isArray(divingCenterOptions) &&
                                   divingCenterOptions.length === 0 && (
-                                    <li className='px-3 py-2 text-sm text-gray-500'>
+                                    <li className='px-3 py-2 text-sm text-gray-500 dark:text-slate-400'>
                                       {formData.latitude && formData.longitude
                                         ? 'No centers within 100 km. Start typing to search all centers.'
                                         : 'Enter coordinates and start typing to search centers.'}
@@ -1984,7 +2010,7 @@ const EditDiveSite = () => {
                       <div>
                         <label
                           htmlFor='new_dive_cost'
-                          className='block text-sm font-medium text-gray-700 mb-1'
+                          className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
                         >
                           Dive Cost
                         </label>
@@ -1993,13 +2019,13 @@ const EditDiveSite = () => {
                           type='number'
                           value={newDiveCost}
                           onChange={e => setNewDiveCost(e.target.value)}
-                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                          className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                         />
                       </div>
                       <div>
                         <label
                           htmlFor='new_dive_currency'
-                          className='block text-sm font-medium text-gray-700 mb-1'
+                          className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
                         >
                           Currency
                         </label>
@@ -2007,7 +2033,7 @@ const EditDiveSite = () => {
                           id='new_dive_currency'
                           value={newDiveCurrency}
                           onChange={e => setNewDiveCurrency(e.target.value)}
-                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                          className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                         >
                           {getCurrencyOptions().map(option => (
                             <option key={option.value} value={option.value}>

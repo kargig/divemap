@@ -107,15 +107,15 @@ const DiveSiteInfo = ({ dive, index }) => {
   };
 
   return (
-    <div className='bg-gray-50 rounded-lg p-4'>
+    <div className='bg-gray-50 dark:bg-slate-700/50 rounded-lg p-4 border border-transparent dark:border-slate-600'>
       <div className='flex items-center justify-between mb-3'>
-        <h4 className='font-medium text-gray-900'>
+        <h4 className='font-medium text-gray-900 dark:text-slate-100'>
           Dive {index + 1}:{' '}
           {dive.dive_site_id ? (
             <Link
               to={`/dive-sites/${dive.dive_site_id}`}
               state={{ from: window.location.pathname + window.location.search }}
-              className='text-blue-600 hover:text-blue-800 hover:underline transition-colors'
+              className='text-blue-600 dark:text-sky-400 hover:text-blue-800 dark:hover:text-sky-300 hover:underline transition-colors'
             >
               {dive.dive_site_name || diveSite?.name || 'Unnamed Site'}
             </Link>
@@ -123,13 +123,13 @@ const DiveSiteInfo = ({ dive, index }) => {
             dive.dive_site_name || 'Unnamed Site'
           )}
         </h4>
-        <div className='text-sm text-gray-500 font-medium flex items-center gap-1.5'>
-          <DepthIcon className='text-divemap-blue font-bold' size={16} />
+        <div className='text-sm text-gray-500 dark:text-slate-400 font-medium flex items-center gap-1.5'>
+          <DepthIcon className='text-divemap-blue dark:text-sky-400 font-bold' size={16} />
           {diveSite?.max_depth ? `${diveSite.max_depth}m max` : 'Depth TBD'}
         </div>
       </div>
       {dive.dive_site_id && diveSite && (
-        <div className='text-sm text-gray-700 break-words overflow-hidden'>
+        <div className='text-sm text-gray-700 dark:text-slate-300 break-words overflow-hidden'>
           <div className='mb-2 break-words overflow-hidden max-w-full'>
             {diveSite.description ? (
               <RichText content={diveSite.description} />
@@ -138,17 +138,18 @@ const DiveSiteInfo = ({ dive, index }) => {
             )}
           </div>
           {dive.dive_description && (
-            <div className='mb-2 text-gray-700 break-words overflow-hidden max-w-full'>
-              <strong>Dive Description:</strong>
+            <div className='mb-2 text-gray-700 dark:text-slate-300 break-words overflow-hidden max-w-full'>
+              <strong className='text-gray-900 dark:text-slate-100'>Dive Description:</strong>
               <RichText content={dive.dive_description} className='mt-1' />
             </div>
           )}
           {dive.dive_duration && (
-            <p className='mb-2 text-gray-700'>
-              <strong>Duration:</strong> {dive.dive_duration} minutes
+            <p className='mb-2 text-gray-700 dark:text-slate-300'>
+              <strong className='text-gray-900 dark:text-slate-100'>Duration:</strong>{' '}
+              {dive.dive_duration} minutes
             </p>
           )}
-          <div className='flex items-center space-x-4 text-xs text-gray-500 mt-3'>
+          <div className='flex items-center space-x-4 text-xs text-gray-500 dark:text-slate-400 mt-3'>
             {diveSite.country && <span>📍 {diveSite.country}</span>}
             {diveSite.region && <span>🏛️ {diveSite.region}</span>}
           </div>{' '}
@@ -156,8 +157,8 @@ const DiveSiteInfo = ({ dive, index }) => {
       )}
 
       {dive.user_dive_id && (
-        <div className='mt-4 pt-3 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3'>
-          <div className='flex items-center gap-2 text-sm text-green-700'>
+        <div className='mt-4 pt-3 border-t border-gray-200 dark:border-slate-600 flex flex-col sm:flex-row sm:items-center justify-between gap-3'>
+          <div className='flex items-center gap-2 text-sm text-green-700 dark:text-emerald-400'>
             <CheckCircle className='w-4 h-4 flex-shrink-0' />
             <span className='min-w-0 flex-1'>
               Matched with your dive:{' '}
@@ -637,8 +638,8 @@ const TripDetail = () => {
 
       <TripHeader trip={trip} />
       {/* Tab Navigation */}
-      <div className='bg-white rounded-lg shadow-sm border border-gray-200 mb-6'>
-        <div className='border-b border-gray-200'>
+      <div className='bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 mb-6'>
+        <div className='border-b border-gray-200 dark:border-slate-700'>
           <nav className='grid grid-cols-2 sm:flex sm:space-x-8 px-2 sm:px-6'>
             {[
               { id: 'dive-sites', label: 'Dive Sites', icon: MapPin },
@@ -653,8 +654,8 @@ const TripDetail = () => {
                   onClick={() => setActiveTab(tab.id)}
                   className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm flex items-center justify-center sm:justify-start space-x-1.5 sm:space-x-2 ${
                     activeTab === tab.id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      ? 'border-blue-500 text-blue-600 dark:text-sky-400'
+                      : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:border-gray-300 dark:hover:border-slate-600'
                   }`}
                 >
                   <Icon className='w-4 h-4' />
@@ -670,18 +671,22 @@ const TripDetail = () => {
             <div className='space-y-4 sm:space-y-6'>
               {trip.special_requirements && (
                 <div>
-                  <h3 className='text-lg font-semibold text-gray-900 mb-3'>Special Requirements</h3>
+                  <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 mb-3'>
+                    Special Requirements
+                  </h3>
                   <RichText
                     content={trip.special_requirements}
-                    className='text-gray-700 break-words max-w-full overflow-hidden'
+                    className='text-gray-700 dark:text-slate-300 break-words max-w-full overflow-hidden'
                   />
                 </div>
               )}
 
               {trip.trip_duration && (
                 <div>
-                  <h3 className='text-lg font-semibold text-gray-900 mb-3'>Trip Duration</h3>
-                  <p className='text-gray-700 leading-relaxed break-words'>
+                  <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 mb-3'>
+                    Trip Duration
+                  </h3>
+                  <p className='text-gray-700 dark:text-slate-300 leading-relaxed break-words'>
                     {Math.floor(trip.trip_duration / 60)} hours {trip.trip_duration % 60} minutes
                   </p>
                 </div>
@@ -690,7 +695,9 @@ const TripDetail = () => {
           )}
           {activeTab === 'dive-sites' && (
             <div className='space-y-4 sm:space-y-6'>
-              <h3 className='text-lg font-semibold text-gray-900 mb-3'>Dive Sites</h3>
+              <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 mb-3'>
+                Dive Sites
+              </h3>
               {trip.dives && trip.dives.length > 0 ? (
                 <div className='space-y-4'>
                   {trip.dives.map((dive, index) => (
@@ -702,13 +709,17 @@ const TripDetail = () => {
                   ))}
                 </div>
               ) : (
-                <p className='text-gray-500'>No dive sites information available for this trip.</p>
+                <p className='text-gray-500 dark:text-slate-400'>
+                  No dive sites information available for this trip.
+                </p>
               )}
             </div>
           )}
           {activeTab === 'diving-center' && (
             <div className='space-y-4 sm:space-y-6'>
-              <h3 className='text-lg font-semibold text-gray-900 mb-3'>Diving Center</h3>
+              <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 mb-3'>
+                Diving Center
+              </h3>
               {divingCenter ? (
                 <DivingCenterSummaryCard
                   center={divingCenter}
@@ -716,48 +727,58 @@ const TripDetail = () => {
                   reviewsEnabled={reviewsEnabled}
                 />
               ) : (
-                <p className='text-gray-500'>Diving center information not available.</p>
+                <p className='text-gray-500 dark:text-slate-400'>
+                  Diving center information not available.
+                </p>
               )}
             </div>
           )}{' '}
           {activeTab === 'booking' && (
             <div className='space-y-4 sm:space-y-6'>
-              <h3 className='text-lg font-semibold text-gray-900 mb-3'>Book This Trip</h3>
+              <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 mb-3'>
+                Book This Trip
+              </h3>
 
               {trip.is_bookable &&
                 trip.octo_slot_id &&
                 (isFullyBooked ? (
-                  <div className='bg-white border-2 border-amber-500 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6'>
-                    <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-100'>
+                  <div className='bg-white dark:bg-slate-800/90 border-2 border-amber-500 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6'>
+                    <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-100 dark:border-slate-700'>
                       <div>
-                        <span className='inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 mb-2'>
-                          <AlertCircle className='w-3.5 h-3.5 mr-1 text-amber-600' /> All Online
-                          Spots Reserved
+                        <span className='inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 mb-2'>
+                          <AlertCircle className='w-3.5 h-3.5 mr-1 text-amber-600 dark:text-amber-400' />{' '}
+                          All Online Spots Reserved
                         </span>
-                        <h4 className='text-2xl font-black text-gray-900'>Departure Full Online</h4>
-                        <p className='text-sm text-gray-600 mt-1 max-w-xl'>
+                        <h4 className='text-2xl font-black text-gray-900 dark:text-slate-100'>
+                          Departure Full Online
+                        </h4>
+                        <p className='text-sm text-gray-600 dark:text-slate-300 mt-1 max-w-xl'>
                           Online slots for this departure are currently full. However, dive centers
                           frequently have last-minute schedule changes or reserve unlisted boat
                           spots for direct bookings.
                         </p>
                       </div>
 
-                      <div className='text-left sm:text-right bg-amber-50/60 sm:bg-transparent p-4 sm:p-0 rounded-xl'>
-                        <span className='text-xs text-gray-500 font-medium block'>Status</span>
-                        <span className='text-xl sm:text-2xl font-black text-amber-700'>
+                      <div className='text-left sm:text-right bg-amber-50/60 dark:bg-slate-700/50 sm:bg-transparent sm:dark:bg-transparent p-4 sm:p-0 rounded-xl'>
+                        <span className='text-xs text-gray-500 dark:text-slate-400 font-medium block'>
+                          Status
+                        </span>
+                        <span className='text-xl sm:text-2xl font-black text-amber-700 dark:text-amber-400'>
                           Fully Booked
                         </span>
-                        <span className='text-xs text-amber-800 font-semibold block mt-0.5'>
+                        <span className='text-xs text-amber-800 dark:text-amber-300 font-semibold block mt-0.5'>
                           Inquire for openings / waitlist
                         </span>
                       </div>
                     </div>
 
-                    <div className='grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600'>
+                    <div className='grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600 dark:text-slate-300'>
                       <div className='flex items-start space-x-3'>
-                        <Users className='w-5 h-5 text-amber-600 shrink-0 mt-0.5' />
+                        <Users className='w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5' />
                         <div>
-                          <strong className='text-gray-900 block'>Reserved Boat Capacity</strong>
+                          <strong className='text-gray-900 dark:text-slate-100 block'>
+                            Reserved Boat Capacity
+                          </strong>
                           <span>
                             Diving centers often hold extra spots on board that are not listed
                             online.
@@ -765,9 +786,11 @@ const TripDetail = () => {
                         </div>
                       </div>
                       <div className='flex items-start space-x-3'>
-                        <Clock className='w-5 h-5 text-amber-600 shrink-0 mt-0.5' />
+                        <Clock className='w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5' />
                         <div>
-                          <strong className='text-gray-900 block'>Cancellation Waitlist</strong>
+                          <strong className='text-gray-900 dark:text-slate-100 block'>
+                            Cancellation Waitlist
+                          </strong>
                           <span>
                             Spots frequently open up 24 to 48 hours prior to departure due to travel
                             adjustments.
@@ -775,9 +798,11 @@ const TripDetail = () => {
                         </div>
                       </div>
                       <div className='flex items-start space-x-3'>
-                        <MessageSquare className='w-5 h-5 text-amber-600 shrink-0 mt-0.5' />
+                        <MessageSquare className='w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5' />
                         <div>
-                          <strong className='text-gray-900 block'>Direct Inquiry</strong>
+                          <strong className='text-gray-900 dark:text-slate-100 block'>
+                            Direct Inquiry
+                          </strong>
                           <span>
                             Reach out directly via in-app chat, WhatsApp, email, or telephone.
                           </span>
@@ -803,40 +828,40 @@ const TripDetail = () => {
                           size='lg'
                           className='w-full sm:w-auto flex items-center justify-center'
                         >
-                          <ClipboardList className='w-4 h-4 mr-2 text-blue-600' />
+                          <ClipboardList className='w-4 h-4 mr-2 text-blue-600 dark:text-sky-400' />
                           View Manifest & Operations
                         </Button>
                       )}
                     </div>
                   </div>
                 ) : (
-                  <div className='bg-white border-2 border-emerald-500 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6'>
-                    <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-100'>
+                  <div className='bg-white dark:bg-slate-800/90 border-2 border-emerald-500 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6'>
+                    <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-100 dark:border-slate-700'>
                       <div>
-                        <span className='inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 mb-2'>
-                          <Sparkles className='w-3.5 h-3.5 mr-1 text-emerald-600' /> Instant Online
-                          Booking
+                        <span className='inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 mb-2'>
+                          <Sparkles className='w-3.5 h-3.5 mr-1 text-emerald-600 dark:text-emerald-400' />{' '}
+                          Instant Online Booking
                         </span>
-                        <h4 className='text-2xl font-black text-gray-900'>
+                        <h4 className='text-2xl font-black text-gray-900 dark:text-slate-100'>
                           Reserve Your Seat Online
                         </h4>
-                        <p className='text-sm text-gray-500 mt-1'>
+                        <p className='text-sm text-gray-500 dark:text-slate-400 mt-1'>
                           Guaranteed spot confirmation with digital check-in and automated dockside
                           roster.
                         </p>
                       </div>
 
-                      <div className='text-left sm:text-right bg-emerald-50/60 sm:bg-transparent p-4 sm:p-0 rounded-xl'>
-                        <span className='text-xs text-gray-500 font-medium block'>
+                      <div className='text-left sm:text-right bg-emerald-50/60 dark:bg-slate-700/50 sm:bg-transparent sm:dark:bg-transparent p-4 sm:p-0 rounded-xl'>
+                        <span className='text-xs text-gray-500 dark:text-slate-400 font-medium block'>
                           Starting From
                         </span>
-                        <span className='text-2xl sm:text-3xl font-black text-gray-900'>
+                        <span className='text-2xl sm:text-3xl font-black text-gray-900 dark:text-slate-100'>
                           {trip.base_price
                             ? trip.base_price.toFixed(2)
                             : trip.trip_price || '60.00'}{' '}
                           {trip.trip_currency || 'EUR'}
                         </span>
-                        <span className='text-xs text-emerald-700 font-semibold block mt-0.5'>
+                        <span className='text-xs text-emerald-700 dark:text-emerald-400 font-semibold block mt-0.5'>
                           {trip.seats_available !== undefined && trip.seats_available !== null
                             ? `${trip.seats_available} spots remaining`
                             : 'Seats available'}
@@ -844,11 +869,13 @@ const TripDetail = () => {
                       </div>
                     </div>
 
-                    <div className='grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600'>
+                    <div className='grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600 dark:text-slate-300'>
                       <div className='flex items-start space-x-3'>
-                        <CheckCircle className='w-5 h-5 text-emerald-600 shrink-0 mt-0.5' />
+                        <CheckCircle className='w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5' />
                         <div>
-                          <strong className='text-gray-900 block'>Equipment Options</strong>
+                          <strong className='text-gray-900 dark:text-slate-100 block'>
+                            Equipment Options
+                          </strong>
                           <span>
                             {trip.different_rental_price === false
                               ? 'Full equipment rental is included in the trip price at no extra charge.'
@@ -857,18 +884,22 @@ const TripDetail = () => {
                         </div>
                       </div>
                       <div className='flex items-start space-x-3'>
-                        <ShieldCheck className='w-5 h-5 text-emerald-600 shrink-0 mt-0.5' />
+                        <ShieldCheck className='w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5' />
                         <div>
-                          <strong className='text-gray-900 block'>Paperwork Online</strong>
+                          <strong className='text-gray-900 dark:text-slate-100 block'>
+                            Paperwork Online
+                          </strong>
                           <span>
                             Pre-fill encrypted medical questionnaires and sign legal waivers.
                           </span>
                         </div>
                       </div>
                       <div className='flex items-start space-x-3'>
-                        <Ticket className='w-5 h-5 text-emerald-600 shrink-0 mt-0.5' />
+                        <Ticket className='w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5' />
                         <div>
-                          <strong className='text-gray-900 block'>Pay on Arrival</strong>
+                          <strong className='text-gray-900 dark:text-slate-100 block'>
+                            Pay on Arrival
+                          </strong>
                           <span>Reserve now without prepayment and settle at the dive center.</span>
                         </div>
                       </div>
@@ -892,7 +923,7 @@ const TripDetail = () => {
                           size='lg'
                           className='w-full sm:w-auto flex items-center justify-center'
                         >
-                          <ClipboardList className='w-4 h-4 mr-2 text-blue-600' />
+                          <ClipboardList className='w-4 h-4 mr-2 text-blue-600 dark:text-sky-400' />
                           View Manifest & Operations
                         </Button>
                       )}
@@ -900,16 +931,16 @@ const TripDetail = () => {
                   </div>
                 ))}
 
-              <div className='bg-blue-50 border border-blue-200 rounded-lg p-6'>
+              <div className='bg-blue-50 dark:bg-slate-700/60 border border-blue-200 dark:border-slate-600 rounded-lg p-6'>
                 <div className='text-center'>
-                  <h4 className='text-lg font-medium text-blue-900 mb-2'>
+                  <h4 className='text-lg font-medium text-blue-900 dark:text-sky-200 mb-2'>
                     {isFullyBooked
                       ? 'Inquire Directly with the Diving Center'
                       : trip.is_bookable
                         ? 'Questions Before Booking?'
                         : 'Ready to Book?'}
                   </h4>
-                  <p className='text-blue-700 mb-4'>
+                  <p className='text-blue-700 dark:text-slate-300 mb-4'>
                     {isFullyBooked
                       ? 'Check for unlisted reserved spots, private boat options, or ask to be notified if someone cancels.'
                       : trip.is_bookable
@@ -962,7 +993,7 @@ const TripDetail = () => {
                       )}
                     </div>
                   ) : (
-                    <p className='text-blue-600'>
+                    <p className='text-blue-600 dark:text-sky-400'>
                       Please contact the diving center for booking information.
                     </p>
                   )}
@@ -973,9 +1004,11 @@ const TripDetail = () => {
         </div>
       </div>
       {/* Related Trips Section */}
-      <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
-        <h3 className='text-lg font-semibold text-gray-900 mb-4'>Related Trips</h3>
-        <p className='text-gray-600 mb-4'>
+      <div className='bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-6'>
+        <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4'>
+          Related Trips
+        </h3>
+        <p className='text-gray-600 dark:text-slate-300 mb-4'>
           Discover more diving adventures from this center or similar destinations.
         </p>
         <Button onClick={() => navigate('/dive-trips')} variant='primary' size='lg'>

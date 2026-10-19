@@ -81,7 +81,11 @@ const AutocompleteDropdown = ({
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
-      {label && <label className='block text-sm font-medium text-gray-700 mb-2'>{label}</label>}
+      {label && (
+        <label className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2'>
+          {label}
+        </label>
+      )}
       <div className='relative'>
         <input
           type='text'
@@ -89,7 +93,9 @@ const AutocompleteDropdown = ({
           value={search}
           onChange={e => handleSearchChange(e.target.value)}
           onFocus={() => setIsOpen(true)}
-          className={`w-full px-3 py-2 pr-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${error ? 'border-red-500' : 'border-gray-300'}`}
+          className={`w-full px-3 py-2 pr-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${
+            error ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
+          }`}
         />
         <div className='absolute inset-y-0 right-0 flex items-center pr-3'>
           {isLoading ? (
@@ -97,7 +103,7 @@ const AutocompleteDropdown = ({
           ) : search && isOpen ? (
             <X
               size={16}
-              className='text-gray-400 cursor-pointer hover:text-gray-600'
+              className='text-gray-400 cursor-pointer hover:text-gray-600 dark:hover:text-slate-200'
               onClick={handleClear}
             />
           ) : (
@@ -113,7 +119,7 @@ const AutocompleteDropdown = ({
 
       {/* Dropdown */}
       {isOpen && search.trim() && !isLoading && results.length > 0 && (
-        <div className='absolute z-[100] w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'>
+        <div className='absolute z-[100] w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-md shadow-lg max-h-60 overflow-auto'>
           {results.map((item, index) => (
             <div
               key={keyExtractor ? keyExtractor(item, index) : index}
@@ -126,12 +132,12 @@ const AutocompleteDropdown = ({
               }}
               role='button'
               tabIndex={0}
-              className='px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0'
+              className='px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer border-b border-gray-100 dark:border-slate-700/60 last:border-b-0'
             >
               {renderItem ? (
                 renderItem(item)
               ) : (
-                <div className='font-medium text-gray-900'>{item}</div>
+                <div className='font-medium text-gray-900 dark:text-slate-100'>{item}</div>
               )}
             </div>
           ))}
@@ -140,8 +146,8 @@ const AutocompleteDropdown = ({
 
       {/* Empty state */}
       {isOpen && search.trim() && !isLoading && results.length === 0 && (
-        <div className='absolute z-[100] w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg'>
-          <div className='px-3 py-2 text-gray-500 text-sm'>{emptyMessage}</div>
+        <div className='absolute z-[100] w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-md shadow-lg'>
+          <div className='px-3 py-2 text-gray-500 dark:text-slate-400 text-sm'>{emptyMessage}</div>
         </div>
       )}
       {error && <p className='text-xs text-red-500 mt-1'>{error}</p>}

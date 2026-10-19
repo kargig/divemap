@@ -12,12 +12,18 @@ import {
   ReferenceLine,
 } from 'recharts';
 
+import { useTheme } from '../contexts/ThemeContext';
+import { getChartTheme } from '../utils/chartTheme';
+
 const HALFTIMES = [5, 8, 12.5, 18.5, 27, 38.3, 54.3, 77, 109, 146, 187, 239, 305, 390, 498, 635];
 
 /**
  * Visualizes tissue saturation for all 16 Bühlmann compartments at the end of a dive.
  */
 const TissueSaturationChart = ({ saturationData, gfHigh }) => {
+  const { resolvedTheme } = useTheme();
+  const chartTheme = useMemo(() => getChartTheme(resolvedTheme), [resolvedTheme]);
+
   const data = useMemo(() => {
     if (!saturationData || saturationData.length !== 16) return [];
     return saturationData.map((gf99, index) => ({
@@ -34,13 +40,15 @@ const TissueSaturationChart = ({ saturationData, gfHigh }) => {
     <div className='mt-8 px-4 sm:px-0'>
       <div className='flex items-center justify-between mb-4'>
         <div>
-          <h3 className='text-lg font-semibold text-gray-900'>Final Tissue Status</h3>
-          <p className='text-sm text-gray-500'>
+          <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100'>
+            Final Tissue Status
+          </h3>
+          <p className='text-sm text-gray-500 dark:text-slate-400'>
             Relative saturation (GF99) of all 16 Bühlmann ZH-L16 compartments after surfacing.
           </p>
         </div>
         {gfHigh && (
-          <div className='text-xs font-medium px-2 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-100'>
+          <div className='text-xs font-medium px-2 py-1 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 rounded-full border border-blue-100 dark:border-blue-800'>
             GF High: {gfHigh}
           </div>
         )}
@@ -53,36 +61,41 @@ const TissueSaturationChart = ({ saturationData, gfHigh }) => {
             margin={{ top: 10, right: 10, left: -20, bottom: 20 }}
             barCategoryGap='20%'
           >
-            <CartesianGrid strokeDasharray='3 3' vertical={false} stroke='#f0f0f0' />
+            <CartesianGrid strokeDasharray='3 3' vertical={false} stroke={chartTheme.gridStroke} />
             <XAxis
               dataKey='display_name'
               fontSize={10}
               tickLine={false}
               axisLine={false}
+              tick={{ fill: chartTheme.axisText }}
               label={{
                 value: 'Compartment Halftime (min)',
                 position: 'bottom',
                 offset: 0,
                 fontSize: 10,
+                fill: chartTheme.axisText,
               }}
             />
             <YAxis
               fontSize={10}
               tickLine={false}
               axisLine={false}
+              tick={{ fill: chartTheme.axisText }}
               domain={[0, dataMax => Math.max(110, dataMax)]}
               unit='%'
             />
             <Tooltip
-              cursor={{ fill: '#f9fafb' }}
+              cursor={{ fill: chartTheme.cursorFill }}
               content={({ active, payload }) => {
                 if (active && payload && payload.length) {
                   const d = payload[0].payload;
                   return (
-                    <div className='bg-white p-2 border border-gray-200 rounded shadow-sm text-xs'>
+                    <div className='bg-white dark:bg-slate-800 p-2 border border-gray-200 dark:border-slate-700 rounded shadow-sm text-xs text-gray-900 dark:text-slate-100'>
                       <div className='font-bold mb-1'>Compartment {d.name}</div>
-                      <div>Halftime: {d.halftime} min</div>
-                      <div className='mt-1'>
+                      <div className='text-gray-600 dark:text-slate-300'>
+                        Halftime: {d.halftime} min
+                      </div>
+                      <div className='mt-1 text-gray-700 dark:text-slate-200'>
                         Saturation: <span className='font-mono font-bold'>{d.gf99}%</span>
                       </div>
                     </div>

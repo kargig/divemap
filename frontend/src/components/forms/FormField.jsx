@@ -17,7 +17,10 @@ export const FormField = forwardRef(
     return (
       <div className={`mb-4 ${className}`}>
         {label && (
-          <label htmlFor={name} className='block text-sm font-medium text-gray-700 mb-1'>
+          <label
+            htmlFor={name}
+            className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
+          >
             {label}
             {required && <span className='text-red-500 ml-1'>*</span>}
           </label>

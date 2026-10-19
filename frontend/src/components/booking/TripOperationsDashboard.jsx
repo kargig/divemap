@@ -554,21 +554,21 @@ const TripOperationsDashboard = () => {
         </div>
 
         {/* Master Trip Operations Header */}
-        <div className='rounded-none sm:rounded-2xl border-y sm:border p-4 sm:p-6 bg-white dark:bg-gray-800 shadow-sm space-y-4'>
+        <div className='rounded-none sm:rounded-2xl border-y sm:border p-4 sm:p-6 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm space-y-4'>
           <div className='flex flex-col lg:flex-row lg:items-center justify-between gap-4'>
             <div>
               <div className='flex items-center gap-2'>
-                <span className='px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 uppercase tracking-wider'>
+                <span className='px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 uppercase tracking-wider'>
                   Operations Dashboard
                 </span>
                 <span className='text-xs text-gray-400'>•</span>
-                <span className='text-xs font-semibold text-emerald-600 flex items-center gap-1'>
+                <span className='text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1'>
                   <span className='w-2 h-2 rounded-full bg-emerald-500 animate-pulse'></span>
                   Live Roster
                 </span>
               </div>
               <div className='flex items-center gap-2 mt-1 flex-wrap'>
-                <h1 className='text-xl sm:text-2xl font-bold text-gray-900 dark:text-white'>
+                <h1 className='text-xl sm:text-2xl font-bold text-gray-900 dark:text-slate-100'>
                   {slot.product_title}
                 </h1>
                 <button
@@ -592,7 +592,7 @@ const TripOperationsDashboard = () => {
               </div>
               <div className='flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2 text-xs text-gray-600 dark:text-gray-300'>
                 <span className='flex items-center gap-1'>
-                  <Ship size={14} className='text-blue-600 shrink-0' />
+                  <Ship size={14} className='text-blue-600 dark:text-sky-400 shrink-0' />
                   <strong>{vessel.name}</strong> ({vessel.registration_number})
                 </span>
                 <span className='flex items-center gap-1'>
@@ -607,20 +607,20 @@ const TripOperationsDashboard = () => {
             </div>
 
             {/* Capacity & Boarding Metric Gauges */}
-            <div className='flex flex-row items-center gap-4 bg-gray-50 dark:bg-gray-750 p-3.5 rounded-xl border border-gray-100 dark:border-gray-700 shrink-0'>
+            <div className='flex flex-row items-center gap-4 bg-gray-50 dark:bg-slate-700/60 p-3.5 rounded-xl border border-gray-100 dark:border-slate-600 shrink-0'>
               <div>
-                <span className='text-[10px] font-bold text-gray-400 uppercase tracking-wider block'>
+                <span className='text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase tracking-wider block'>
                   Capacity
                 </span>
                 <div className='flex items-baseline gap-1 mt-0.5'>
-                  <span className='text-xl font-bold font-mono text-gray-900 dark:text-white'>
+                  <span className='text-xl font-bold font-mono text-gray-900 dark:text-slate-100'>
                     {bookedCount}/{slot.seats_total}
                   </span>
-                  <span className='text-xs text-gray-500 font-medium'>
+                  <span className='text-xs text-gray-500 dark:text-slate-400 font-medium'>
                     ({slot.seats_available} open)
                   </span>
                 </div>
-                <div className='w-28 bg-gray-200 dark:bg-gray-700 h-1.5 rounded-full mt-1.5 overflow-hidden'>
+                <div className='w-28 bg-gray-200 dark:bg-slate-600 h-1.5 rounded-full mt-1.5 overflow-hidden'>
                   <div
                     className={`h-full rounded-full transition-all ${
                       slot.seats_available === 0
@@ -634,8 +634,8 @@ const TripOperationsDashboard = () => {
                 </div>
               </div>
 
-              <div className='border-l pl-4 border-gray-200 dark:border-gray-700'>
-                <span className='text-[10px] font-bold text-gray-400 uppercase tracking-wider block'>
+              <div className='border-l pl-4 border-gray-200 dark:border-slate-600'>
+                <span className='text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase tracking-wider block'>
                   Boarded
                 </span>
                 <div className='flex items-baseline gap-1 mt-0.5'>
@@ -652,8 +652,8 @@ const TripOperationsDashboard = () => {
               </div>
 
               {financial_summary && (
-                <div className='border-l pl-4 border-gray-200 dark:border-gray-700 hidden lg:block'>
-                  <span className='text-[10px] font-bold text-gray-400 uppercase tracking-wider block'>
+                <div className='border-l pl-4 border-gray-200 dark:border-slate-600 hidden lg:block'>
+                  <span className='text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase tracking-wider block'>
                     Settlement (OCTO)
                   </span>
                   <div className='flex items-baseline gap-1.5 mt-0.5'>
@@ -675,42 +675,42 @@ const TripOperationsDashboard = () => {
           </div>
 
           {/* Boat Crew & Dive Staff Assignment Bar */}
-          <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-gray-50 dark:bg-gray-750 rounded-xl border border-gray-100 dark:border-gray-700 text-xs'>
+          <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-gray-50 dark:bg-slate-700/60 rounded-xl border border-gray-100 dark:border-slate-600 text-xs'>
             <div className='flex flex-wrap items-center gap-x-5 gap-y-2'>
               <div>
-                <span className='text-[10px] text-gray-400 uppercase font-bold block'>
+                <span className='text-[10px] text-gray-400 dark:text-slate-400 uppercase font-bold block'>
                   Master / Skipper
                 </span>
-                <strong className='text-gray-900 dark:text-white font-medium'>
+                <strong className='text-gray-900 dark:text-slate-100 font-medium'>
                   {manifestData.staff?.skipper_name || 'Captain (Center Staff)'}
                 </strong>
                 {manifestData.staff?.skipper_license &&
                   manifestData.staff.skipper_license !== 'N/A' && (
-                    <span className='text-[10px] text-gray-400 font-mono ml-1'>
+                    <span className='text-[10px] text-gray-400 dark:text-slate-400 font-mono ml-1'>
                       (Lic: {manifestData.staff.skipper_license})
                     </span>
                   )}
               </div>
-              <div className='border-l pl-4 border-gray-200 dark:border-gray-700'>
-                <span className='text-[10px] text-gray-400 uppercase font-bold block'>
+              <div className='border-l pl-4 border-gray-200 dark:border-slate-600'>
+                <span className='text-[10px] text-gray-400 dark:text-slate-400 uppercase font-bold block'>
                   Dive Staff in Charge
                 </span>
-                <strong className='text-gray-900 dark:text-white font-medium'>
+                <strong className='text-gray-900 dark:text-slate-100 font-medium'>
                   {manifestData.staff?.lead_guide_name || 'Lead Instructor'}
                 </strong>
                 {manifestData.staff?.lead_guide_cert &&
                   manifestData.staff.lead_guide_cert !== 'N/A' && (
-                    <span className='text-[10px] text-gray-400 font-mono ml-1'>
+                    <span className='text-[10px] text-gray-400 dark:text-slate-400 font-mono ml-1'>
                       ({manifestData.staff.lead_guide_cert})
                     </span>
                   )}
               </div>
               {manifestData.staff?.crew_names && manifestData.staff.crew_names.length > 0 && (
-                <div className='border-l pl-4 border-gray-200 dark:border-gray-700'>
-                  <span className='text-[10px] text-gray-400 uppercase font-bold block'>
+                <div className='border-l pl-4 border-gray-200 dark:border-slate-600'>
+                  <span className='text-[10px] text-gray-400 dark:text-slate-400 uppercase font-bold block'>
                     Deck Crew
                   </span>
-                  <span className='text-gray-700 dark:text-gray-300 font-medium'>
+                  <span className='text-gray-700 dark:text-slate-300 font-medium'>
                     {manifestData.staff.crew_names.join(', ')}
                   </span>
                 </div>
@@ -720,7 +720,7 @@ const TripOperationsDashboard = () => {
             <button
               type='button'
               onClick={() => setStaffModalOpen(true)}
-              className='text-xs text-blue-600 hover:underline font-bold flex items-center gap-1 shrink-0 self-start sm:self-auto'
+              className='text-xs text-blue-600 dark:text-sky-400 hover:underline font-bold flex items-center gap-1 shrink-0 self-start sm:self-auto'
             >
               <UserCheck size={13} />
               <span>Assign Staff & Crew</span>
@@ -728,12 +728,12 @@ const TripOperationsDashboard = () => {
           </div>
 
           {/* Ops chrome: view switcher (left) vs day-of actions (right) */}
-          <div className='flex flex-col gap-3 pt-3 border-t border-gray-100 dark:border-gray-700 sm:flex-row sm:items-center sm:justify-between'>
+          <div className='flex flex-col gap-3 pt-3 border-t border-gray-100 dark:border-slate-700 sm:flex-row sm:items-center sm:justify-between'>
             {/* Segmented view tabs — short labels; counts as badges */}
             <div
               role='tablist'
               aria-label='Trip operations views'
-              className='inline-flex w-full sm:w-auto p-0.5 rounded-xl bg-gray-100 dark:bg-gray-750 border border-gray-200/80 dark:border-gray-700'
+              className='inline-flex w-full sm:w-auto p-0.5 rounded-xl bg-gray-100 dark:bg-slate-700/60 border border-gray-200/80 dark:border-slate-600'
             >
               <button
                 type='button'
@@ -742,8 +742,8 @@ const TripOperationsDashboard = () => {
                 onClick={() => handleTabChange('manifest')}
                 className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-[10px] text-xs font-semibold transition-all ${
                   activeTab === 'manifest'
-                    ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                    ? 'bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 shadow-sm'
+                    : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'
                 }`}
               >
                 <Users size={14} className='shrink-0 opacity-70' />
@@ -751,8 +751,8 @@ const TripOperationsDashboard = () => {
                 <span
                   className={`min-w-[1.25rem] px-1.5 py-0.5 rounded-md text-[10px] font-bold tabular-nums ${
                     activeTab === 'manifest'
-                      ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
-                      : 'bg-gray-200/80 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                      ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300'
+                      : 'bg-gray-200/80 text-gray-600 dark:bg-slate-700 dark:text-slate-300'
                   }`}
                 >
                   {participants.length}
@@ -766,8 +766,8 @@ const TripOperationsDashboard = () => {
                 onClick={() => handleTabChange('gear-check')}
                 className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-[10px] text-xs font-semibold transition-all ${
                   activeTab === 'gear-check'
-                    ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                    ? 'bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 shadow-sm'
+                    : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'
                 }`}
               >
                 <PackageCheck size={14} className='shrink-0 opacity-70' />
@@ -775,8 +775,8 @@ const TripOperationsDashboard = () => {
                 <span
                   className={`min-w-[1.25rem] px-1.5 py-0.5 rounded-md text-[10px] font-bold tabular-nums ${
                     activeTab === 'gear-check'
-                      ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
-                      : 'bg-gray-200/80 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                      ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300'
+                      : 'bg-gray-200/80 text-gray-600 dark:bg-slate-700 dark:text-slate-300'
                   }`}
                 >
                   {gearCheckedCount}/{participants.length}
@@ -790,8 +790,8 @@ const TripOperationsDashboard = () => {
                 onClick={() => handleTabChange('crates')}
                 className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-[10px] text-xs font-semibold transition-all ${
                   activeTab === 'crates'
-                    ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                    ? 'bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 shadow-sm'
+                    : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'
                 }`}
               >
                 <Package size={14} className='shrink-0 opacity-70' />
@@ -808,12 +808,12 @@ const TripOperationsDashboard = () => {
               >
                 <button
                   type='button'
-                  className='inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors'
+                  className='inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors'
                   title='Trip setup: details, briefing, rental pricing'
                 >
-                  <Settings2 size={13} className='text-gray-500' />
+                  <Settings2 size={13} className='text-gray-500 dark:text-slate-400' />
                   <span>Trip</span>
-                  <ChevronDown size={12} className='text-gray-400' />
+                  <ChevronDown size={12} className='text-gray-400 dark:text-slate-400' />
                 </button>
               </Dropdown>
 
@@ -825,16 +825,16 @@ const TripOperationsDashboard = () => {
                 <button
                   type='button'
                   disabled={exporting}
-                  className='inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors disabled:opacity-50'
+                  className='inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50'
                   title='Export trip documents'
                 >
                   {exporting ? (
                     <Loader2 size={13} className='animate-spin' />
                   ) : (
-                    <Download size={13} className='text-gray-500' />
+                    <Download size={13} className='text-gray-500 dark:text-slate-400' />
                   )}
                   <span>Export</span>
-                  <ChevronDown size={12} className='text-gray-400' />
+                  <ChevronDown size={12} className='text-gray-400 dark:text-slate-400' />
                 </button>
               </Dropdown>
 

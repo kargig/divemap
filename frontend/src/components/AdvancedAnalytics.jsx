@@ -150,7 +150,7 @@ const AdvancedAnalytics = ({
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className='bg-white p-3 border border-gray-100 shadow-lg rounded-md text-sm'>
+        <div className='bg-white dark:bg-slate-800 p-3 border border-gray-100 dark:border-slate-700 shadow-lg rounded-md text-sm text-gray-900 dark:text-slate-100'>
           {data.sac !== undefined && (
             <p>
               <strong>Max Depth:</strong> {data.depth}m<br />

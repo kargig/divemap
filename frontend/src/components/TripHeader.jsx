@@ -17,7 +17,7 @@ const TripHeader = ({ trip }) => {
   return (
     <>
       {/* Trip Header */}
-      <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6'>
+      <div className='bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-6 mb-6'>
         <div className='flex flex-col lg:flex-row lg:items-start lg:justify-between'>
           <div className='flex-1'>
             <div className='flex items-center gap-1.5 sm:gap-4 w-full mb-2'>
@@ -30,17 +30,17 @@ const TripHeader = ({ trip }) => {
                     navigate('/dive-trips');
                   }
                 }}
-                className='text-gray-500 hover:text-gray-800 p-1 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0'
+                className='text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex-shrink-0'
               >
                 <ArrowLeft className='w-4 h-4 sm:w-6 sm:h-6' />
               </button>
               <div className='min-w-0 flex-1'>
-                <h1 className='text-2xl sm:text-3xl lg:text-4xl font-display font-bold text-gray-900 break-words leading-tight'>
+                <h1 className='text-2xl sm:text-3xl lg:text-4xl font-display font-bold text-gray-900 dark:text-slate-100 break-words leading-tight'>
                   {generateTripName(trip) || 'Dive Trip'}
                 </h1>
               </div>
             </div>
-            <div className='text-gray-700 text-sm sm:text-base lg:text-lg mb-4 break-words overflow-hidden max-w-full'>
+            <div className='text-gray-700 dark:text-slate-300 text-sm sm:text-base lg:text-lg mb-4 break-words overflow-hidden max-w-full'>
               {trip.trip_description ? (
                 <RichText content={trip.trip_description} />
               ) : (
@@ -51,12 +51,12 @@ const TripHeader = ({ trip }) => {
             {/* Trip Meta Information */}
             <div className='grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6'>
               <div className='flex items-center space-x-2 sm:space-x-3'>
-                <Calendar className='w-4 h-4 sm:w-5 sm:h-5 text-gray-500 flex-shrink-0' />
+                <Calendar className='w-4 h-4 sm:w-5 sm:h-5 text-gray-500 dark:text-slate-400 flex-shrink-0' />
                 <div>
-                  <div className='text-xs sm:text-sm text-gray-500 uppercase tracking-wide'>
+                  <div className='text-xs sm:text-sm text-gray-500 dark:text-slate-400 uppercase tracking-wide'>
                     Date
                   </div>
-                  <div className='font-medium text-xs sm:text-base'>
+                  <div className='font-medium text-xs sm:text-base text-gray-900 dark:text-slate-100'>
                     {formatDate(trip.trip_date)}
                   </div>
                 </div>
@@ -65,13 +65,13 @@ const TripHeader = ({ trip }) => {
               <div className='flex items-center space-x-2 sm:space-x-3'>
                 <CurrencyIcon
                   currencyCode={trip.trip_currency}
-                  className='w-4 h-4 sm:w-5 sm:h-5 text-gray-500 flex-shrink-0'
+                  className='w-4 h-4 sm:w-5 sm:h-5 text-gray-500 dark:text-slate-400 flex-shrink-0'
                 />
                 <div>
-                  <div className='text-xs sm:text-sm text-gray-500 uppercase tracking-wide'>
+                  <div className='text-xs sm:text-sm text-gray-500 dark:text-slate-400 uppercase tracking-wide'>
                     Price
                   </div>
-                  <div className='font-medium text-xs sm:text-base'>
+                  <div className='font-medium text-xs sm:text-base text-gray-900 dark:text-slate-100'>
                     {trip.trip_price
                       ? formatCost(trip.trip_price, trip.trip_currency, {
                           showSymbol: false,
@@ -83,12 +83,12 @@ const TripHeader = ({ trip }) => {
               </div>
 
               <div className='flex items-center space-x-2 sm:space-x-3'>
-                <Users className='w-4 h-4 sm:w-5 sm:h-5 text-gray-500 flex-shrink-0' />
+                <Users className='w-4 h-4 sm:w-5 sm:h-5 text-gray-500 dark:text-slate-400 flex-shrink-0' />
                 <div>
-                  <div className='text-xs sm:text-sm text-gray-500 uppercase tracking-wide'>
+                  <div className='text-xs sm:text-sm text-gray-500 dark:text-slate-400 uppercase tracking-wide'>
                     Group
                   </div>
-                  <div className='font-medium text-xs sm:text-base'>
+                  <div className='font-medium text-xs sm:text-base text-gray-900 dark:text-slate-100'>
                     {trip.group_size_limit ? `Max ${trip.group_size_limit}` : 'N/A'}
                   </div>
                 </div>
@@ -97,7 +97,7 @@ const TripHeader = ({ trip }) => {
               <div className='flex items-center space-x-2 sm:space-x-3'>
                 <div className='w-4 h-4 sm:w-5 sm:h-5 hidden sm:block'></div>
                 <div>
-                  <div className='text-xs sm:text-sm text-gray-500 uppercase tracking-wide'>
+                  <div className='text-xs sm:text-sm text-gray-500 dark:text-slate-400 uppercase tracking-wide'>
                     Status
                   </div>
                   <span
@@ -113,7 +113,7 @@ const TripHeader = ({ trip }) => {
           {/* Trip Image */}
           {trip.trip_image_url && (
             <div className='mt-6 lg:mt-0 lg:ml-6 shrink-0 w-full lg:w-auto'>
-              <div className='w-full lg:w-64 h-48 sm:h-56 lg:h-48 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden'>
+              <div className='w-full lg:w-64 h-48 sm:h-56 lg:h-48 bg-gray-200 dark:bg-slate-700 rounded-lg flex items-center justify-center overflow-hidden'>
                 <img
                   src={trip.trip_image_url}
                   alt={generateTripName(trip)}

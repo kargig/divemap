@@ -14,6 +14,7 @@ import {
   editUserChatMessage,
   markChatRoomRead,
 } from '../../api';
+import { useTheme } from '../../contexts/ThemeContext';
 import { parseUTCDate } from '../../utils/dateHelpers';
 import Avatar from '../Avatar';
 
@@ -47,6 +48,7 @@ const ChatRoom = ({
   onToggleSettings,
   onBack,
 }) => {
+  const { resolvedTheme } = useTheme();
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState(() =>
     typeof initialDraft === 'string' ? initialDraft.slice(0, 500) : ''
@@ -385,8 +387,8 @@ const ChatRoom = ({
             )}
 
             {showEmojiPicker && (
-              <div className='absolute bottom-[100%] left-2 mb-2 z-50 shadow-xl rounded-xl border border-gray-200'>
-                <Picker data={data} onEmojiSelect={onEmojiSelect} theme='light' />
+              <div className='absolute bottom-[100%] left-2 mb-2 z-50 shadow-xl rounded-xl border border-gray-200 dark:border-gray-700'>
+                <Picker data={data} onEmojiSelect={onEmojiSelect} theme={resolvedTheme} />
               </div>
             )}
 

@@ -39,6 +39,7 @@ import { slugify } from '../utils/slugify';
 
 import GlobalSearchBar from './GlobalSearchBar';
 import NotificationBell from './NotificationBell';
+import ThemeToggle from './ThemeToggle';
 import Button from './ui/Button';
 import ChatDropdown from './UserChat/ChatDropdown';
 
@@ -272,6 +273,8 @@ const NavbarDesktopControls = () => {
             >
               <LogOut className='h-6 w-6' />
             </button>
+
+            <ThemeToggle variant='desktop' />
           </div>
         ) : (
           <div className='flex items-center space-x-4'>
@@ -286,6 +289,8 @@ const NavbarDesktopControls = () => {
             <Button to='/register' variant='white' size='md'>
               Register
             </Button>
+
+            <ThemeToggle variant='desktop' />
           </div>
         )}
       </div>

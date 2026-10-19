@@ -32,13 +32,13 @@ const About = () => {
         title='About Divemap | Platform Mission and Open Source Code'
         description='Learn about Divemap, an open-source platform for discovering scuba dive sites, logging dives, and connecting with the diving community.'
       />
-      <div className='bg-white rounded-lg shadow-lg p-8'>
+      <div className='bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-100 dark:border-slate-700 p-8'>
         {/* Hero Section */}
         <div className='text-center mb-10'>
           <div className='flex justify-center items-center mb-4'>
-            <h1 className='text-4xl font-bold text-gray-900'>About Divemap</h1>
+            <h1 className='text-4xl font-bold text-gray-900 dark:text-slate-100'>About Divemap</h1>
           </div>
-          <p className='text-xl text-gray-600 max-w-3xl mx-auto'>
+          <p className='text-xl text-gray-600 dark:text-slate-300 max-w-3xl mx-auto'>
             The advanced open-source platform for scuba divers. Discover sites, analyze dive
             telemetry, plan technical dives, and connect with the global community.
           </p>
@@ -47,27 +47,27 @@ const About = () => {
         {/* Mission & PWA */}
         <div className='grid md:grid-cols-2 gap-4 md:gap-8 mb-10'>
           <div>
-            <h2 className='text-2xl font-semibold text-gray-900 mb-4 flex items-center'>
-              <Anchor className='h-6 w-6 text-blue-600 mr-2' />
+            <h2 className='text-2xl font-semibold text-gray-900 dark:text-slate-100 mb-4 flex items-center'>
+              <Anchor className='h-6 w-6 text-blue-600 dark:text-blue-400 mr-2' />
               What is Divemap?
             </h2>
-            <p className='text-gray-700 mb-4'>
+            <p className='text-gray-700 dark:text-slate-300 mb-4'>
               Divemap is an open-source platform designed to connect the global diving community. It
               provides a comprehensive solution for discovering dive sites, managing diving centers,
               tracking certifications, and logging dive experiences.
             </p>
-            <p className='text-gray-700'>
+            <p className='text-gray-700 dark:text-slate-300'>
               Whether you're logging your first open water dive or planning a trimix expedition,
               Divemap provides the data and tools you need in a modern, accessible interface.
             </p>
           </div>
 
-          <div className='bg-blue-50 rounded-lg p-6'>
-            <h2 className='text-2xl font-semibold text-gray-900 mb-4 flex items-center'>
-              <Smartphone className='h-6 w-6 text-blue-600 mr-2' />
+          <div className='bg-blue-50 dark:bg-slate-700/60 rounded-lg p-6 border border-blue-100 dark:border-slate-600'>
+            <h2 className='text-2xl font-semibold text-gray-900 dark:text-slate-100 mb-4 flex items-center'>
+              <Smartphone className='h-6 w-6 text-blue-600 dark:text-blue-400 mr-2' />
               Mobile First & PWA
             </h2>
-            <p className='text-gray-700 mb-4'>
+            <p className='text-gray-700 dark:text-slate-300 mb-4'>
               Install Divemap as a native app on iOS, Android, and Desktop.
             </p>
             <ul className='space-y-2 text-gray-700'>
@@ -216,15 +216,17 @@ const About = () => {
         </div>
 
         {/* Technology Stack (Restored) */}
-        <div className='bg-gray-50 rounded-lg p-6 mb-8'>
-          <h2 className='text-2xl font-semibold text-gray-900 mb-4 flex items-center'>
-            <Code className='h-6 w-6 text-blue-600 mr-2' />
+        <div className='bg-gray-50 dark:bg-slate-700/50 rounded-lg p-6 mb-8 border border-gray-100 dark:border-slate-700'>
+          <h2 className='text-2xl font-semibold text-gray-900 dark:text-slate-100 mb-4 flex items-center'>
+            <Code className='h-6 w-6 text-blue-600 dark:text-blue-400 mr-2' />
             Technology Stack
           </h2>
           <div className='grid md:grid-cols-2 gap-6'>
             <div>
-              <h3 className='text-lg font-semibold text-gray-900 mb-2'>Frontend</h3>
-              <ul className='space-y-1 text-gray-700'>
+              <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 mb-2'>
+                Frontend
+              </h3>
+              <ul className='space-y-1 text-gray-700 dark:text-slate-300'>
                 <li>• React with React Router DOM</li>
                 <li>• React Query for data management</li>
                 <li>• Tailwind CSS & Ant Design for styling</li>
@@ -234,8 +236,10 @@ const About = () => {
               </ul>
             </div>
             <div>
-              <h3 className='text-lg font-semibold text-gray-900 mb-2'>Backend</h3>
-              <ul className='space-y-1 text-gray-700'>
+              <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 mb-2'>
+                Backend
+              </h3>
+              <ul className='space-y-1 text-gray-700 dark:text-slate-300'>
                 <li>• Python with FastAPI (High Performance)</li>
                 <li>• SQLAlchemy ORM (Async)</li>
                 <li>• Alembic for database migrations</li>
@@ -248,11 +252,11 @@ const About = () => {
 
         {/* Security & Performance (Restored) */}
         <div className='mb-10'>
-          <h2 className='text-2xl font-semibold text-gray-900 mb-4 flex items-center'>
-            <Shield className='h-6 w-6 text-green-600 mr-2' />
+          <h2 className='text-2xl font-semibold text-gray-900 dark:text-slate-100 mb-4 flex items-center'>
+            <Shield className='h-6 w-6 text-green-600 dark:text-emerald-400 mr-2' />
             Security & Performance
           </h2>
-          <div className='grid md:grid-cols-2 gap-6 text-gray-700'>
+          <div className='grid md:grid-cols-2 gap-6 text-gray-700 dark:text-slate-300'>
             <ul className='space-y-2'>
               <li className='flex items-start'>
                 <Server className='h-4 w-4 text-green-600 mr-2 mt-1' />

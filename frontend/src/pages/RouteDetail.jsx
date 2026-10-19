@@ -840,7 +840,7 @@ const RouteDetail = () => {
   const canEdit = user && (route.created_by === user.id || user.is_admin);
 
   return (
-    <div className='min-h-screen bg-gray-50'>
+    <div className='min-h-screen bg-gray-50 dark:bg-slate-900'>
       {route && (
         <SEO
           title={`Route: ${route.name} - ${diveSite?.name || 'Dive Site'}`}
@@ -891,12 +891,12 @@ const RouteDetail = () => {
         )}
 
         {/* Header */}
-        <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
+        <div className='bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700 p-6 mb-6'>
           <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4'>
             <div className='flex items-center gap-1.5 sm:gap-4 w-full'>
               <button
                 onClick={handleBack}
-                className='text-gray-500 hover:text-gray-800 p-1 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0'
+                className='text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex-shrink-0'
                 title='Go back'
               >
                 <ArrowLeft className='w-4 h-4 sm:w-6 sm:h-6' />
@@ -904,7 +904,7 @@ const RouteDetail = () => {
               <div className='min-w-0 flex-1'>
                 <div className='flex items-center gap-2 mb-2'>
                   {getRouteTypeIcon(route.route_type)}
-                  <h1 className='text-2xl sm:text-3xl lg:text-4xl font-display font-bold text-gray-900 break-words leading-tight'>
+                  <h1 className='text-2xl sm:text-3xl lg:text-4xl font-display font-bold text-gray-900 dark:text-slate-100 break-words leading-tight'>
                     {route.name}
                   </h1>
                   <span className='ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 align-middle uppercase tracking-tighter'>
@@ -912,11 +912,11 @@ const RouteDetail = () => {
                   </span>
                 </div>
                 <div className='flex flex-wrap items-center gap-x-4 gap-y-1'>
-                  <p className='text-sm text-gray-600 flex items-center gap-1'>
+                  <p className='text-sm text-gray-600 dark:text-slate-400 flex items-center gap-1'>
                     <span className='leading-tight mt-1'>Route for</span>
                     <Link
                       to={`/dive-sites/${diveSiteId}`}
-                      className='text-blue-600 hover:underline font-medium flex items-center'
+                      className='text-blue-600 dark:text-blue-400 hover:underline font-medium flex items-center'
                     >
                       <span className='leading-tight mt-1'>
                         {diveSite?.name || 'Unknown Dive Site'}
@@ -925,7 +925,7 @@ const RouteDetail = () => {
                   </p>
                   <Link
                     to='/dive-routes'
-                    className='text-sm text-gray-500 hover:text-blue-600 flex items-center gap-1 transition-colors'
+                    className='text-sm text-gray-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1 transition-colors'
                   >
                     <Route size={14} />
                     <span>Back to all routes</span>
@@ -993,20 +993,20 @@ const RouteDetail = () => {
           </div>
 
           {/* Route Info */}
-          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-gray-200'>
-            <div className='flex items-center text-sm text-gray-600'>
+          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-gray-200 dark:border-slate-700'>
+            <div className='flex items-center text-sm text-gray-600 dark:text-slate-300'>
               <User className='w-4 h-4 mr-2' />
               <span>Created by {route.creator?.username || 'Unknown'}</span>
             </div>
-            <div className='flex items-center text-sm text-gray-600'>
+            <div className='flex items-center text-sm text-gray-600 dark:text-slate-300'>
               <Calendar className='w-4 h-4 mr-2' />
               <span>Created: {formatDate(route.created_at)}</span>
             </div>
-            <div className='flex items-center text-sm text-gray-600'>
+            <div className='flex items-center text-sm text-gray-600 dark:text-slate-300'>
               <Calendar className='w-4 h-4 mr-2' />
               <span>Updated: {formatDate(route.updated_at)}</span>
             </div>
-            <div className='flex items-center text-sm text-gray-600'>
+            <div className='flex items-center text-sm text-gray-600 dark:text-slate-300'>
               <MapPin className='w-4 h-4 mr-2' />
               <span>
                 {diveSite?.region}, {diveSite?.country}
@@ -1017,9 +1017,11 @@ const RouteDetail = () => {
 
         {/* Route Description */}
         {route.description && (
-          <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
-            <h2 className='text-lg font-semibold text-gray-900 mb-3'>Description</h2>
-            <p className='text-gray-700 whitespace-pre-wrap'>
+          <div className='bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700 p-6 mb-6'>
+            <h2 className='text-lg font-semibold text-gray-900 dark:text-slate-100 mb-3'>
+              Description
+            </h2>
+            <p className='text-gray-700 dark:text-slate-300 whitespace-pre-wrap'>
               {renderTextWithLinks(decodeHtmlEntities(route.description), {
                 shorten: false,
                 isUGC: true,
@@ -1030,52 +1032,58 @@ const RouteDetail = () => {
 
         {/* Route Statistics */}
         {analytics && (
-          <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
-            <h2 className='text-base font-semibold text-gray-900 mb-3'>Statistics</h2>
+          <div className='bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700 p-6 mb-6'>
+            <h2 className='text-base font-semibold text-gray-900 dark:text-slate-100 mb-3'>
+              Statistics
+            </h2>
             <div className='flex flex-col lg:flex-row gap-6'>
               {/* Community Stats Group */}
               <div className='flex-1'>
-                <h3 className='text-xs font-medium text-gray-500 uppercase tracking-wider mb-2'>
+                <h3 className='text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-2'>
                   Usage
                 </h3>
                 <div className='grid grid-cols-3 gap-4 text-sm'>
-                  <div className='text-center p-2 bg-gray-50 rounded-lg'>
-                    <div className='text-xl font-bold text-blue-600'>
+                  <div className='text-center p-2 bg-gray-50 dark:bg-slate-700/60 rounded-lg border border-transparent dark:border-slate-700'>
+                    <div className='text-xl font-bold text-blue-600 dark:text-blue-400'>
                       {analytics.community_stats?.total_dives_using_route || 0}
                     </div>
-                    <div className='text-gray-600'>Total Dives</div>
+                    <div className='text-gray-600 dark:text-slate-200'>Total Dives</div>
                   </div>
-                  <div className='text-center p-2 bg-gray-50 rounded-lg'>
-                    <div className='text-xl font-bold text-green-600'>
+                  <div className='text-center p-2 bg-gray-50 dark:bg-slate-700/60 rounded-lg border border-transparent dark:border-slate-700'>
+                    <div className='text-xl font-bold text-green-600 dark:text-emerald-400'>
                       {analytics.community_stats?.unique_users_used_route || 0}
                     </div>
-                    <div className='text-gray-600'>Unique Users</div>
+                    <div className='text-gray-600 dark:text-slate-200'>Unique Users</div>
                   </div>
-                  <div className='text-center p-2 bg-gray-50 rounded-lg'>
-                    <div className='text-xl font-bold text-orange-600'>
+                  <div className='text-center p-2 bg-gray-50 dark:bg-slate-700/60 rounded-lg border border-transparent dark:border-slate-700'>
+                    <div className='text-xl font-bold text-orange-600 dark:text-amber-400'>
                       {analytics.community_stats?.recent_dives_7_days || 0}
                     </div>
-                    <div className='text-gray-600'>Recent (7d)</div>
+                    <div className='text-gray-600 dark:text-slate-200'>Recent (7d)</div>
                   </div>
                 </div>
               </div>
 
               {/* Separator for mobile/desktop */}
-              <div className='hidden lg:block w-px bg-gray-200'></div>
+              <div className='hidden lg:block w-px bg-gray-200 dark:bg-slate-700'></div>
 
               {/* Route Elements Group */}
               <div className='flex-1 lg:flex-none lg:w-1/3'>
-                <h3 className='text-xs font-medium text-gray-500 uppercase tracking-wider mb-2'>
+                <h3 className='text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-2'>
                   Composition
                 </h3>
                 <div className='grid grid-cols-2 gap-4 text-sm'>
-                  <div className='text-center p-2 bg-gray-50 rounded-lg'>
-                    <div className='text-xl font-bold text-purple-600'>{routeStats.segments}</div>
-                    <div className='text-gray-600'>Segments</div>
+                  <div className='text-center p-2 bg-gray-50 dark:bg-slate-700/60 rounded-lg border border-transparent dark:border-slate-700'>
+                    <div className='text-xl font-bold text-purple-600 dark:text-purple-400'>
+                      {routeStats.segments}
+                    </div>
+                    <div className='text-gray-600 dark:text-slate-200'>Segments</div>
                   </div>
-                  <div className='text-center p-2 bg-gray-50 rounded-lg'>
-                    <div className='text-xl font-bold text-indigo-600'>{routeStats.markers}</div>
-                    <div className='text-gray-600'>Markers</div>
+                  <div className='text-center p-2 bg-gray-50 dark:bg-slate-700/60 rounded-lg border border-transparent dark:border-slate-700'>
+                    <div className='text-xl font-bold text-indigo-600 dark:text-indigo-400'>
+                      {routeStats.markers}
+                    </div>
+                    <div className='text-gray-600 dark:text-slate-200'>Markers</div>
                   </div>
                 </div>
               </div>
@@ -1084,9 +1092,9 @@ const RouteDetail = () => {
         )}
 
         {/* Route Map */}
-        <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
+        <div className='bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700 p-6 mb-6'>
           <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4'>
-            <h2 className='text-lg font-semibold text-gray-900'>Route Map</h2>
+            <h2 className='text-lg font-semibold text-gray-900 dark:text-slate-100'>Route Map</h2>
 
             {/* Color Legend for Multi-Segment Routes */}
             {route.route_data?.type === 'FeatureCollection' &&
@@ -1101,24 +1109,24 @@ const RouteDetail = () => {
                 <div className='flex flex-wrap gap-3 text-sm'>
                   <div className='flex items-center gap-2'>
                     <div
-                      className='w-4 h-4 rounded border border-gray-300'
+                      className='w-4 h-4 rounded border border-gray-300 dark:border-slate-600'
                       style={{ backgroundColor: getRouteTypeColor('walk') }}
                     ></div>
-                    <span className='text-gray-700'>Walk</span>
+                    <span className='text-gray-700 dark:text-slate-200'>Walk</span>
                   </div>
                   <div className='flex items-center gap-2'>
                     <div
-                      className='w-4 h-4 rounded border border-gray-300'
+                      className='w-4 h-4 rounded border border-gray-300 dark:border-slate-600'
                       style={{ backgroundColor: getRouteTypeColor('swim') }}
                     ></div>
-                    <span className='text-gray-700'>Swim</span>
+                    <span className='text-gray-700 dark:text-slate-200'>Swim</span>
                   </div>
                   <div className='flex items-center gap-2'>
                     <div
-                      className='w-4 h-4 rounded border border-gray-300'
+                      className='w-4 h-4 rounded border border-gray-300 dark:border-slate-600'
                       style={{ backgroundColor: getRouteTypeColor('scuba') }}
                     ></div>
-                    <span className='text-gray-700'>Scuba</span>
+                    <span className='text-gray-700 dark:text-slate-200'>Scuba</span>
                   </div>
                 </div>
               )}

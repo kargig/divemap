@@ -10,10 +10,15 @@ import React from 'react';
 const PageTitle = ({ children, icon: Icon, badge, className = '' }) => {
   return (
     <h1
-      className={`text-2xl sm:text-3xl lg:text-4xl font-display font-bold text-gray-900 tracking-tight flex flex-wrap items-center gap-2 sm:gap-3 ${className}`}
+      className={`text-2xl sm:text-3xl lg:text-4xl font-display font-bold text-gray-900 dark:text-slate-100 tracking-tight flex flex-wrap items-center gap-2 sm:gap-3 ${className}`}
     >
       <div className='flex items-center gap-2 sm:gap-3'>
-        {Icon && <Icon className='w-6 h-6 sm:w-8 sm:h-8 text-gray-700' aria-hidden='true' />}
+        {Icon && (
+          <Icon
+            className='w-6 h-6 sm:w-8 sm:h-8 text-gray-700 dark:text-slate-300'
+            aria-hidden='true'
+          />
+        )}
         <span>{children}</span>
       </div>
       {badge !== undefined && badge !== null && badge !== '' && (

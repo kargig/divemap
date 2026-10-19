@@ -44,9 +44,9 @@ const PageHeader = ({
             const variants = {
               primary: 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md',
               secondary:
-                'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:shadow-md',
+                'bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 hover:shadow-md',
               ghost:
-                'bg-transparent text-gray-500 hover:bg-gray-100 hover:text-gray-700 shadow-none',
+                'bg-transparent text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-gray-700 dark:hover:text-slate-200 shadow-none',
             };
 
             const className = `${baseClasses} ${variants[variant] || variants.primary}`;

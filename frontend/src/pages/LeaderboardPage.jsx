@@ -30,13 +30,13 @@ const CategoryCard = ({ title, icon: Icon, metric, label, limit = 5 }) => {
   );
 
   return (
-    <div className='bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow'>
-      <div className='p-4 border-b border-gray-50 flex items-center justify-between bg-gray-50/50'>
+    <div className='bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden hover:shadow-md transition-shadow'>
+      <div className='p-4 border-b border-gray-50 dark:border-slate-700/60 flex items-center justify-between bg-gray-50/50 dark:bg-slate-700/40'>
         <div className='flex items-center space-x-2'>
-          <div className='p-1.5 bg-white rounded-lg shadow-sm'>
-            <Icon className='w-4 h-4 text-blue-600' />
+          <div className='p-1.5 bg-white dark:bg-slate-700 rounded-lg shadow-sm border border-transparent dark:border-slate-600'>
+            <Icon className='w-4 h-4 text-blue-600 dark:text-blue-400' />
           </div>
-          <h3 className='text-xl font-bold text-gray-900'>{title}</h3>
+          <h3 className='text-xl font-bold text-gray-900 dark:text-slate-100'>{title}</h3>
         </div>
       </div>
       <div className='p-2'>
@@ -116,7 +116,7 @@ const LeaderboardPage = () => {
       />
 
       {/* Period Tabs Selector */}
-      <div className='mb-8 border-b border-gray-200'>
+      <div className='mb-8 border-b border-gray-200 dark:border-slate-700'>
         <nav className='-mb-px flex flex-wrap gap-x-6 gap-y-2 pb-2'>
           {periods.map(period => {
             const isActive = selectedPeriod === period.value;
@@ -126,8 +126,8 @@ const LeaderboardPage = () => {
                 onClick={() => setSelectedPeriod(period.value)}
                 className={`pb-2 px-1 border-b-2 font-bold text-sm sm:text-base transition-colors ${
                   isActive
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:border-gray-300 dark:hover:border-slate-600'
                 }`}
               >
                 {period.label}
@@ -139,7 +139,7 @@ const LeaderboardPage = () => {
 
       {/* Hero Section: Top 3 Overall */}
       <section className='mb-12'>
-        <div className='flex flex-col items-center justify-center space-y-8 md:space-y-0 md:flex-row md:space-x-8 py-8 bg-gradient-to-b from-blue-50 to-transparent rounded-3xl px-4 overflow-hidden w-full'>
+        <div className='flex flex-col items-center justify-center space-y-8 md:space-y-0 md:flex-row md:space-x-8 py-8 bg-gradient-to-b from-blue-50 dark:from-slate-800/80 to-transparent dark:to-slate-900/40 border border-transparent dark:border-slate-700/60 rounded-3xl px-4 overflow-hidden w-full'>
           {/* Rank 2 */}
           {topThree[1] && (
             <div className='flex flex-col items-center space-y-3 order-2 md:order-1 mt-8 w-full max-w-[150px] sm:max-w-[200px] min-w-0'>
@@ -148,21 +148,21 @@ const LeaderboardPage = () => {
                   src={topThree[1].avatar_full_url || topThree[1].avatar_url}
                   alt={topThree[1].username}
                   size='xl'
-                  className='border-4 border-gray-300 shrink-0'
+                  className='border-4 border-gray-300 dark:border-slate-600 shrink-0'
                 />
-                <div className='absolute -bottom-2 -right-2 bg-gray-300 text-gray-700 rounded-full p-1.5 shadow-sm'>
+                <div className='absolute -bottom-2 -right-2 bg-gray-300 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-full p-1.5 shadow-sm'>
                   <Medal className='w-5 h-5' />
                 </div>
               </div>
               <div className='text-center w-full min-w-0'>
                 <Link
                   to={`/users/${topThree[1].username}`}
-                  className='font-bold text-blue-600 hover:text-blue-800 transition-colors block truncate'
+                  className='font-bold text-blue-600 dark:text-sky-400 hover:text-blue-800 dark:hover:text-sky-300 transition-colors block truncate'
                   title={topThree[1].username}
                 >
                   {topThree[1].username}
                 </Link>
-                <p className='text-sm font-medium' style={{ color: '#0072B2' }}>
+                <p className='text-sm font-medium text-sky-600 dark:text-sky-400'>
                   {topThree[1].points.toLocaleString()} pts
                 </p>
               </div>
@@ -189,12 +189,12 @@ const LeaderboardPage = () => {
               <div className='text-center w-full min-w-0'>
                 <Link
                   to={`/users/${topThree[0].username}`}
-                  className='text-xl font-black text-blue-600 hover:text-blue-800 transition-colors block truncate'
+                  className='text-xl font-black text-blue-600 dark:text-sky-400 hover:text-blue-800 dark:hover:text-sky-300 transition-colors block truncate'
                   title={topThree[0].username}
                 >
                   {topThree[0].username}
                 </Link>
-                <p className='text-lg font-bold' style={{ color: '#0072B2' }}>
+                <p className='text-lg font-bold text-sky-600 dark:text-sky-400'>
                   {topThree[0].points.toLocaleString()} pts
                 </p>
               </div>
@@ -218,12 +218,12 @@ const LeaderboardPage = () => {
               <div className='text-center w-full min-w-0'>
                 <Link
                   to={`/users/${topThree[2].username}`}
-                  className='font-bold text-blue-600 hover:text-blue-800 transition-colors block truncate'
+                  className='font-bold text-blue-600 dark:text-sky-400 hover:text-blue-800 dark:hover:text-sky-300 transition-colors block truncate'
                   title={topThree[2].username}
                 >
                   {topThree[2].username}
                 </Link>
-                <p className='text-sm font-medium' style={{ color: '#0072B2' }}>
+                <p className='text-sm font-medium text-sky-600 dark:text-sky-400'>
                   {topThree[2].points.toLocaleString()} pts
                 </p>
               </div>
@@ -235,7 +235,7 @@ const LeaderboardPage = () => {
       {/* Grid Layout for Categories */}
       <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
         {/* Dynamic Period Points - Full List */}
-        <div className='md:col-span-2 lg:col-span-1 bg-white rounded-xl shadow-md border border-blue-100 overflow-hidden'>
+        <div className='md:col-span-2 lg:col-span-1 bg-white dark:bg-slate-800 rounded-xl shadow-md border border-blue-100 dark:border-slate-700 overflow-hidden'>
           <div className='p-4 bg-blue-600 text-white flex items-center justify-between'>
             <div className='flex items-center space-x-2'>
               <Trophy className='w-5 h-5' />
@@ -272,8 +272,8 @@ const LeaderboardPage = () => {
       </div>
 
       {/* Point System Info */}
-      <section className='mt-16 bg-gray-50 rounded-2xl p-6 border border-gray-200'>
-        <h3 className='text-lg font-bold text-gray-900 mb-4 flex items-center space-x-2'>
+      <section className='mt-16 bg-gray-50 dark:bg-slate-800/60 rounded-2xl p-6 border border-gray-200 dark:border-slate-700'>
+        <h3 className='text-lg font-bold text-gray-900 dark:text-slate-100 mb-4 flex items-center space-x-2'>
           <span>How are points calculated?</span>
         </h3>
         <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4'>
@@ -286,17 +286,19 @@ const LeaderboardPage = () => {
           ].map(group => (
             <div
               key={group.pts}
-              className='bg-white p-4 rounded-xl border border-gray-100 text-center flex flex-col justify-center shadow-sm'
+              className='bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-100 dark:border-slate-700 text-center flex flex-col justify-center shadow-sm'
             >
-              <p className='text-2xl font-black mb-3' style={{ color: '#0072B2' }}>
+              <p className='text-2xl font-black mb-3 text-sky-600 dark:text-sky-400'>
                 +{group.pts}
-                <span className='text-xs ml-1 text-gray-500 font-bold uppercase'>pts</span>
+                <span className='text-xs ml-1 text-gray-500 dark:text-slate-400 font-bold uppercase'>
+                  pts
+                </span>
               </p>
               <div className='flex flex-col space-y-1.5'>
                 {group.actions.map(action => (
                   <span
                     key={action}
-                    className='text-[11px] font-bold text-gray-700 bg-gray-50 border border-gray-100 py-1.5 px-2 rounded-lg tracking-wide uppercase'
+                    className='text-[11px] font-bold text-gray-700 dark:text-slate-200 bg-gray-50 dark:bg-slate-700/60 border border-gray-100 dark:border-slate-600 py-1.5 px-2 rounded-lg tracking-wide uppercase'
                   >
                     {action}
                   </span>

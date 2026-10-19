@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 
 import MapLayersPanel from '../components/MapLayersPanel';
+import { useTheme } from '../contexts/ThemeContext';
 
 import Modal from './ui/Modal';
 
@@ -36,15 +37,49 @@ const MiniMap = ({
   showMaximizeButton = true,
   height = 'h-48 md:h-80', // Default increased heights
 }) => {
+  const { resolvedTheme } = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
   const [showLayers, setShowLayers] = useState(false);
-  const [selectedLayer, setSelectedLayer] = useState({
-    id: 'street',
-    name: 'Street Map',
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  const [userSelectedLayerManually, setUserSelectedLayerManually] = useState(false);
+  const [selectedLayer, setSelectedLayer] = useState(() => {
+    return resolvedTheme === 'dark'
+      ? {
+          id: 'dark',
+          name: 'Dark Canvas',
+          url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+          attribution:
+            '&copy; <a href="https://www.esri.com/">Esri</a> &copy; OpenStreetMap contributors',
+        }
+      : {
+          id: 'street',
+          name: 'Street Map',
+          url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        };
   });
+
+  useEffect(() => {
+    if (!userSelectedLayerManually) {
+      setSelectedLayer(
+        resolvedTheme === 'dark'
+          ? {
+              id: 'dark',
+              name: 'Dark Canvas',
+              url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+              attribution:
+                '&copy; <a href="https://www.esri.com/">Esri</a> &copy; OpenStreetMap contributors',
+            }
+          : {
+              id: 'street',
+              name: 'Street Map',
+              url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+              attribution:
+                '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            }
+      );
+    }
+  }, [resolvedTheme, userSelectedLayerManually]);
 
   const handleMaximize = () => {
     if (onMaximize) {
@@ -90,7 +125,7 @@ const MiniMap = ({
       <div className='absolute top-2 right-2 z-10 flex gap-2'>
         <button
           onClick={() => setShowLayers(!showLayers)}
-          className='bg-white p-2 rounded-md shadow-md hover:bg-gray-50 transition-colors'
+          className='bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 border border-transparent dark:border-slate-700 p-2 rounded-md shadow-md hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors'
           title='Map layers'
           aria-label='Map layers'
         >
@@ -99,7 +134,7 @@ const MiniMap = ({
         {showMaximizeButton && (
           <button
             onClick={handleMaximize}
-            className='bg-white p-2 rounded-md shadow-md hover:bg-gray-50 transition-colors'
+            className='bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 border border-transparent dark:border-slate-700 p-2 rounded-md shadow-md hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors'
             title='Maximize map'
           >
             <Maximize2 className='w-4 h-4' />
@@ -124,6 +159,7 @@ const MiniMap = ({
         selectedLayer={selectedLayer}
         onLayerChange={layer => {
           setSelectedLayer(layer);
+          setUserSelectedLayerManually(true);
           setShowLayers(false);
         }}
       />

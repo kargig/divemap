@@ -1,4 +1,4 @@
-import { X, Map, Satellite, Mountain, Navigation } from 'lucide-react';
+import { X, Map, Satellite, Mountain, Moon } from 'lucide-react';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -12,6 +12,15 @@ const MapLayersPanel = ({ isOpen, onClose, selectedLayer, onLayerChange }) => {
       url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
       attribution:
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    },
+    {
+      id: 'dark',
+      name: 'Dark Canvas',
+      description: 'ESRI Dark Gray basemap for night viewing',
+      icon: <Moon className='w-5 h-5' />,
+      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+      attribution:
+        '&copy; <a href="https://www.esri.com/">Esri</a> &copy; OpenStreetMap contributors',
     },
     {
       id: 'satellite',
@@ -29,26 +38,23 @@ const MapLayersPanel = ({ isOpen, onClose, selectedLayer, onLayerChange }) => {
       url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
       attribution: '&copy; <a href="https://opentopomap.org/">OpenTopoMap</a>',
     },
-    {
-      id: 'navigation',
-      name: 'Navigation',
-      description: 'Navigation-focused view',
-      icon: <Navigation className='w-5 h-5' />,
-      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    },
   ];
 
   if (!isOpen) return null;
 
   return (
-    <div className='absolute top-16 left-2 right-2 sm:left-auto sm:right-4 sm:w-64 z-[9999] bg-white rounded-lg shadow-lg border border-gray-200 max-h-[calc(100vh-8rem)] flex flex-col'>
+    <div className='absolute top-16 left-2 right-2 sm:left-auto sm:right-4 sm:w-64 z-[9999] bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700 max-h-[calc(100vh-8rem)] flex flex-col'>
       {/* Header */}
-      <div className='flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 flex-shrink-0'>
-        <h3 className='text-base sm:text-lg font-semibold text-gray-900'>Map Layers</h3>
-        <button onClick={onClose} className='p-1 hover:bg-gray-100 rounded-full transition-colors'>
-          <X className='w-4 h-4 sm:w-5 sm:h-5 text-gray-500' />
+      <div className='flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 dark:border-slate-700 flex-shrink-0'>
+        <h3 className='text-base sm:text-lg font-semibold text-gray-900 dark:text-slate-100'>
+          Map Layers
+        </h3>
+        <button
+          onClick={onClose}
+          className='p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition-colors'
+          aria-label='Close map layers'
+        >
+          <X className='w-4 h-4 sm:w-5 sm:h-5 text-gray-500 dark:text-slate-400' />
         </button>
       </div>
 
@@ -60,24 +66,28 @@ const MapLayersPanel = ({ isOpen, onClose, selectedLayer, onLayerChange }) => {
             onClick={() => onLayerChange(layer)}
             className={`w-full flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 rounded-lg transition-colors text-left ${
               selectedLayer?.id === layer.id
-                ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                : 'hover:bg-gray-50 text-gray-700'
+                ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
+                : 'hover:bg-gray-50 dark:hover:bg-slate-700/60 text-gray-700 dark:text-slate-200'
             }`}
           >
             <div
               className={`flex-shrink-0 ${
-                selectedLayer?.id === layer.id ? 'text-blue-600' : 'text-gray-500'
+                selectedLayer?.id === layer.id
+                  ? 'text-blue-600 dark:text-blue-400'
+                  : 'text-gray-500 dark:text-slate-400'
               }`}
             >
               {layer.icon}
             </div>
             <div className='flex-1 min-w-0'>
               <div className='font-medium text-sm sm:text-base'>{layer.name}</div>
-              <div className='text-xs sm:text-sm text-gray-500'>{layer.description}</div>
+              <div className='text-xs sm:text-sm text-gray-500 dark:text-slate-400'>
+                {layer.description}
+              </div>
             </div>
             {selectedLayer?.id === layer.id && (
               <div className='flex-shrink-0'>
-                <div className='w-2 h-2 bg-blue-600 rounded-full'></div>
+                <div className='w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full'></div>
               </div>
             )}
           </button>
@@ -85,8 +95,8 @@ const MapLayersPanel = ({ isOpen, onClose, selectedLayer, onLayerChange }) => {
       </div>
 
       {/* Footer */}
-      <div className='px-3 py-2 sm:px-4 border-t border-gray-200 flex-shrink-0'>
-        <p className='text-xs text-gray-500'>
+      <div className='px-3 py-2 sm:px-4 border-t border-gray-200 dark:border-slate-700 flex-shrink-0'>
+        <p className='text-xs text-gray-500 dark:text-slate-400'>
           Switch between different map views to find the best perspective for your needs.
         </p>
       </div>

@@ -64,7 +64,7 @@ const DivingCenterSummaryCard = ({ center, user, onBack, reviewsEnabled }) => {
   const locationString = [center.city, center.country].filter(Boolean).join(', ');
 
   return (
-    <div className='bg-white rounded-xl shadow-xs p-4 sm:p-5 mb-4 border border-gray-100'>
+    <div className='bg-white dark:bg-slate-800 rounded-xl shadow-xs p-4 sm:p-5 mb-4 border border-gray-100 dark:border-slate-700'>
       {/* Top Header: Identity on Left, Contact Info on Right */}
       <div className='flex flex-col md:flex-row justify-between items-start gap-4'>
         {/* Left: Logo, Name, Location, Buttons */}
@@ -72,7 +72,7 @@ const DivingCenterSummaryCard = ({ center, user, onBack, reviewsEnabled }) => {
           {onBack && (
             <button
               onClick={onBack}
-              className='text-gray-600 hover:text-gray-800 p-1 mt-1 shrink-0'
+              className='text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 p-1 mt-1 shrink-0'
               aria-label='Go back'
             >
               <ArrowLeft size={18} className='sm:w-5 sm:h-5' />
@@ -85,18 +85,18 @@ const DivingCenterSummaryCard = ({ center, user, onBack, reviewsEnabled }) => {
             size='xl'
             shape='rounded'
             fallbackText={center.name}
-            className='border border-gray-200 shadow-xs shrink-0'
+            className='border border-gray-200 dark:border-slate-700 shadow-xs shrink-0'
           />
 
           <div className='min-w-0 flex-1'>
             <div className='flex flex-wrap items-center gap-2 mb-0.5'>
-              <h1 className='text-xl sm:text-2xl font-bold text-gray-900 leading-tight'>
+              <h1 className='text-xl sm:text-2xl font-bold text-gray-900 dark:text-slate-100 leading-tight'>
                 {center.name}
               </h1>
               {center.average_rating && reviewsEnabled !== false && (
-                <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 shrink-0'>
+                <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shrink-0'>
                   ★ {center.average_rating.toFixed(1)}/5
-                  <span className='text-[10px] font-normal text-gray-500'>
+                  <span className='text-[10px] font-normal text-gray-500 dark:text-slate-400'>
                     ({center.total_ratings})
                   </span>
                 </span>
@@ -104,7 +104,7 @@ const DivingCenterSummaryCard = ({ center, user, onBack, reviewsEnabled }) => {
             </div>
 
             {locationString && (
-              <div className='flex items-center gap-1 text-xs text-gray-500 mb-2'>
+              <div className='flex items-center gap-1 text-xs text-gray-500 dark:text-slate-400 mb-2'>
                 <MapPin size={12} className='text-gray-400 shrink-0' />
                 <span>{locationString}</span>
               </div>
@@ -144,20 +144,23 @@ const DivingCenterSummaryCard = ({ center, user, onBack, reviewsEnabled }) => {
         </div>
 
         {/* Right: Compact Contact Information */}
-        <div className='flex flex-col sm:flex-row md:flex-col items-start md:items-end gap-1.5 shrink-0 text-xs sm:text-sm text-gray-600 pt-1'>
+        <div className='flex flex-col sm:flex-row md:flex-col items-start md:items-end gap-1.5 shrink-0 text-xs sm:text-sm text-gray-600 dark:text-slate-400 pt-1'>
           {center.phone && (
             <a
               href={`tel:${center.phone}`}
-              className='inline-flex items-center gap-1.5 font-medium text-gray-700 hover:text-blue-600 transition-colors'
+              className='inline-flex items-center gap-1.5 font-medium text-gray-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors'
             >
-              <Phone className='w-3.5 h-3.5 text-blue-600 shrink-0' />
+              <Phone className='w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0' />
               <span>{center.phone}</span>
             </a>
           )}
           {center.email && (
-            <div className='inline-flex items-center gap-1.5 font-medium text-gray-700'>
-              <Mail className='w-3.5 h-3.5 text-blue-600 shrink-0' />
-              <MaskedEmail email={center.email} className='hover:text-blue-600 transition-colors' />
+            <div className='inline-flex items-center gap-1.5 font-medium text-gray-700 dark:text-slate-200'>
+              <Mail className='w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0' />
+              <MaskedEmail
+                email={center.email}
+                className='hover:text-blue-600 dark:hover:text-blue-400 transition-colors'
+              />
             </div>
           )}
           {center.website && (
@@ -165,9 +168,9 @@ const DivingCenterSummaryCard = ({ center, user, onBack, reviewsEnabled }) => {
               href={center.website}
               target='_blank'
               rel='noopener noreferrer'
-              className='inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-medium transition-colors'
+              className='inline-flex items-center gap-1.5 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium transition-colors'
             >
-              <Globe className='w-3.5 h-3.5 text-blue-600 shrink-0' />
+              <Globe className='w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0' />
               <span>Visit Website</span>
             </a>
           )}
@@ -176,8 +179,8 @@ const DivingCenterSummaryCard = ({ center, user, onBack, reviewsEnabled }) => {
 
       {/* Bottom: Full-Width Description */}
       {center.description && (
-        <div className='mt-3 pt-3 border-t border-gray-100 text-xs sm:text-sm text-gray-600 leading-relaxed'>
-          <RichText content={center.description} className='text-gray-600' />
+        <div className='mt-3 pt-3 border-t border-gray-100 dark:border-slate-700 text-xs sm:text-sm text-gray-600 dark:text-slate-300 leading-relaxed'>
+          <RichText content={center.description} className='text-gray-600 dark:text-slate-300' />
         </div>
       )}
     </div>

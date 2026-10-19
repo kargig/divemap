@@ -661,7 +661,7 @@ const DiveSiteDetail = () => {
       {/* Header */}
       <div
         id='overview'
-        className='bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 mb-4 sm:mb-6 scroll-mt-20'
+        className='bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 mb-4 sm:mb-6 scroll-mt-20'
       >
         {/* Mobile-Only Top Navigation & Utility Row */}
         <div className='flex lg:hidden items-center justify-between mb-2.5'>
@@ -754,7 +754,7 @@ const DiveSiteDetail = () => {
               <ArrowLeft className='w-4 h-4 sm:w-6 sm:h-6' />
             </button>
             <div className='min-w-0 flex-1'>
-              <h1 className='text-2xl sm:text-3xl lg:text-4xl font-display font-bold text-gray-900 break-words leading-tight'>
+              <h1 className='text-2xl sm:text-3xl lg:text-4xl font-display font-bold text-gray-900 dark:text-slate-100 break-words leading-tight'>
                 {diveSite.name}
                 {diveSite.deleted_at && (
                   <span className='ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-red-100 text-red-800 align-middle uppercase tracking-tighter'>
@@ -766,7 +766,7 @@ const DiveSiteDetail = () => {
           </div>
 
           {/* Community Verdict (Desktop Only, Aligned Top-Right with Title) */}
-          <div className='hidden lg:flex items-center shrink-0 pl-4 border-l border-gray-100'>
+          <div className='hidden lg:flex items-center shrink-0 pl-4 border-l border-gray-100 dark:border-slate-700'>
             <CommunityVerdict
               diveSite={diveSite}
               onRate={handleQuickRate}
@@ -777,7 +777,7 @@ const DiveSiteDetail = () => {
         </div>
 
         {/* Divider */}
-        <div className='my-3 sm:my-4 border-t border-gray-100' />
+        <div className='my-3 sm:my-4 border-t border-gray-100 dark:border-slate-700' />
 
         {/* Sub-Header Strip */}
         <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3'>
@@ -790,10 +790,10 @@ const DiveSiteDetail = () => {
                 alt='Rating'
                 className='w-3.5 h-3.5 sm:w-4 sm:h-4 object-contain opacity-80'
               />
-              <span className='text-xs sm:text-sm font-bold text-gray-900 leading-none'>
+              <span className='text-xs sm:text-sm font-bold text-gray-900 dark:text-slate-100 leading-none'>
                 {diveSite.average_rating ? Number(diveSite.average_rating).toFixed(1) : '-'}
               </span>
-              <span className='text-[10px] text-gray-400 font-medium ml-0.5 leading-none'>
+              <span className='text-[10px] text-gray-400 dark:text-slate-400 font-medium ml-0.5 leading-none'>
                 ({diveSite.total_ratings || 0})
               </span>
             </div>
@@ -814,12 +814,14 @@ const DiveSiteDetail = () => {
 
             {/* Aliases */}
             {diveSite.aliases && diveSite.aliases.length > 0 && (
-              <div className='flex flex-wrap items-center gap-1.5 text-xs text-gray-500'>
-                <span className='text-[11px] text-gray-400 font-medium'>AKA:</span>
+              <div className='flex flex-wrap items-center gap-1.5 text-xs text-gray-500 dark:text-slate-400'>
+                <span className='text-[11px] text-gray-400 dark:text-slate-500 font-medium'>
+                  AKA:
+                </span>
                 {diveSite.aliases.map(alias => (
                   <span
                     key={alias.id}
-                    className='px-2 py-0.5 text-[11px] font-medium rounded-full bg-blue-50 text-blue-600 border border-blue-100'
+                    className='px-2 py-0.5 text-[11px] font-medium rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-300 border border-blue-100 dark:border-blue-800'
                   >
                     {alias.alias}
                   </span>
@@ -846,7 +848,7 @@ const DiveSiteDetail = () => {
               <ShareButton
                 entityType='dive-site'
                 entityData={diveSite}
-                className='inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md shadow-sm border border-gray-200 hover:bg-gray-50 text-gray-700'
+                className='inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md shadow-sm border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 text-gray-700 dark:text-slate-200'
               />
             )}
 
@@ -980,7 +982,7 @@ const DiveSiteDetail = () => {
             diveSite.access_instructions ||
             diveSite.marine_life ||
             (media && media.length > 0)) && (
-            <div className='bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100'>
+            <div className='bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700'>
               <div className='flex flex-col md:flex-row gap-5 sm:gap-6 items-start'>
                 {/* Left Column: Description, Access Instructions & Marine Life */}
                 <div className='flex-1 min-w-0 w-full'>
@@ -1138,15 +1140,17 @@ const DiveSiteDetail = () => {
           {(diveSite.latitude && diveSite.longitude) || diveSite.address ? (
             <div
               id='location'
-              className='bg-white p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100 scroll-mt-16'
+              className='bg-white dark:bg-slate-800 p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 scroll-mt-16'
             >
-              <h2 className='text-base sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4'>
+              <h2 className='text-base sm:text-xl font-bold text-gray-900 dark:text-slate-100 mb-3 sm:mb-4'>
                 Location
               </h2>
               {diveSite.address && (
                 <div className='mb-3 flex items-start gap-2'>
                   <MapPin className='w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0' />
-                  <span className='text-xs sm:text-sm text-gray-600'>{diveSite.address}</span>
+                  <span className='text-xs sm:text-sm text-gray-600 dark:text-slate-300'>
+                    {diveSite.address}
+                  </span>
                 </div>
               )}
               {diveSite.latitude && diveSite.longitude && (
@@ -1258,8 +1262,8 @@ const DiveSiteDetail = () => {
 
           {/* Safety Information */}
           {diveSite.safety_information && (
-            <div className='bg-white p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100'>
-              <h2 className='text-base sm:text-xl font-bold text-gray-900 mb-2 sm:mb-4'>
+            <div className='bg-white dark:bg-slate-800 p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700'>
+              <h2 className='text-base sm:text-xl font-bold text-gray-900 dark:text-slate-100 mb-2 sm:mb-4'>
                 Safety Information
               </h2>
               <RichText content={diveSite.safety_information} className='text-xs sm:text-base' />
@@ -1269,14 +1273,16 @@ const DiveSiteDetail = () => {
           {/* Comments */}
           <div
             id='comments'
-            className='bg-white p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100 scroll-mt-16'
+            className='bg-white dark:bg-slate-800 p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 scroll-mt-16'
           >
             <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2'>
-              <h2 className='text-base sm:text-xl font-bold text-gray-900'>Comments</h2>
+              <h2 className='text-base sm:text-xl font-bold text-gray-900 dark:text-slate-100'>
+                Comments
+              </h2>
               {user && (
                 <button
                   onClick={() => setShowCommentForm(!showCommentForm)}
-                  className='flex items-center justify-center px-3 py-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors w-full sm:w-auto text-xs sm:text-sm font-medium'
+                  className='flex items-center justify-center px-3 py-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-md transition-colors w-full sm:w-auto text-xs sm:text-sm font-medium'
                 >
                   <MessageCircle className='h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5' />
                   Add Comment
@@ -1297,7 +1303,7 @@ const DiveSiteDetail = () => {
                   value={comment}
                   onChange={e => setComment(e.target.value)}
                   placeholder='Share your experience...'
-                  className='w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm transition-all'
+                  className='w-full p-3 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm transition-all'
                   rows='3'
                 />
                 <div className='flex justify-end mt-2'>
@@ -1316,25 +1322,25 @@ const DiveSiteDetail = () => {
               {comments?.map(comment => (
                 <div
                   key={comment.id}
-                  className='border-b border-gray-100 pb-4 last:border-0 last:pb-0'
+                  className='border-b border-gray-100 dark:border-slate-700/60 pb-4 last:border-0 last:pb-0'
                 >
                   <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2'>
                     <div className='flex flex-col sm:flex-row sm:items-center gap-1.5'>
                       <RouterLink
                         to={`/users/${comment.username}`}
-                        className='font-bold text-blue-600 hover:text-blue-800 hover:underline text-xs sm:text-sm'
+                        className='font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline text-xs sm:text-sm'
                       >
                         {comment.username}
                       </RouterLink>
                       {(comment.user_diving_certification || comment.user_number_of_dives) && (
-                        <div className='flex flex-wrap items-center gap-1.5 text-[10px] text-gray-500'>
+                        <div className='flex flex-wrap items-center gap-1.5 text-[10px] text-gray-500 dark:text-slate-400'>
                           {comment.user_diving_certification && (
-                            <span className='bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-100 font-medium'>
+                            <span className='bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded border border-blue-100 dark:border-blue-800 font-medium'>
                               {comment.user_diving_certification}
                             </span>
                           )}
                           {comment.user_number_of_dives > 0 && (
-                            <span className='bg-green-50 text-green-700 px-1.5 py-0.5 rounded border border-green-100 font-medium'>
+                            <span className='bg-green-50 dark:bg-emerald-950/60 text-green-700 dark:text-emerald-300 px-1.5 py-0.5 rounded border border-green-100 dark:border-emerald-800 font-medium'>
                               {comment.user_number_of_dives} dives
                             </span>
                           )}
@@ -1345,14 +1351,14 @@ const DiveSiteDetail = () => {
                       {formatDate(comment.created_at)}
                     </span>
                   </div>
-                  <p className='text-gray-700 text-[13px] sm:text-base leading-relaxed'>
+                  <p className='text-gray-700 dark:text-slate-200 text-[13px] sm:text-base leading-relaxed'>
                     {renderTextWithLinks(comment.comment_text, { isUGC: true, shorten: false })}
                   </p>
                 </div>
               ))}
 
               {comments?.length === 0 && (
-                <p className='text-gray-500 text-center py-4 text-xs sm:text-sm italic bg-gray-50/50 rounded-lg'>
+                <p className='text-gray-500 dark:text-slate-400 text-center py-4 text-xs sm:text-sm italic bg-gray-50/50 dark:bg-slate-700/40 rounded-lg'>
                   No comments yet. Be the first to share your experience!
                 </p>
               )}
@@ -1365,6 +1371,7 @@ const DiveSiteDetail = () => {
           diveSite={diveSite}
           windData={windData}
           isWindLoading={isWindLoading}
+          isMarineExpanded={isMarineExpanded}
           setIsMarineExpanded={setIsMarineExpanded}
           divingCenters={divingCenters}
           recentDives={recentDives}

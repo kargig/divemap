@@ -29,18 +29,27 @@ export const formatDate = (dateString, options = {}) => {
   if (!dateString) return 'Date TBD';
 
   // Use undefined for locale to respect browser settings
-  const { year = 'numeric', month = 'short', day = 'numeric', locale = undefined } = options;
+  const { locale = undefined } = options;
   const date = parseUTCDate(dateString);
 
   if (isNaN(date.getTime())) {
     return typeof dateString === 'string' ? dateString : 'Invalid Date';
   }
 
-  return date.toLocaleDateString(locale, {
-    year,
-    month,
-    day,
-  });
+  // If specific parts are specified, only pass the specified parts to toLocaleDateString
+  const formatOptions = {};
+  if (options.year !== undefined) formatOptions.year = options.year;
+  if (options.month !== undefined) formatOptions.month = options.month;
+  if (options.day !== undefined) formatOptions.day = options.day;
+
+  // If no date parts were specified at all, use standard default: year, month, day
+  if (Object.keys(formatOptions).length === 0) {
+    formatOptions.year = 'numeric';
+    formatOptions.month = 'short';
+    formatOptions.day = 'numeric';
+  }
+
+  return date.toLocaleDateString(locale, formatOptions);
 };
 
 /**
