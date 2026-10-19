@@ -66,6 +66,74 @@ const MAP_LAYERS = [
   },
 ];
 
+const DEFAULT_MAP_FILTERS = {
+  search: '',
+  difficulty_code: '',
+  my_dives: false,
+  exclude_unspecified_difficulty: false,
+  wind_suitability: '',
+  min_rating: '',
+  max_rating: '',
+  country: '',
+  region: '',
+  date_from: '',
+  date_to: '',
+  depth_min: '',
+  depth_max: '',
+  visibility_min: '',
+  visibility_max: '',
+  suit_type: '',
+  tag_ids: [],
+  diving_center_id: '',
+  trip_status: '',
+  min_price: '',
+  max_price: '',
+  start_date: '',
+  end_date: '',
+};
+
+const parseFiltersFromSearchParams = searchParams => {
+  const urlFilters = { ...DEFAULT_MAP_FILTERS };
+  const filterKeys = Object.keys(DEFAULT_MAP_FILTERS);
+
+  filterKeys.forEach(key => {
+    const value = searchParams.get(key);
+    if (value !== null) {
+      if (key === 'tag_ids') {
+        urlFilters[key] = value
+          ? value
+              .split(',')
+              .map(id => parseInt(id, 10))
+              .filter(id => !isNaN(id))
+          : [];
+      } else if (key === 'exclude_unspecified_difficulty' || key === 'my_dives') {
+        urlFilters[key] = value === 'true';
+      } else {
+        urlFilters[key] = value;
+      }
+    }
+  });
+
+  // Default dates for dive-trips if not provided in URL
+  const entityType = searchParams.get('type');
+  if (
+    entityType === 'dive-trips' &&
+    !searchParams.get('start_date') &&
+    !searchParams.get('end_date')
+  ) {
+    const today = new Date();
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() - 7); // 7 days ago
+    const endDate = new Date(today);
+    endDate.setFullYear(today.getFullYear() + 1); // 1 year ahead
+
+    urlFilters.start_date = startDate.toISOString().split('T')[0];
+    urlFilters.end_date = endDate.toISOString().split('T')[0];
+  }
+
+  return urlFilters;
+};
+
 const IndependentMapView = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -316,83 +384,7 @@ const IndependentMapView = () => {
   }, [resolvedTheme, userSelectedLayerManually, layerQueryParam]);
 
   // Filter state
-  const [filters, setFilters] = useState(() => {
-    const urlFilters = {};
-    const filterKeys = [
-      'search',
-      'difficulty_code',
-      'my_dives',
-      'exclude_unspecified_difficulty',
-      'wind_suitability',
-      'min_rating',
-      'max_rating',
-      'country',
-      'region',
-      'date_from',
-      'date_to',
-      'depth_min',
-      'depth_max',
-      'visibility_min',
-      'visibility_max',
-      'suit_type',
-      'tag_ids',
-      'diving_center_id',
-      'trip_status',
-      'min_price',
-      'max_price',
-      'start_date',
-      'end_date',
-    ];
-
-    filterKeys.forEach(key => {
-      const value = searchParams.get(key);
-      if (value !== null) {
-        if (key === 'tag_ids') {
-          urlFilters[key] = value
-            ? value
-                .split(',')
-                .map(id => parseInt(id))
-                .filter(id => !isNaN(id))
-            : [];
-        } else {
-          urlFilters[key] = value;
-        }
-      }
-    });
-
-    // Default dates for dive-trips if not provided in URL
-    const entityType = searchParams.get('type');
-    if (entityType === 'dive-trips' && !urlFilters.start_date && !urlFilters.end_date) {
-      const today = new Date();
-      const startDate = new Date(today);
-      startDate.setDate(today.getDate() - 7); // 7 days ago
-      const endDate = new Date(today);
-      endDate.setFullYear(today.getFullYear() + 1); // 1 year ahead
-
-      urlFilters.start_date = startDate.toISOString().split('T')[0];
-      urlFilters.end_date = endDate.toISOString().split('T')[0];
-    }
-
-    return {
-      search: '',
-      difficulty_code: '',
-      exclude_unspecified_difficulty: false,
-      wind_suitability: '',
-      min_rating: '',
-      max_rating: '',
-      country: '',
-      region: '',
-      date_from: '',
-      date_to: '',
-      depth_min: '',
-      depth_max: '',
-      visibility_min: '',
-      visibility_max: '',
-      suit_type: '',
-      tag_ids: [],
-      ...urlFilters,
-    };
-  });
+  const [filters, setFilters] = useState(() => parseFiltersFromSearchParams(searchParams));
 
   // Performance state
   const [performanceMetrics, setPerformanceMetrics] = useState({
@@ -417,53 +409,6 @@ const IndependentMapView = () => {
     return null;
   }, [searchParams]);
 
-  const parseFiltersFromURL = useCallback(() => {
-    const urlFilters = {};
-    const filterKeys = [
-      'search',
-      'difficulty_code',
-      'my_dives',
-      'exclude_unspecified_difficulty',
-      'wind_suitability',
-      'min_rating',
-      'max_rating',
-      'country',
-      'region',
-      'date_from',
-      'date_to',
-      'depth_min',
-      'depth_max',
-      'visibility_min',
-      'visibility_max',
-      'suit_type',
-      'tag_ids',
-      'diving_center_id',
-      'trip_status',
-      'min_price',
-      'max_price',
-      'start_date',
-      'end_date',
-    ];
-
-    filterKeys.forEach(key => {
-      const value = searchParams.get(key);
-      if (value !== null) {
-        if (key === 'tag_ids') {
-          urlFilters[key] = value
-            ? value
-                .split(',')
-                .map(id => parseInt(id))
-                .filter(id => !isNaN(id))
-            : [];
-        } else {
-          urlFilters[key] = value;
-        }
-      }
-    });
-
-    return urlFilters;
-  }, [searchParams]);
-
   // Initialize state from URL on component mount and sync on external navigation
   useEffect(() => {
     // Parse entity type
@@ -472,20 +417,19 @@ const IndependentMapView = () => {
     const nextType = validTypes.includes(entityType) ? entityType : 'dive-sites';
     setSelectedEntityType(prev => (prev !== nextType ? nextType : prev));
 
-    // Parse filters from URL
-    const urlFilters = parseFiltersFromURL();
+    // Parse filters from URL, resetting any filters that were removed from URL
+    const nextFilters = parseFiltersFromSearchParams(searchParams);
     setFilters(prevFilters => {
       let changed = false;
-      const merged = { ...prevFilters };
-      for (const [k, v] of Object.entries(urlFilters)) {
-        if (JSON.stringify(merged[k]) !== JSON.stringify(v)) {
-          merged[k] = v;
+      for (const [k, v] of Object.entries(nextFilters)) {
+        if (JSON.stringify(prevFilters[k]) !== JSON.stringify(v)) {
           changed = true;
+          break;
         }
       }
-      return changed ? merged : prevFilters;
+      return changed ? nextFilters : prevFilters;
     });
-  }, [searchParams, parseFiltersFromURL]);
+  }, [searchParams]);
 
   // Sync state to URL (Wind, Time, Layer, Viewport)
   useEffect(() => {
