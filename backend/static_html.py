@@ -11,9 +11,7 @@ import html
 import json
 import os
 import re
-from typing import Any, Optional
-
-from sqlalchemy.orm import Session, joinedload
+from typing import Any
 
 from app.models import DiveRoute, DiveSite, DivingCenter
 
@@ -40,11 +38,15 @@ def truncate(text: str, limit: int) -> str:
     return text[: limit - 3].rstrip() + "..."
 
 
-def resolve_html_template() -> Optional[str]:
+def resolve_html_template() -> str | None:
     candidates = [
         os.getenv("STATIC_HTML_TEMPLATE"),
-        os.path.join(os.path.dirname(__file__), "llm_content", "_spa_template", "index.html"),
-        os.path.join(os.path.dirname(__file__), "..", "nginx", "frontend-build", "index.html"),
+        os.path.join(
+            os.path.dirname(__file__), "llm_content", "_spa_template", "index.html"
+        ),
+        os.path.join(
+            os.path.dirname(__file__), "..", "nginx", "frontend-build", "index.html"
+        ),
         os.path.join(os.path.dirname(__file__), "..", "frontend", "dist", "index.html"),
     ]
     for path in candidates:
@@ -65,7 +67,7 @@ def format_depth(depth: Any) -> str:
         return str(depth)
 
 
-def _site_rating_stats(site: DiveSite) -> tuple[Optional[float], int]:
+def _site_rating_stats(site: DiveSite) -> tuple[float | None, int]:
     ratings = getattr(site, "ratings", None) or []
     if not ratings:
         return None, 0
@@ -74,9 +76,13 @@ def _site_rating_stats(site: DiveSite) -> tuple[Optional[float], int]:
     return avg, total
 
 
-def dive_site_meta_description(site: DiveSite, avg_rating: Optional[float], total_ratings: int) -> str:
+def dive_site_meta_description(
+    site: DiveSite, avg_rating: float | None, total_ratings: int
+) -> str:
     difficulty = site.difficulty.label if site.difficulty else "scuba"
-    parts = [f"{site.name} is a {difficulty} dive site in {site.country or 'the world'}."]
+    parts = [
+        f"{site.name} is a {difficulty} dive site in {site.country or 'the world'}."
+    ]
     if site.max_depth:
         parts.append(f"Max depth: {format_depth(site.max_depth)}m.")
     if total_ratings > 0 and avg_rating is not None:
@@ -115,46 +121,65 @@ def dive_route_meta_description(route: DiveRoute) -> str:
     return desc
 
 
-def dive_site_schema(base_url: str, path: str, site: DiveSite, avg_rating: Optional[float], total_ratings: int) -> dict:
+def dive_site_schema(
+    base_url: str,
+    path: str,
+    site: DiveSite,
+    avg_rating: float | None,
+    total_ratings: int,
+    image_urls: list[str] | None = None,
+) -> dict:
     from app.seo_geo import geo_hub_path
 
     item_list = [
         {"@type": "ListItem", "position": 1, "name": "Home", "item": base_url},
-        {"@type": "ListItem", "position": 2, "name": "Dive Sites", "item": f"{base_url}/dive-sites"},
+        {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Dive Sites",
+            "item": f"{base_url}/dive-sites",
+        },
     ]
     pos = 3
     if site.country:
         country_path = geo_hub_path(site.country) or "/dive-sites"
-        item_list.append({
-            "@type": "ListItem",
-            "position": pos,
-            "name": site.country,
-            "item": f"{base_url}{country_path}",
-        })
+        item_list.append(
+            {
+                "@type": "ListItem",
+                "position": pos,
+                "name": site.country,
+                "item": f"{base_url}{country_path}",
+            }
+        )
         pos += 1
     if site.region:
         region_path = geo_hub_path(site.country, site.region) or "/dive-sites"
-        item_list.append({
+        item_list.append(
+            {
+                "@type": "ListItem",
+                "position": pos,
+                "name": site.region,
+                "item": f"{base_url}{region_path}",
+            }
+        )
+        pos += 1
+    item_list.append(
+        {
             "@type": "ListItem",
             "position": pos,
-            "name": site.region,
-            "item": f"{base_url}{region_path}",
-        })
-        pos += 1
-    item_list.append({
-        "@type": "ListItem",
-        "position": pos,
-        "name": site.name,
-        "item": f"{base_url}{path}",
-    })
+            "name": site.name,
+            "item": f"{base_url}{path}",
+        }
+    )
 
     # avg_rating / total_ratings kept for call-site stability; not emitted in JSON-LD
     # (Google does not allow AggregateRating on TouristAttraction).
-    return {
+    schema: dict[str, Any] = {
         "@context": "https://schema.org",
         "@type": "TouristAttraction",
         "name": site.name,
         "description": strip_html_tags(site.description or ""),
+        "url": f"{base_url}{path}",
         "geo": {
             "@type": "GeoCoordinates",
             "latitude": float(site.latitude) if site.latitude is not None else None,
@@ -168,35 +193,65 @@ def dive_site_schema(base_url: str, path: str, site: DiveSite, avg_rating: Optio
         "breadcrumb": {"@type": "BreadcrumbList", "itemListElement": item_list},
     }
 
+    if image_urls:
+        schema["image"] = image_urls if len(image_urls) > 1 else image_urls[0]
+
+    if site.latitude is not None and site.longitude is not None:
+        schema["hasMap"] = (
+            f"https://www.google.com/maps?q={float(site.latitude):.6f},{float(site.longitude):.6f}"
+        )
+
+    creator = getattr(site, "creator", None)
+    creator_username = getattr(creator, "username", None) if creator else None
+    if creator_username:
+        schema["author"] = {
+            "@type": "Person",
+            "name": creator_username,
+            "url": f"{base_url}/users/{creator_username}",
+        }
+
+    return schema
+
 
 def diving_center_schema(base_url: str, path: str, center: DivingCenter) -> dict:
     item_list = [
         {"@type": "ListItem", "position": 1, "name": "Home", "item": base_url},
-        {"@type": "ListItem", "position": 2, "name": "Diving Centers", "item": f"{base_url}/diving-centers"},
+        {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Diving Centers",
+            "item": f"{base_url}/diving-centers",
+        },
     ]
     pos = 3
     if center.country:
-        item_list.append({
-            "@type": "ListItem",
-            "position": pos,
-            "name": center.country,
-            "item": f"{base_url}/diving-centers?country={center.country}",
-        })
+        item_list.append(
+            {
+                "@type": "ListItem",
+                "position": pos,
+                "name": center.country,
+                "item": f"{base_url}/diving-centers?country={center.country}",
+            }
+        )
         pos += 1
     if center.city:
-        item_list.append({
+        item_list.append(
+            {
+                "@type": "ListItem",
+                "position": pos,
+                "name": center.city,
+                "item": f"{base_url}/diving-centers?country={center.country or ''}&city={center.city}",
+            }
+        )
+        pos += 1
+    item_list.append(
+        {
             "@type": "ListItem",
             "position": pos,
-            "name": center.city,
-            "item": f"{base_url}/diving-centers?country={center.country or ''}&city={center.city}",
-        })
-        pos += 1
-    item_list.append({
-        "@type": "ListItem",
-        "position": pos,
-        "name": center.name,
-        "item": f"{base_url}{path}",
-    })
+            "name": center.name,
+            "item": f"{base_url}{path}",
+        }
+    )
 
     schema: dict[str, Any] = {
         "@context": "https://schema.org",
@@ -226,7 +281,12 @@ def dive_route_schema(base_url: str, path: str, route: DiveRoute) -> dict:
     if route.dive_site:
         item_list = [
             {"@type": "ListItem", "position": 1, "name": "Home", "item": base_url},
-            {"@type": "ListItem", "position": 2, "name": "Dive Sites", "item": f"{base_url}/dive-sites"},
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Dive Sites",
+                "item": f"{base_url}/dive-sites",
+            },
             {
                 "@type": "ListItem",
                 "position": 3,
@@ -243,7 +303,12 @@ def dive_route_schema(base_url: str, path: str, route: DiveRoute) -> dict:
     else:
         item_list = [
             {"@type": "ListItem", "position": 1, "name": "Home", "item": base_url},
-            {"@type": "ListItem", "position": 2, "name": "Dive Routes", "item": f"{base_url}/dive-routes"},
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Dive Routes",
+                "item": f"{base_url}/dive-routes",
+            },
             {
                 "@type": "ListItem",
                 "position": 3,
@@ -256,7 +321,8 @@ def dive_route_schema(base_url: str, path: str, route: DiveRoute) -> dict:
         "@context": "https://schema.org",
         "@type": ["CreativeWork", "Map"],
         "name": route.name,
-        "description": strip_html_tags(route.description or "") or dive_route_meta_description(route),
+        "description": strip_html_tags(route.description or "")
+        or dive_route_meta_description(route),
         "breadcrumb": {"@type": "BreadcrumbList", "itemListElement": item_list},
     }
     if route.dive_site:
@@ -282,7 +348,33 @@ def _paragraph_block(label: str, value: str) -> str:
     return f"<p><strong>{escape_text(label)}:</strong> {escape_text(strip_html_tags(value))}</p>"
 
 
-def render_dive_site_main(site: DiveSite, avg_rating: Optional[float], total_ratings: int) -> str:
+def get_entry_type(site: DiveSite) -> str | None:
+    tags = getattr(site, "tags", None) or []
+    for t in tags:
+        tag_obj = getattr(t, "tag", None)
+        tag_name = (
+            getattr(tag_obj, "name", None)
+            if tag_obj
+            else (getattr(t, "name", None) if hasattr(t, "name") else str(t))
+        )
+        if tag_name:
+            lower = tag_name.lower()
+            if any(k in lower for k in ("boat", "shore", "zodiac")):
+                return tag_name
+    access = getattr(site, "access_instructions", None)
+    if access and any(k in access.lower() for k in ("beach", "shore")):
+        return "Shore Dive"
+    return None
+
+
+def render_dive_site_main(
+    site: DiveSite,
+    avg_rating: float | None,
+    total_ratings: int,
+    photos: list[dict] | None = None,
+    nearby_sites: list[dict] | None = None,
+    recent_dives: list[dict] | None = None,
+) -> str:
     from app.seo_geo import geo_hub_path
     from generate_static_content import get_diving_center_slug, slugify
 
@@ -290,38 +382,72 @@ def render_dive_site_main(site: DiveSite, avg_rating: Optional[float], total_rat
     if site.country:
         crumbs.append((site.country, geo_hub_path(site.country) or "/dive-sites"))
     if site.region:
-        crumbs.append((
-            site.region,
-            geo_hub_path(site.country, site.region) or "/dive-sites",
-        ))
+        crumbs.append(
+            (
+                site.region,
+                geo_hub_path(site.country, site.region) or "/dive-sites",
+            )
+        )
     crumbs.append((site.name, ""))
 
     lines = [
         '<main class="seo-prerender">',
         _breadcrumb_nav(crumbs),
+        '<header class="site-header">',
         f"<h1>{escape_text(site.name)}</h1>",
     ]
 
     location = ", ".join(filter(None, [site.region, site.country]))
     if location:
-        lines.append(f"<p><strong>Location:</strong> {escape_text(location)}</p>")
+        lines.append(
+            f'<p class="site-location"><strong>Location:</strong> {escape_text(location)}</p>'
+        )
 
     aliases = getattr(site, "aliases", None) or []
     if aliases:
-        alias_names = [getattr(a, "alias", str(a)) for a in aliases if getattr(a, "alias", str(a))]
+        alias_names = [
+            getattr(a, "alias", str(a)) for a in aliases if getattr(a, "alias", str(a))
+        ]
         if alias_names:
-            lines.append(f"<p><strong>Also known as:</strong> {escape_text(', '.join(alias_names))}</p>")
+            lines.append(
+                f'<p class="site-aliases"><strong>Also known as:</strong> {escape_text(", ".join(alias_names))}</p>'
+            )
 
-    meta_bits = []
+    creator = getattr(site, "creator", None)
+    creator_username = getattr(creator, "username", None) if creator else None
+    if creator_username:
+        lines.append(
+            f'<p class="site-author"><strong>Added by:</strong> <a href="/users/{escape_text(creator_username)}">{escape_text(creator_username)}</a></p>'
+        )
+    lines.append("</header>")
+
+    # Dive Site Specs
+    entry_type = get_entry_type(site)
+    specs_items = []
     if site.max_depth:
-        meta_bits.append(f"Max depth: {format_depth(site.max_depth)}m")
+        specs_items.append(
+            f"<dt>Max depth:</dt><dd>{format_depth(site.max_depth)}m</dd>"
+        )
     if site.difficulty:
-        meta_bits.append(f"Difficulty: {site.difficulty.label}")
+        specs_items.append(
+            f"<dt>Difficulty:</dt><dd>{escape_text(site.difficulty.label)}</dd>"
+        )
+    if entry_type:
+        specs_items.append(f"<dt>Entry type:</dt><dd>{escape_text(entry_type)}</dd>")
     if site.latitude is not None and site.longitude is not None:
-        meta_bits.append(f"Coordinates: {float(site.latitude):.6f}, {float(site.longitude):.6f}")
-    if meta_bits:
-        lines.append(f"<p>{escape_text(' · '.join(meta_bits))}</p>")
-
+        lat_f = float(site.latitude)
+        lon_f = float(site.longitude)
+        coords_text = f"{lat_f:.6f}, {lon_f:.6f}"
+        maps_link = (
+            f"https://www.google.com/maps/dir/?api=1&destination={lat_f},{lon_f}"
+        )
+        specs_items.append(
+            f'<dt>Coordinates:</dt><dd>{coords_text} (<a href="{escape_text(maps_link)}" target="_blank" rel="noopener noreferrer">Directions on Google Maps</a>)</dd>'
+        )
+    if total_ratings > 0 and avg_rating is not None:
+        specs_items.append(
+            f"<dt>Rating:</dt><dd>{escape_text(f'{avg_rating:.1f}/5')} ({escape_text(total_ratings)} reviews)</dd>"
+        )
     tags = getattr(site, "tags", None) or []
     if tags:
         tag_names = []
@@ -331,55 +457,175 @@ def render_dive_site_main(site: DiveSite, avg_rating: Optional[float], total_rat
                 tag_names.append(tag_obj.name)
             elif isinstance(t, str):
                 tag_names.append(t)
+            elif hasattr(t, "name"):
+                tag_names.append(t.name)
         if tag_names:
-            lines.append(f"<p><strong>Tags:</strong> {escape_text(', '.join(tag_names))}</p>")
+            specs_items.append(
+                f"<dt>Tags:</dt><dd>{escape_text(', '.join(tag_names))}</dd>"
+            )
 
-    if total_ratings > 0 and avg_rating is not None:
+    if specs_items:
+        lines.append('<section id="specs" aria-labelledby="specs-heading">')
+        lines.append('<h2 id="specs-heading">Dive Site Specs</h2>')
+        lines.append('<dl class="specs-grid">')
+        lines.extend(specs_items)
+        lines.append("</dl>")
+        lines.append("</section>")
+
+    # Overview Section (Description, Access, Marine Life, Safety)
+    has_overview = bool(
+        site.description
+        or site.access_instructions
+        or site.marine_life
+        or site.safety_information
+    )
+    if has_overview:
+        lines.append('<section id="overview" aria-labelledby="overview-heading">')
+        lines.append('<h2 id="overview-heading">Overview</h2>')
+        if site.description:
+            lines.append(
+                f'<div class="site-description"><p>{escape_text(strip_html_tags(site.description))}</p></div>'
+            )
+        if site.access_instructions:
+            lines.append(
+                f'<div class="site-access">{_paragraph_block("Access", site.access_instructions)}</div>'
+            )
+        if site.marine_life:
+            lines.append(
+                f'<div class="site-marine-life">{_paragraph_block("Marine life", site.marine_life)}</div>'
+            )
+        if site.safety_information:
+            lines.append(
+                f'<div class="site-safety">{_paragraph_block("Safety", site.safety_information)}</div>'
+            )
+        lines.append("</section>")
+
+    # In-body Photo Gallery
+    if photos:
+        lines.append('<section id="gallery" aria-labelledby="gallery-heading">')
+        lines.append('<h2 id="gallery-heading">Photos</h2>')
+        lines.append('<div class="photo-gallery">')
+        for p in photos:
+            img_url = escape_text(p.get("url", ""))
+            alt_text = escape_text(p.get("alt") or f"{site.name} photo")
+            caption = escape_text(p.get("caption", ""))
+            lines.append("<figure>")
+            lines.append(f'<img src="{img_url}" alt="{alt_text}" loading="lazy" />')
+            if caption:
+                lines.append(f"<figcaption>{caption}</figcaption>")
+            lines.append("</figure>")
+        lines.append("</div>")
+        lines.append("</section>")
+
+    # Nearby Dive Sites
+    if nearby_sites:
+        lines.append('<section id="nearby" aria-labelledby="nearby-heading">')
+        lines.append('<h2 id="nearby-heading">Nearby Dive Sites</h2><ul>')
+        for ns in nearby_sites:
+            ns_href = escape_text(ns.get("href", ""))
+            ns_name = escape_text(ns.get("name", "Dive Site"))
+            dist = ns.get("distance_km")
+            dist_text = f" ({dist:.1f} km away)" if dist is not None else ""
+            lines.append(f'<li><a href="{ns_href}">{ns_name}</a>{dist_text}</li>')
+        lines.append("</ul></section>")
+
+    # Recent Dives
+    if recent_dives:
         lines.append(
-            f"<p><strong>Rating:</strong> {escape_text(f'{avg_rating:.1f}/5')} "
-            f"({escape_text(total_ratings)} reviews)</p>"
+            '<section id="recent-dives" aria-labelledby="recent-dives-heading">'
         )
+        lines.append('<h2 id="recent-dives-heading">Recent Dives</h2><ul>')
+        for rd in recent_dives:
+            rd_href = escape_text(rd.get("href", ""))
+            rd_name = escape_text(rd.get("name", "Dive"))
+            rd_diver = rd.get("diver")
+            rd_date = rd.get("date")
+            rd_depth = rd.get("max_depth")
+            rd_duration = rd.get("duration")
 
-    if site.description:
-        lines.append(f"<p>{escape_text(strip_html_tags(site.description))}</p>")
-    if site.marine_life:
-        lines.append(_paragraph_block("Marine life", site.marine_life))
-    if site.access_instructions:
-        lines.append(_paragraph_block("Access", site.access_instructions))
-    if site.safety_information:
-        lines.append(_paragraph_block("Safety", site.safety_information))
+            details = []
+            if rd_diver:
+                details.append(
+                    f'by <a href="/users/{escape_text(rd_diver)}">{escape_text(rd_diver)}</a>'
+                )
+            if rd_date:
+                details.append(escape_text(rd_date))
+            if rd_depth:
+                details.append(f"Depth: {escape_text(rd_depth)}m")
+            if rd_duration:
+                details.append(f"Duration: {escape_text(rd_duration)} min")
+            details_str = f" ({' · '.join(details)})" if details else ""
 
+            lines.append(f'<li><a href="{rd_href}">{rd_name}</a>{details_str}</li>')
+        lines.append("</ul></section>")
+
+    # Associated Diving Centers
     center_rels = getattr(site, "center_relationships", None) or []
     if center_rels:
-        centers = [getattr(rel, "diving_center", None) for rel in center_rels if getattr(rel, "diving_center", None)]
+        centers = [
+            getattr(rel, "diving_center", None)
+            for rel in center_rels
+            if getattr(rel, "diving_center", None)
+        ]
         if centers:
-            lines.append("<h2>Associated Diving Centers</h2><ul>")
+            lines.append(
+                '<section id="associated-centers" aria-labelledby="centers-heading">'
+            )
+            lines.append('<h2 id="centers-heading">Associated Diving Centers</h2><ul>')
             for center in centers:
                 c_slug = get_diving_center_slug(center)
-                c_href = f"/diving-centers/{center.id}/{c_slug}" if c_slug else f"/diving-centers/{center.id}"
+                c_href = (
+                    f"/diving-centers/{center.id}/{c_slug}"
+                    if c_slug
+                    else f"/diving-centers/{center.id}"
+                )
                 c_name = escape_text(center.name)
-                c_location = ", ".join(filter(None, [getattr(center, "city", None), getattr(center, "country", None)]))
+                c_location = ", ".join(
+                    filter(
+                        None,
+                        [
+                            getattr(center, "city", None),
+                            getattr(center, "country", None),
+                        ],
+                    )
+                )
                 extra = f" ({escape_text(c_location)})" if c_location else ""
-                lines.append(f'<li><a href="{escape_text(c_href)}">{c_name}</a>{extra}</li>')
-            lines.append("</ul>")
+                lines.append(
+                    f'<li><a href="{escape_text(c_href)}">{c_name}</a>{extra}</li>'
+                )
+            lines.append("</ul></section>")
 
+    # Dive Routes
     routes = getattr(site, "routes", None) or []
     active_routes = [r for r in routes if not getattr(r, "deleted_at", None)]
     if active_routes:
-        lines.append("<h2>Dive Routes</h2><ul>")
+        lines.append('<section id="dive-routes" aria-labelledby="routes-heading">')
+        lines.append('<h2 id="routes-heading">Dive Routes</h2><ul>')
         for route in active_routes:
             r_slug = slugify(route.name) if getattr(route, "name", None) else ""
-            r_href = f"/dive-routes/{route.id}/{r_slug}" if r_slug else f"/dive-routes/{route.id}"
+            r_href = (
+                f"/dive-routes/{route.id}/{r_slug}"
+                if r_slug
+                else f"/dive-routes/{route.id}"
+            )
             r_name = escape_text(route.name or f"Route #{route.id}")
             r_type_obj = getattr(route, "route_type", None)
-            r_type = f" ({escape_text(r_type_obj.name)})" if r_type_obj and getattr(r_type_obj, "name", None) else ""
-            lines.append(f'<li><a href="{escape_text(r_href)}">{r_name}</a>{r_type}</li>')
-        lines.append("</ul>")
+            r_type = (
+                f" ({escape_text(r_type_obj.name)})"
+                if r_type_obj and getattr(r_type_obj, "name", None)
+                else ""
+            )
+            lines.append(
+                f'<li><a href="{escape_text(r_href)}">{r_name}</a>{r_type}</li>'
+            )
+        lines.append("</ul></section>")
 
-    lines.extend([
-        '<nav aria-label="Related pages">',
-        '<a href="/dive-sites">All Dive Sites</a>',
-    ])
+    lines.extend(
+        [
+            '<nav aria-label="Related pages">',
+            '<a href="/dive-sites">All Dive Sites</a>',
+        ]
+    )
     if site.country:
         country_href = geo_hub_path(site.country) or "/dive-sites"
         lines.append(
@@ -391,9 +637,9 @@ def render_dive_site_main(site: DiveSite, avg_rating: Optional[float], total_rat
 
 def render_geo_hub_main(
     country: str,
-    region: Optional[str],
+    region: str | None,
     site_links: list[tuple[str, str]],
-    region_links: Optional[list[tuple[str, str]]] = None,
+    region_links: list[tuple[str, str]] | None = None,
 ) -> str:
     """Prerender HTML for /dive-sites/{country}[/region] hubs."""
     crumbs = [("Home", "/"), ("Dive Sites", "/dive-sites")]
@@ -418,20 +664,32 @@ def render_geo_hub_main(
     if region_links and not region:
         lines.append("<h2>Regions</h2><ul>")
         for label, href in region_links:
-            lines.append(f'<li><a href="{escape_text(href)}">{escape_text(label)}</a></li>')
+            lines.append(
+                f'<li><a href="{escape_text(href)}">{escape_text(label)}</a></li>'
+            )
         lines.append("</ul>")
     lines.append("<h2>Dive sites</h2><ul>")
     for label, href in site_links:
         lines.append(f'<li><a href="{escape_text(href)}">{escape_text(label)}</a></li>')
     lines.append("</ul>")
-    lines.append('<nav aria-label="Related pages"><a href="/dive-sites">All Dive Sites</a>')
+    lines.append(
+        '<nav aria-label="Related pages"><a href="/dive-sites">All Dive Sites</a>'
+    )
     if region:
-        lines.append(f' · <a href="{escape_text(country_path)}">All sites in {escape_text(country)}</a>')
+        lines.append(
+            f' · <a href="{escape_text(country_path)}">All sites in {escape_text(country)}</a>'
+        )
     lines.append(' · <a href="/map">Interactive Map</a></nav></main>')
     return "\n".join(lines)
 
 
-def geo_hub_schema(base_url: str, path: str, heading: str, description: str, site_links: list[tuple[str, str]]) -> dict:
+def geo_hub_schema(
+    base_url: str,
+    path: str,
+    heading: str,
+    description: str,
+    site_links: list[tuple[str, str]],
+) -> dict:
     return {
         "@context": "https://schema.org",
         "@type": "CollectionPage",
@@ -465,7 +723,9 @@ def render_map_main(country_links: list[tuple[str, str]]) -> str:
     if country_links:
         lines.append("<h2>Dive sites by country</h2><ul>")
         for label, href in country_links:
-            lines.append(f'<li><a href="{escape_text(href)}">{escape_text(label)}</a></li>')
+            lines.append(
+                f'<li><a href="{escape_text(href)}">{escape_text(label)}</a></li>'
+            )
         lines.append("</ul>")
     lines.append("</main>")
     return "\n".join(lines)
@@ -476,10 +736,12 @@ def render_diving_center_main(center: DivingCenter) -> str:
     if center.country:
         crumbs.append((center.country, f"/diving-centers?country={center.country}"))
     if center.city:
-        crumbs.append((
-            center.city,
-            f"/diving-centers?country={center.country or ''}&city={center.city}",
-        ))
+        crumbs.append(
+            (
+                center.city,
+                f"/diving-centers?country={center.country or ''}&city={center.city}",
+            )
+        )
     crumbs.append((center.name, ""))
 
     lines = [
@@ -496,13 +758,17 @@ def render_diving_center_main(center: DivingCenter) -> str:
     if center.description:
         lines.append(f"<p>{escape_text(strip_html_tags(center.description))}</p>")
     if center.website:
-        lines.append(f'<p><strong>Website:</strong> <a href="{escape_text(center.website)}">{escape_text(center.website)}</a></p>')
+        lines.append(
+            f'<p><strong>Website:</strong> <a href="{escape_text(center.website)}">{escape_text(center.website)}</a></p>'
+        )
 
-    lines.extend([
-        '<nav aria-label="Related pages">',
-        '<a href="/diving-centers">All Diving Centers</a>',
-        "</nav></main>",
-    ])
+    lines.extend(
+        [
+            '<nav aria-label="Related pages">',
+            '<a href="/diving-centers">All Diving Centers</a>',
+            "</nav></main>",
+        ]
+    )
     return "\n".join(lines)
 
 
@@ -530,17 +796,23 @@ def render_dive_route_main(route: DiveRoute, *, get_dive_site_slug=None) -> str:
     ]
 
     if route.dive_site:
-        lines.append(f"<p><strong>Dive site:</strong> {escape_text(route.dive_site.name)}</p>")
+        lines.append(
+            f"<p><strong>Dive site:</strong> {escape_text(route.dive_site.name)}</p>"
+        )
     if route.route_type:
-        lines.append(f"<p><strong>Route type:</strong> {escape_text(route.route_type.name)}</p>")
+        lines.append(
+            f"<p><strong>Route type:</strong> {escape_text(route.route_type.name)}</p>"
+        )
     if route.description:
         lines.append(f"<p>{escape_text(strip_html_tags(route.description))}</p>")
 
-    lines.extend([
-        '<nav aria-label="Related pages">',
-        '<a href="/dive-routes">All Dive Routes</a>',
-        "</nav></main>",
-    ])
+    lines.extend(
+        [
+            '<nav aria-label="Related pages">',
+            '<a href="/dive-routes">All Dive Routes</a>',
+            "</nav></main>",
+        ]
+    )
     return "\n".join(lines)
 
 
@@ -602,93 +874,109 @@ def _build_head_injection(
     title: str,
     description: str,
     canonical: str,
-    base_url: Optional[str] = None,
+    base_url: str | None = None,
     og_type: str = "website",
-    json_ld: Optional[dict] = None,
+    json_ld: dict | None = None,
     include_description: bool = True,
-    image_url: Optional[str] = None,
-    image_type: Optional[str] = None,
-    image_width: Optional[int] = None,
-    image_height: Optional[int] = None,
+    image_url: str | None = None,
+    image_type: str | None = None,
+    image_width: int | None = None,
+    image_height: int | None = None,
 ) -> str:
     lines = []
     if include_description:
-        lines.append(f'<meta name="description" content="{escape_text(description)}" data-rh="true" />')
-    
+        lines.append(
+            f'<meta name="description" content="{escape_text(description)}" data-rh="true" />'
+        )
+
     if not base_url and canonical.startswith(("http://", "https://")):
         match = re.match(r"(https?://[^/]+)", canonical)
         if match:
             base_url = match.group(1)
-            
+
     resolved_base_url = base_url or ""
     logo_url = f"{resolved_base_url.rstrip('/')}/divemap_navbar_logo.png"
 
-    lines.extend([
-        f'<link rel="canonical" href="{escape_text(canonical)}" data-rh="true" />',
-        '<meta name="robots" content="index, follow, max-image-preview:large" data-rh="true" />',
-        f'<meta property="og:locale" content="en_US" data-rh="true" />',
-        f'<meta property="og:site_name" content="Divemap" data-rh="true" />',
-        f'<meta property="og:type" content="{escape_text(og_type)}" data-rh="true" />',
-        f'<meta property="og:title" content="{escape_text(title)}" data-rh="true" />',
-        f'<meta property="og:description" content="{escape_text(description)}" data-rh="true" />',
-        f'<meta property="og:url" content="{escape_text(canonical)}" data-rh="true" />',
-    ])
+    lines.extend(
+        [
+            f'<link rel="canonical" href="{escape_text(canonical)}" data-rh="true" />',
+            '<meta name="robots" content="index, follow, max-image-preview:large" data-rh="true" />',
+            '<meta property="og:locale" content="en_US" data-rh="true" />',
+            '<meta property="og:site_name" content="Divemap" data-rh="true" />',
+            f'<meta property="og:type" content="{escape_text(og_type)}" data-rh="true" />',
+            f'<meta property="og:title" content="{escape_text(title)}" data-rh="true" />',
+            f'<meta property="og:description" content="{escape_text(description)}" data-rh="true" />',
+            f'<meta property="og:url" content="{escape_text(canonical)}" data-rh="true" />',
+        ]
+    )
 
     if image_url:
         # Prevent HTML-escaping of ampersands inside the image_url to ensure simple social scrapers request the valid raw URL
         safe_image_url = escape_text(image_url).replace("&amp;", "&")
-        lines.extend([
-            f'<meta property="og:image" content="{safe_image_url}" data-rh="true" />',
-            f'<meta property="og:image:secure_url" content="{safe_image_url}" data-rh="true" />',
-            f'<meta name="twitter:image" content="{safe_image_url}" data-rh="true" />',
-            f'<meta name="twitter:card" content="summary_large_image" data-rh="true" />',
-        ])
+        lines.extend(
+            [
+                f'<meta property="og:image" content="{safe_image_url}" data-rh="true" />',
+                f'<meta property="og:image:secure_url" content="{safe_image_url}" data-rh="true" />',
+                f'<meta name="twitter:image" content="{safe_image_url}" data-rh="true" />',
+                '<meta name="twitter:card" content="summary_large_image" data-rh="true" />',
+            ]
+        )
         if image_type:
-            lines.append(f'<meta property="og:image:type" content="{escape_text(image_type)}" data-rh="true" />')
-        
+            lines.append(
+                f'<meta property="og:image:type" content="{escape_text(image_type)}" data-rh="true" />'
+            )
+
         width = image_width or 1200
         height = image_height or 1200
-        lines.extend([
-            f'<meta property="og:image:width" content="{width}" data-rh="true" />',
-            f'<meta property="og:image:height" content="{height}" data-rh="true" />',
-        ])
+        lines.extend(
+            [
+                f'<meta property="og:image:width" content="{width}" data-rh="true" />',
+                f'<meta property="og:image:height" content="{height}" data-rh="true" />',
+            ]
+        )
     else:
-        lines.extend([
-            f'<meta property="og:image" content="{escape_text(logo_url)}" data-rh="true" />',
-            f'<meta property="og:image:secure_url" content="{escape_text(logo_url)}" data-rh="true" />',
-            f'<meta name="twitter:image" content="{escape_text(logo_url)}" data-rh="true" />',
-            f'<meta name="twitter:card" content="summary" data-rh="true" />',
-            '<meta property="og:image:type" content="image/png" data-rh="true" />',
-            '<meta property="og:image:width" content="512" data-rh="true" />',
-            '<meta property="og:image:height" content="512" data-rh="true" />',
-        ])
+        lines.extend(
+            [
+                f'<meta property="og:image" content="{escape_text(logo_url)}" data-rh="true" />',
+                f'<meta property="og:image:secure_url" content="{escape_text(logo_url)}" data-rh="true" />',
+                f'<meta name="twitter:image" content="{escape_text(logo_url)}" data-rh="true" />',
+                '<meta name="twitter:card" content="summary" data-rh="true" />',
+                '<meta property="og:image:type" content="image/png" data-rh="true" />',
+                '<meta property="og:image:width" content="512" data-rh="true" />',
+                '<meta property="og:image:height" content="512" data-rh="true" />',
+            ]
+        )
 
-    lines.extend([
-        f'<meta name="twitter:title" content="{escape_text(title)}" data-rh="true" />',
-        f'<meta name="twitter:description" content="{escape_text(description)}" data-rh="true" />',
-    ])
+    lines.extend(
+        [
+            f'<meta name="twitter:title" content="{escape_text(title)}" data-rh="true" />',
+            f'<meta name="twitter:description" content="{escape_text(description)}" data-rh="true" />',
+        ]
+    )
 
     if json_ld:
         ld_json = json.dumps(json_ld, ensure_ascii=False)
         ld_json = ld_json.replace("</", "<\\/")
-        lines.append(f'<script type="application/ld+json" data-rh="true">{ld_json}</script>')
+        lines.append(
+            f'<script type="application/ld+json" data-rh="true">{ld_json}</script>'
+        )
     return "\n    ".join(lines)
 
 
 def render_seo_page(
-    template_html: Optional[str],
+    template_html: str | None,
     *,
     title: str,
     description: str,
     canonical: str,
     main_content: str,
-    base_url: Optional[str] = None,
+    base_url: str | None = None,
     og_type: str = "website",
-    json_ld: Optional[dict] = None,
-    image_url: Optional[str] = None,
-    image_type: Optional[str] = None,
-    image_width: Optional[int] = None,
-    image_height: Optional[int] = None,
+    json_ld: dict | None = None,
+    image_url: str | None = None,
+    image_type: str | None = None,
+    image_width: int | None = None,
+    image_height: int | None = None,
 ) -> str:
     # Disable duplicate description injection since we replace the default meta description in the template below!
     head_injection = _build_head_injection(
@@ -743,7 +1031,11 @@ def render_seo_page(
 
     # Determine if this is the Homepage to apply the full-width layout
     # Home canonical is '/' or ends with port, check title or canonical
-    is_homepage = "Discover and Rate" in title or canonical.rstrip("/").split("/")[-1] == "" or canonical.rstrip("/") == "https://divemap.blue"
+    is_homepage = (
+        "Discover and Rate" in title
+        or canonical.rstrip("/").split("/")[-1] == ""
+        or canonical.rstrip("/") == "https://divemap.blue"
+    )
 
     if is_homepage:
         styled_content = f"""{navbar_html}
@@ -771,6 +1063,8 @@ def render_seo_page(
       .dark .prose-custom h1 { color: #60a5fa; }
       .prose-custom h2 { font-size: 1.5rem; font-weight: 700; color: #0f172a; margin-top: 2.5rem; margin-bottom: 1.25rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem; font-family: system-ui, -apple-system, sans-serif; }
       .dark .prose-custom h2 { color: #f8fafc; border-color: #1e293b; }
+      .prose-custom h3 { font-size: 1.125rem; font-weight: 700; color: #0f172a; margin-top: 1.5rem; margin-bottom: 0.5rem; font-family: system-ui, -apple-system, sans-serif; }
+      .dark .prose-custom h3 { color: #f1f5f9; }
       .prose-custom p { margin-bottom: 1.25rem; line-height: 1.625; color: #334155; font-size: 1rem; font-family: system-ui, -apple-system, sans-serif; }
       .dark .prose-custom p { color: #94a3b8; }
       .prose-custom strong { font-weight: 600; color: #0f172a; }
@@ -779,6 +1073,20 @@ def render_seo_page(
       .prose-custom a:hover { color: #1d4ed8; text-decoration: underline; }
       .dark .prose-custom a { color: #60a5fa; }
       .dark .prose-custom a:hover { color: #93c5fd; }
+
+      .prose-custom dl.specs-grid { display: grid; grid-template-columns: auto 1fr; gap: 0.5rem 1.25rem; margin: 1.25rem 0; padding: 1.25rem; background: #f8fafc; border-radius: 0.75rem; border: 1px solid #e2e8f0; font-family: system-ui, -apple-system, sans-serif; font-size: 0.9375rem; }
+      .dark .prose-custom dl.specs-grid { background: #0f172a; border-color: #1e293b; }
+      .prose-custom dt { font-weight: 600; color: #475569; }
+      .dark .prose-custom dt { color: #94a3b8; }
+      .prose-custom dd { margin: 0; color: #0f172a; }
+      .dark .prose-custom dd { color: #f1f5f9; }
+
+      .prose-custom .photo-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin: 1.25rem 0; }
+      .prose-custom .photo-gallery figure { margin: 0; border-radius: 0.75rem; overflow: hidden; background: #f1f5f9; border: 1px solid #e2e8f0; }
+      .dark .prose-custom .photo-gallery figure { background: #0f172a; border-color: #1e293b; }
+      .prose-custom .photo-gallery img { width: 100%; height: 160px; object-fit: cover; display: block; }
+      .prose-custom .photo-gallery figcaption { padding: 0.5rem 0.75rem; font-size: 0.8125rem; color: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+      .dark .prose-custom .photo-gallery figcaption { color: #94a3b8; }
       
       .prose-custom nav[aria-label="Breadcrumb"] { font-size: 0.875rem; margin-bottom: 1.5rem; color: #64748b; font-weight: 500; font-family: system-ui, -apple-system, sans-serif; }
       .prose-custom nav[aria-label="Breadcrumb"] a { color: #64748b; text-decoration: none; }
@@ -801,7 +1109,12 @@ def render_seo_page(
 
     if template_html:
         page = template_html
-        page = re.sub(r"<title>[^<]*</title>", f"<title>{escape_text(title)}</title>", page, count=1)
+        page = re.sub(
+            r"<title>[^<]*</title>",
+            f"<title>{escape_text(title)}</title>",
+            page,
+            count=1,
+        )
         page = re.sub(
             r'<meta name="description" content="[^"]*"[^>]*/>',
             f'<meta name="description" content="{escape_text(description)}" data-rh="true" />',
@@ -831,5 +1144,3 @@ def render_seo_page(
   </div>
 </body>
 </html>"""
-
-
