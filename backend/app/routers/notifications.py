@@ -1316,6 +1316,14 @@ async def fail_push_subscription(
         except Exception:
             pass
 
+    if effective_status is not None:
+        try:
+            effective_status = int(effective_status)
+        except (ValueError, TypeError):
+            effective_status = None
+
+    current_fail_count = subscription.fail_count
+
     if effective_status in [404, 410]:
         logger.warning(
             f"Push subscription {subscription_id} permanently failed with status {effective_status}. Deleting immediately."
@@ -1325,13 +1333,14 @@ async def fail_push_subscription(
         return {
             "status": "success",
             "message": f"Subscription permanently deleted due to push status {effective_status}",
-            "fail_count": subscription.fail_count,
+            "fail_count": current_fail_count,
             "deleted": True,
         }
 
     subscription.fail_count += 1
+    new_fail_count = subscription.fail_count
 
-    if subscription.fail_count >= 10:
+    if new_fail_count >= 10:
         logger.warning(
             f"Push subscription {subscription_id} reached 10 failures. Deleting."
         )
@@ -1341,13 +1350,13 @@ async def fail_push_subscription(
         deleted = True
     else:
         db.commit()
-        message = f"Subscription failure recorded. Count: {subscription.fail_count}"
+        message = f"Subscription failure recorded. Count: {new_fail_count}"
         deleted = False
 
     return {
         "status": "success",
         "message": message,
-        "fail_count": subscription.fail_count,
+        "fail_count": new_fail_count,
         "deleted": deleted,
     }
 
