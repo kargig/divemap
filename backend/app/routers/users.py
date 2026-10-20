@@ -1,4 +1,5 @@
 import base64
+import json
 import re
 import secrets
 import uuid
@@ -33,6 +34,7 @@ from app.facebook_auth import (
 from app.limiter import skip_rate_limit_for_admin
 from app.models import (
     ApiKey,
+    AuthAuditLog,
     CenterComment,
     Dive,
     DiveBuddy,
@@ -78,7 +80,7 @@ from app.schemas import (
 )
 from app.services.image_processing import image_processing
 from app.services.r2_storage_service import r2_storage
-from app.utils import populate_avatar_full_url, utcnow
+from app.utils import get_client_ip, populate_avatar_full_url, utcnow
 
 router = APIRouter()
 
@@ -1938,6 +1940,7 @@ async def list_api_keys(
 
 @router.post("/admin/api-keys", response_model=ApiKeyCreateResponse)
 async def create_api_key(
+    request: Request,
     key_data: ApiKeyCreate,
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db),
@@ -1968,6 +1971,26 @@ async def create_api_key(
     db.add(db_api_key)
     db.commit()
     db.refresh(db_api_key)
+
+    # Record audit log (never store the raw secret key in logs!)
+    audit_log = AuthAuditLog(
+        user_id=current_user.id,
+        action="api_key_created",
+        ip_address=get_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+        success=True,
+        details=json.dumps(
+            {
+                "key_id": db_api_key.id,
+                "name": db_api_key.name,
+                "expires_at": db_api_key.expires_at.isoformat()
+                if db_api_key.expires_at
+                else None,
+            }
+        ),
+    )
+    db.add(audit_log)
+    db.commit()
 
     # Return response with the actual key (only time it's shown)
     return ApiKeyCreateResponse(
@@ -2019,6 +2042,7 @@ async def get_api_key(
 @router.put("/admin/api-keys/{key_id}", response_model=ApiKeyResponse)
 async def update_api_key(
     key_id: int,
+    request: Request,
     key_update: ApiKeyUpdate,
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db),
@@ -2033,8 +2057,39 @@ async def update_api_key(
 
     # Update only provided fields
     update_data = key_update.model_dump(exclude_unset=True)
+
+    # Detect specific action for audit log
+    action = "api_key_updated"
+    if "is_active" in update_data:
+        if update_data["is_active"] is False and api_key.is_active is True:
+            action = "api_key_revoked"
+        elif update_data["is_active"] is True and api_key.is_active is False:
+            action = "api_key_activated"
+
     for field, value in update_data.items():
         setattr(api_key, field, value)
+
+    # Prepare safe serializable changes for audit log
+    safe_changes = {
+        k: (v.isoformat() if hasattr(v, "isoformat") else v)
+        for k, v in update_data.items()
+    }
+
+    audit_log = AuthAuditLog(
+        user_id=current_user.id,
+        action=action,
+        ip_address=get_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+        success=True,
+        details=json.dumps(
+            {
+                "key_id": api_key.id,
+                "name": api_key.name,
+                "changes": safe_changes,
+            }
+        ),
+    )
+    db.add(audit_log)
 
     db.commit()
     db.refresh(api_key)
@@ -2063,6 +2118,7 @@ async def update_api_key(
 @router.delete("/admin/api-keys/{key_id}")
 async def delete_api_key(
     key_id: int,
+    request: Request,
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db),
 ):
@@ -2074,7 +2130,25 @@ async def delete_api_key(
             status_code=status.HTTP_404_NOT_FOUND, detail="API key not found"
         )
 
+    key_id_val = api_key.id
+    key_name_val = api_key.name
+
     db.delete(api_key)
+
+    audit_log = AuthAuditLog(
+        user_id=current_user.id,
+        action="api_key_deleted",
+        ip_address=get_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+        success=True,
+        details=json.dumps(
+            {
+                "key_id": key_id_val,
+                "name": key_name_val,
+            }
+        ),
+    )
+    db.add(audit_log)
     db.commit()
 
     return {"message": "API key deleted successfully"}

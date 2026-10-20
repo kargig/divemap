@@ -24,6 +24,7 @@ import {
   LayoutDashboard,
   ExternalLink,
   ChevronDown,
+  Key,
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
@@ -186,6 +187,7 @@ const AdminLayout = () => {
           icon: <Clock className='h-4 w-4' />,
         },
         { name: 'Audit Logs', path: '/admin/audit-logs', icon: <Shield className='h-4 w-4' /> },
+        { name: 'API Keys', path: '/admin/api-keys', icon: <Key className='h-4 w-4' /> },
       ],
     },
   ];

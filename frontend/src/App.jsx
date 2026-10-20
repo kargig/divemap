@@ -43,6 +43,7 @@ const AdminRecentActivity = lazy(() => import('./pages/AdminRecentActivity'));
 const AdminSystemMetrics = lazy(() => import('./pages/AdminSystemMetrics'));
 const AdminTags = lazy(() => import('./pages/AdminTags'));
 const AdminUsers = lazy(() => import('./pages/AdminUsers'));
+const AdminApiKeys = lazy(() => import('./pages/AdminApiKeys'));
 const AdminAuditLogs = lazy(() => import('./pages/AdminAuditLogs'));
 const AdminChatFeedback = lazy(() => import('./pages/AdminChatFeedback'));
 const AdminChatHistory = lazy(() => import('./pages/AdminChatHistory'));
@@ -558,6 +559,7 @@ function AppContent() {
               <Route path='notification-preferences' element={<AdminNotificationPreferences />} />
               <Route path='ownership-requests' element={<AdminOwnershipRequests />} />
               <Route path='dive-sites/:id/aliases' element={<AdminDiveSiteAliases />} />
+              <Route path='api-keys' element={<AdminApiKeys />} />
             </Route>
             <Route path='/dive-trips' element={<DiveTrips />} />
             <Route

@@ -792,13 +792,15 @@ def ensure_default_lists(db: Session, user_id: int):
 async def get_popular_lists_admin(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_admin_user)
 ):
-    """Retrieve lists sorted by popularity (views) for site administrators"""
+    """Retrieve lists sorted by popularity (views) for site administrators, excluding empty collections"""
     lists = (
         db.query(DiveSiteList)
+        .filter(DiveSiteList.items.any())
         .options(
+            joinedload(DiveSiteList.user),
             joinedload(DiveSiteList.items)
             .joinedload(DiveSiteListItem.dive_site)
-            .options(selectinload(DiveSite.tags).joinedload(DiveSiteTag.tag))
+            .options(selectinload(DiveSite.tags).joinedload(DiveSiteTag.tag)),
         )
         .order_by(DiveSiteList.view_count.desc())
         .limit(50)
@@ -807,8 +809,7 @@ async def get_popular_lists_admin(
 
     # Resolve owners' usernames and sanitize
     for lst in lists:
-        owner = db.query(User).filter(User.id == lst.user_id).first()
-        lst.username = owner.username if owner else "unknown"
+        lst.username = lst.user.username if lst.user else "unknown"
         sanitize_list_for_response(lst)
 
     return lists

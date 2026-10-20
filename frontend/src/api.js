@@ -585,3 +585,24 @@ export const getRecentActivity = async () => {
   const response = await api.get('/api/v1/public/recent-activity');
   return response.data;
 };
+
+// Admin API Keys Management
+export const getAdminApiKeys = async () => {
+  const response = await api.get('/api/v1/users/admin/api-keys');
+  return response.data;
+};
+
+export const createAdminApiKey = async keyData => {
+  const response = await api.post('/api/v1/users/admin/api-keys', keyData);
+  return response.data;
+};
+
+export const updateAdminApiKey = async (keyId, updateData) => {
+  const response = await api.put(`/api/v1/users/admin/api-keys/${keyId}`, updateData);
+  return response.data;
+};
+
+export const deleteAdminApiKey = async keyId => {
+  const response = await api.delete(`/api/v1/users/admin/api-keys/${keyId}`);
+  return response.data;
+};
