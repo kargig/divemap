@@ -9,8 +9,22 @@ import logging
 import os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from itertools import batched
 from typing import Any
+
+try:
+    from itertools import batched
+except ImportError:
+    # Python < 3.12 compatibility (e.g. AWS Lambda running on Python 3.11)
+    from itertools import islice
+
+    def batched(iterable, n, *, strict=False):
+        if n < 1:
+            raise ValueError("n must be at least one")
+        it = iter(iterable)
+        while batch := tuple(islice(it, n)):
+            if strict and len(batch) < n and tuple(islice(it, 1)):
+                raise ValueError("batched(): incomplete batch in strict mode")
+            yield batch
 
 import orjson
 

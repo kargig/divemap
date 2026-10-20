@@ -142,16 +142,10 @@ if [[ ! -f "app/services/ses_service.py" ]]; then
   exit 1
 fi
 
-# Check if pip is available
-if ! command -v pip &> /dev/null && ! command -v pip3 &> /dev/null; then
-  echo -e "${RED}Error: pip or pip3 not found. Please install Python pip.${NC}"
-  exit 1
-fi
-
-# 3. Install dependencies using an AWS Lambda compatible Docker image
+# Install dependencies using uv inside an AWS Lambda compatible Docker image
 # This guarantees that C-bound libraries (orjson, cryptography) are compiled
 # specifically for the Amazon Linux environment that Lambda uses.
-echo -e "${YELLOW}Building dependencies via Docker (amazon/aws-lambda-python:3.11)...${NC}"
+echo -e "${YELLOW}Building dependencies via Docker using uv (public.ecr.aws/sam/build-python3.13)...${NC}"
 
 # Ensure Docker is running
 if ! docker info > /dev/null 2>&1; then
@@ -159,19 +153,10 @@ if ! docker info > /dev/null 2>&1; then
   exit 1
 fi
 
-# Create a temporary requirements file for the builder
-cat << 'EOF' > requirements_lambda.txt
-boto3
-jinja2
-pywebpush
-cryptography
-orjson
-EOF
+docker run --rm -v "$PWD":/var/task "public.ecr.aws/sam/build-python3.13" \
+  /bin/sh -c "uv pip install --system --link-mode=copy -r requirements.txt --target . && chown -R $(id -u):$(id -g) ."
 
-docker run --rm -v "$PWD":/var/task "public.ecr.aws/sam/build-python3.11" \
-  /bin/sh -c "pip install -r requirements_lambda.txt -t . && chown -R $(id -u):$(id -g) ."
-
-rm requirements_lambda.txt
+rm -f requirements.txt
 
 # Verify dependencies were installed
 if [[ ! -d "boto3" ]] || [[ ! -d "jinja2" ]] || [[ ! -d "pywebpush" ]] || [[ ! -d "cryptography" ]] || [[ ! -d "orjson" ]]; then

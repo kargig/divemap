@@ -116,25 +116,33 @@ aws lambda list-event-source-mappings \
 
 **Cause:** Lambda package is missing `app/services/` and `app/templates/` directories
 
-**Fix:** Recreate the Lambda package following `DEPLOY.md` section 3:
+**Fix:** Recreate the Lambda package using the packaging script:
 
 ```bash
-cd terraform
+./scripts/package_lambda.sh --deploy
+```
+
+Or manually:
+
+```bash
+cd terraform/aws
 rm -rf lambda_package lambda_email_processor.zip
 mkdir -p lambda_package
 cd lambda_package
 
 # Copy Lambda function code
-cp -r ../../backend/lambda/* .
+cp -r ../../../backend/lambda/* .
 
 # Copy email service and templates from backend
 mkdir -p app/services app/templates/emails
-cp ../../backend/app/services/email_service.py app/services/
-cp ../../backend/app/services/ses_service.py app/services/
-cp -r ../../backend/app/templates/emails/* app/templates/emails/
+cp ../../../backend/app/services/email_service.py app/services/
+cp ../../../backend/app/services/ses_service.py app/services/
+cp -r ../../../backend/app/templates/emails/* app/templates/emails/
 
-# Install dependencies
-pip install boto3 jinja2 -t .
+# Install dependencies with uv in Docker
+docker run --rm -v "$PWD":/var/task "public.ecr.aws/sam/build-python3.13" \
+  /bin/sh -c "uv pip install --system --link-mode=copy -r requirements.txt --target . && chown -R \$(id -u):\$(id -g) ."
+rm -f requirements.txt
 
 # Create zip file
 zip -r ../lambda_email_processor.zip .

@@ -15,7 +15,7 @@ visibility_timeout_seconds = 300     # 5 minutes
 
 # Lambda Configuration
 lambda_function_name = "divemap-email-processor"
-lambda_runtime       = "python3.11"
+lambda_runtime       = "python3.13"
 lambda_timeout       = 300  # 5 minutes
 lambda_memory_size   = 256  # MB
 

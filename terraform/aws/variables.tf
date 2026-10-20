@@ -31,7 +31,7 @@ variable "lambda_function_name" {
 variable "lambda_runtime" {
   description = "Python runtime version for Lambda"
   type        = string
-  default     = "python3.11"
+  default     = "python3.13"
 }
 
 variable "lambda_timeout" {
