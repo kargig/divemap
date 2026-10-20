@@ -275,6 +275,7 @@ def test_notification_service_triggers_push(mock_send, db_session: Session, test
     assert len(args) == 1
     assert args[0]["subscription_id"] == sub.id
     assert args[0]["payload"]["tag"] == "new_dive_sites"
+    assert args[0]["payload"]["url"] == "https://divemap.blue/test"
 
 
 @patch("app.services.sqs_service.SQSService.send_push_tasks", return_value=1)

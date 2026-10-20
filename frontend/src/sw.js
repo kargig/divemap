@@ -172,7 +172,12 @@ self.addEventListener('notificationclick', function (event) {
     return;
   }
 
-  const urlToOpen = new URL(event.notification.data.url, self.location.origin).href;
+  // Ensure target URL points to canonical divemap.blue domain, even for legacy divemap.gr installations
+  const baseOrigin = self.location.origin.includes('divemap.gr')
+    ? 'https://divemap.blue'
+    : self.location.origin;
+
+  const urlToOpen = new URL(event.notification.data.url, baseOrigin).href;
 
   event.waitUntil(
     self.clients
@@ -186,6 +191,14 @@ self.addEventListener('notificationclick', function (event) {
           const client = windowClients[i];
           if (client.url === urlToOpen && 'focus' in client) {
             return client.focus();
+          }
+        }
+        // If an existing app window from the same origin is open, focus and navigate it
+        for (let i = 0; i < windowClients.length; i++) {
+          const client = windowClients[i];
+          if ('focus' in client && 'navigate' in client) {
+            client.focus();
+            return client.navigate(urlToOpen);
           }
         }
         // If not, open a new window/tab

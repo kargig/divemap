@@ -493,10 +493,20 @@ class NotificationService:
         # Construct generic payload
         # IMPORTANT: We never send the actual notification message/PII in the push
         # to prevent lock-screen shoulder surfing.
+        frontend_base_url = os.getenv("FRONTEND_URL", "https://divemap.blue").rstrip(
+            "/"
+        )
+        link_url = notification.link_url or "/"
+        target_url = (
+            link_url
+            if link_url.startswith("http://") or link_url.startswith("https://")
+            else f"{frontend_base_url}{link_url if link_url.startswith('/') else '/' + link_url}"
+        )
+
         payload = {
             "title": "Divemap Notification",
             "body": "You have a new update on Divemap",
-            "url": notification.link_url or "/",
+            "url": target_url,
             "tag": getattr(notification, "_push_tag", notification.category),
         }
 
