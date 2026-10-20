@@ -1,15 +1,26 @@
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
-from app.models import User, DiveSite, DiveSiteList, DiveSiteListItem
 
-def test_lists_workflow(client, db_session: Session, test_user, test_user_other, test_dive_site, auth_headers, auth_headers_other_user, admin_headers):
+from app.models import DiveSite, DiveSiteList, DiveSiteListItem, User
+
+
+def test_lists_workflow(
+    client,
+    db_session: Session,
+    test_user,
+    test_user_other,
+    test_dive_site,
+    auth_headers,
+    auth_headers_other_user,
+    admin_headers,
+):
     # 1. Access user lists anonymously / publicly
     # This should trigger default lists creation!
     response = client.get(f"/api/v1/users/{test_user.username}/lists")
     assert response.status_code == 200
     data = response.json()
-    
+
     # By default, only public profile-enabled lists are shown
     # "My Favorites" defaults to is_public=True, show_on_profile=True -> count should be 1
     assert len(data) == 1
@@ -25,8 +36,13 @@ def test_lists_workflow(client, db_session: Session, test_user, test_user_other,
     # 3. Create a custom list
     response = client.post(
         "/api/v1/lists",
-        json={"title": "Saronikos Caves", "description": "My top cave locations", "is_public": True, "show_on_profile": True},
-        headers=auth_headers
+        json={
+            "title": "Saronikos Caves",
+            "description": "My top cave locations",
+            "is_public": True,
+            "show_on_profile": True,
+        },
+        headers=auth_headers,
     )
     assert response.status_code == 201
     custom_list = response.json()
@@ -37,7 +53,7 @@ def test_lists_workflow(client, db_session: Session, test_user, test_user_other,
     response = client.post(
         f"/api/v1/lists/{custom_list['id']}/items",
         json={"dive_site_id": test_dive_site.id, "notes": "Fabulous visibility!"},
-        headers=auth_headers
+        headers=auth_headers,
     )
     assert response.status_code == 201
     item_data = response.json()
@@ -47,7 +63,7 @@ def test_lists_workflow(client, db_session: Session, test_user, test_user_other,
     response = client.post(
         f"/api/v1/lists/{custom_list['id']}/items",
         json={"dive_site_id": test_dive_site.id},
-        headers=auth_headers
+        headers=auth_headers,
     )
     assert response.status_code == 400
 
@@ -62,7 +78,9 @@ def test_lists_workflow(client, db_session: Session, test_user, test_user_other,
     assert isinstance(list_details["items"][0]["dive_site"]["tags"], list)
 
     # 7. Check membership status
-    response = client.get(f"/api/v1/lists/dive-site/{test_dive_site.id}/my-status", headers=auth_headers)
+    response = client.get(
+        f"/api/v1/lists/dive-site/{test_dive_site.id}/my-status", headers=auth_headers
+    )
     assert response.status_code == 200
     status_data = response.json()
     # Check custom list is listed as having this site
@@ -86,9 +104,15 @@ def test_lists_workflow(client, db_session: Session, test_user, test_user_other,
     assert response.status_code == 200
     popular_data = response.json()
     assert len(popular_data) >= 1
+    # Verify that all returned collections have at least 1 site
+    for p_list in popular_data:
+        assert len(p_list["items"]) > 0
 
     # Delete custom list item
-    response = client.delete(f"/api/v1/lists/{custom_list['id']}/items/{item_data['id']}", headers=auth_headers)
+    response = client.delete(
+        f"/api/v1/lists/{custom_list['id']}/items/{item_data['id']}",
+        headers=auth_headers,
+    )
     assert response.status_code == 204
 
     # Delete custom list

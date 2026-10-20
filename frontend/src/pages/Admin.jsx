@@ -88,6 +88,8 @@ const Admin = () => {
     }
   );
 
+  const popularListsWithSites = popularLists?.filter(lst => (lst.items?.length || 0) > 0) || [];
+
   if (!user?.is_admin) {
     return (
       <div className='text-center py-12'>
@@ -332,7 +334,7 @@ const Admin = () => {
             <div className='flex justify-center py-8'>
               <Loader2 className='animate-spin text-blue-600 h-8 w-8' />
             </div>
-          ) : !popularLists || popularLists.length === 0 ? (
+          ) : !popularListsWithSites || popularListsWithSites.length === 0 ? (
             <p className='text-center py-8 text-sm text-gray-500 italic'>
               No collections created yet.
             </p>
@@ -349,7 +351,7 @@ const Admin = () => {
                   </tr>
                 </thead>
                 <tbody className='divide-y divide-gray-100 text-gray-800 font-medium'>
-                  {popularLists.map(lst => (
+                  {popularListsWithSites.map(lst => (
                     <tr key={lst.id} className='hover:bg-blue-50/20 transition-colors'>
                       <td className='px-6 py-4'>
                         <Link
