@@ -22,9 +22,10 @@ except ImportError:
             raise ValueError("n must be at least one")
         it = iter(iterable)
         while batch := tuple(islice(it, n)):
-            if strict and len(batch) < n and tuple(islice(it, 1)):
+            if strict and len(batch) < n:
                 raise ValueError("batched(): incomplete batch in strict mode")
             yield batch
+
 
 import orjson
 

@@ -132,6 +132,11 @@ if [[ ! -f "email_processor.py" ]]; then
   exit 1
 fi
 
+if [[ ! -f "requirements.txt" ]]; then
+  echo -e "${RED}Error: requirements.txt not found in package${NC}"
+  exit 1
+fi
+
 if [[ ! -f "app/services/email_service.py" ]]; then
   echo -e "${RED}Error: email_service.py not found in package${NC}"
   exit 1
