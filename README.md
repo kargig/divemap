@@ -1,411 +1,144 @@
-# Divemap - Scuba Dive Site & Center Review Platform
+# Divemap
 
-A comprehensive web application for scuba diving enthusiasts to discover, rate,
-and review dive sites and diving centers.
+Divemap is an open-source web platform for scuba divers. Divers can log dives, explore dive sites, visualize dive computer profiles, analyze gas physics, monitor marine weather, and connect with dive buddies.
 
-## Features
+## Key Features
 
-### **Core Platform**
+### Dive Logs and Computer Profiles
+- **File Imports**: Import dive logs from Garmin (`.fit`), Subsurface (`.xml`), Suunto (`.json`), and CSV files.
+- **Interactive Profile Charts**: Inspect depth, rolling average depth, water temperature, decompression ceilings, CNS oxygen toxicity, and gas switches.
+- **Bühlmann Decompression Analysis**: Simulate inert gas loading with a native Bühlmann ZH-L16 model. Inspect all 16 tissue compartments on a dynamic heatmap and view surfacing tissue saturation charts.
+- **Advanced Diver Analytics**: Analyze diver habits with 2D depth density histograms (maximum depth compared to average depth), gas consumption trends, and time-series progress charts.
 
-- **User Management**: Registration, login, and profile management with Google
-  OAuth support
-- **Dive Sites**: Comprehensive CRUD operations with detailed information
-  including maximum depth, aliases, country, and region
-- **Diving Centers**: Full management with gear rental costs and dive site
-  associations
-- **Diving Organizations**: Complete management system for diving organizations
-  (PADI, SSI, GUE, etc.)
-- **User Certifications**: Comprehensive certification tracking system with
-  organization associations
-- **Dive Logging**: Complete dive logging system with media uploads, tags,
-  advanced gas management (SAC rates, tank specifications), and statistics
-- **Dive Buddies**: Add registered users as dive buddies with privacy controls
-  and filtering
-- **Dive Route Drawing**: Interactive route creation and editing on maps with
-  compass bearings and map layers
-- **Rating System**: Rate dive sites and diving centers (1-10 scale) with proper
-  state management
-- **Comments**: User comments on dive sites and diving centers with diving
-  credentials display
-- **Interactive Map**: View dive sites and diving centers on an interactive map
-  using OpenLayers
-- **Media Management**: Upload and display photos and videos for dive sites and
-  dives
-- **Tag System**: Comprehensive tag/label management for dive sites and dives
-  with enhanced validation
-- **Social Sharing**: Share dives, dive sites, and routes to social media
-  platforms
-- **Wind Overlay & Recommendations**: Real-time wind data overlay with
-  intelligent dive site suitability recommendations based on weather conditions
+### Dive Sites and Interactive Maps
+- **Interactive Maps**: Browse dive sites and diving centers on Leaflet maps with marker clustering.
+- **Site Details**: View entry types, maximum depths, hazards, marine life, and 1-to-5 star community ratings.
+- **Custom Lists**: Create and share dive site collections with other divers.
 
-### **AI Assistant**
+### Marine Weather and Route Planning
+- **Wind and Swell Forecasts**: View marine weather forecasts from Open-Meteo with live wind direction overlays.
+- **Site Suitability**: Automatically identify protected dive sites based on wind exposure and coastline geometry.
+- **Underwater Routes**: Draw dive paths with compass bearings, measure distances, and export GPX or KML files.
 
-> Powered by advanced LLMs for intelligent dive planning and discovery.
+### Scuba Physics Calculators
+- **Gas Planning**: Calculate Maximum Operating Depth (MOD), Best Nitrox Mix, and Minimum Gas reserves.
+- **Advanced Decompression**: Analyze Surface Air Consumption (SAC) rates, Isobaric Counterdiffusion (ICD), and buoyancy weights.
 
-- **Natural Language Search**: Discover dive sites, trips, and centers using
-  conversational queries (e.g., "Find wreck dives in Athens for beginners")
-- **Weather Integration**: Real-time wind and weather suitability analysis for
-  planned dives
-- **Personalized Recommendations**: Suggests dive sites based on your
-  certification level and diving history
-- **Gear Rental Comparison**: Find the best prices for equipment rental in your
-  area
-- **Certification Guidance**: Interactive guide for diving certifications and
-  organizations
-- **Context Awareness**: Ask questions about the specific dive site or center you
-  are viewing
+### Community and Buddy Messaging
+- **Buddy Network**: Add buddies, track joint dives, and view public diver profiles with certification histories.
+- **Direct Messaging**: Chat with dive buddies using encrypted messaging and Web Push notifications.
+- **Leaderboards**: Track diver milestones on all-time and monthly leaderboards.
 
-### **Mobile Experience**
+### AI Assistant and Trip Discovery
+- **Natural Language Discovery**: Find dive sites and trips with conversational AI queries.
+- **Newsletter Parsing**: Automatically extract dive trips and shop events from newsletter emails.
 
-- **Progressive Web App (PWA)**: Installable application with offline capabilities
-  and native-like experience
-- **Responsive Design**: optimized UI/UX for mobile devices, tablets, and desktops
-- **Touch-Optimized Tools**: Calculators and map interactions designed for touch
-  interfaces
-
-### **Diving Calculators**
-
-> Powered by a high-precision physics engine for accurate technical diving calculations.
-
-- **Best Mix Calculator**: Calculate optimal Nitrox mix for a given depth
-- **Gas Fill Price Calculator**: Estimate cost for tank fills
-- **Gas Planning Calculator**: Comprehensive gas planning for dives
-- **ICD Calculator**: Isobaric Counterdiffusion risks analysis for technical
-  diving
-- **Min Gas Calculator**: Calculate minimum gas reserves required
-- **MOD Calculator**: Maximum Operating Depth calculations for different gases
-- **SAC Rate Calculator**: Surface Air Consumption rate estimation
-- **Weight Calculator**: Buoyancy weight estimation based on equipment and body
-  type
-
-### **Advanced Search & Filtering**
-
-- **Global Search**: Unified search across all content types from navbar
-- **Multi-criteria Search**: Search by name, difficulty, location, and tags
-- **Geographic Filtering**: Filter by country and region
-- **Rating-based Filtering**: Filter by minimum and maximum ratings
-- **Tag-based Filtering**: Filter by multiple tags simultaneously
-- **Wind Suitability Filtering**: Filter dive sites by wind conditions and
-  suitability recommendations
-- **Buddy Filtering**: Filter dives by dive buddy username
-- **Full-text Search**: Advanced search across multiple fields with
-  location-based filtering
-- **Trip Search**: Intelligent search across trip descriptions, requirements,
-  and associated data
-- **Duration Filtering**: Filter trips by minimum and maximum duration
-- **Advanced Sorting**: Sort by relevance, date, duration, and other criteria
-- **Pagination Support**: Efficient handling of large datasets
-
-### **Admin Dashboard & System Monitoring**
-
-- **System Statistics & Metrics**: Real-time platform statistics including user
-  growth, geographic distribution, and system health monitoring.
-- **System Health Monitoring**: CPU, memory, disk usage, and database
-  connectivity monitoring
-- **Recent Activity Tracking**: Monitor user registrations, content creation,
-  comments, and system changes
-- **Performance Metrics**: Track API response times, error rates, and system
-  performance indicators
-- **Backup & Export Management**: Automated data export and backup management
-  capabilities
-- **Permission System**: Comprehensive role-based access control with admin,
-  moderator, and user roles
-- **Platform Settings**: System-wide settings including review controls and
-  feature toggles
-- **Bulk Operations**: Mass delete functionality for efficient management
-- **Real-time Updates**: React Query integration for instant data refresh
-
-### **Newsletter Management System**
-
-- **AI-Powered Parsing**: OpenAI integration for intelligent newsletter content
-  parsing
-- **Dive Trip Extraction**: Automatically extract dive trip information from
-  newsletters
-- **Diving Center Matching**: Intelligent matching of diving centers from
-  newsletter content
-- **Dive Site Recognition**: Automatic recognition and linking of dive sites
-  using aliases
-- **Trip Management**: Create, update, and manage parsed dive trips
-- **Multi-format Support**: Support for various newsletter formats and languages
-- **Distance Calculations**: Haversine formula for accurate geographic distance
-  calculations from user location
-- **User Location Integration**: Geolocation API support with manual coordinate
-  input fallback
-
-### **Multi-Currency Support**
-
-- **10 Major Currencies**: Support for EUR, USD, GBP, AUD, CAD, CHF, JPY, SEK,
-  NOK, DKK
-- **Automatic Conversion**: Real-time currency conversion rates
-- **Flexible Pricing**: Support for different currencies across the platform
-- **User Preferences**: Currency selection based on user location
-
-### **Security & Performance**
-
-- **JWT Authentication**: Secure token-based authentication
-- **Role-Based Access Control**: Comprehensive permission system with admin,
-  moderator, and user roles
-- **Rate Limiting**: Comprehensive API rate limiting with admin exemptions and
-  intelligent client IP detection
-- **Input Validation**: Comprehensive client and server-side validation
-- **Database Migrations**: Alembic-based version-controlled schema management
-- **Container Optimization**: Pre-compiled wheels and IPv6 support for cloud
-  deployment
-- **System Monitoring**: Real-time health monitoring and performance metrics
-- **Client IP Detection**: Robust proxy header analysis for accurate client
-  identification
+### Mobile and Accessibility
+- **Progressive Web App**: Install Divemap on mobile and desktop devices with offline caching.
+- **Android Support**: Native Android wrapper through Trusted Web Activities (TWA) and Capacitor.
+- **Full Dark Mode**: Switch between light and dark themes across all pages and maps.
 
 ## Tech Stack
 
-### Frontend
-
-- **React** - UI framework
-- **React Router DOM** - Client-side routing
-- **React Query** - Data fetching and caching
-- **React Hook Form** - Form handling
-- **React Hot Toast** - Notifications
-- **Tailwind CSS** - Styling
-- **Lucide React** - Icons
-- **OpenLayers** - Interactive maps
-- **Axios** - HTTP client
-- **Google Identity Services** - OAuth authentication
-
-### Backend
-
-- **Python** - Programming language
-- **FastAPI** - Web framework
-- **SQLAlchemy** - ORM
-- **Alembic** - Database migrations
-- **Pydantic** - Data validation
-- **JWT** - Authentication
-- **MySQL** - Database
-- **Docker** - Containerization with optimized builds
-- **Google Auth** - OAuth verification
-- **Netcat-openbsd** - IPv6-compatible database connectivity checking
-
-### Testing
-
-- **Pytest** - Backend testing framework
-- **Node.js** - Frontend validation scripts
-- **Automated Testing** - Regression prevention and data type validation
+| Component | Technologies |
+|---|---|
+| **Frontend** | React 18, Vite 7, Tailwind CSS, Leaflet, React Query, React Hook Form, Zod, Recharts |
+| **Backend** | Python 3.13, FastAPI, SQLAlchemy 2, Alembic, Pydantic v2, orjson, PyJWT |
+| **Database** | MySQL 8.0 (Spatial Extensions) |
+| **Edge & Cloud** | Cloudflare (Turnstile bot defense, R2 storage, edge Workers), Fly.io |
+| **Integrations** | Open-Meteo API, OpenAI API, Web Push (VAPID), Google OAuth |
 
 ## Quick Start
 
-1. **Clone the repository**
+Run Divemap locally with Docker Compose.
 
+### Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) and Docker Compose v2.
+
+### Installation
+
+1. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/kargig/divemap.git
    cd divemap
    ```
 
-2. **Set up environment variables (recommended for production)**
-
+2. Copy the sample environment file:
    ```bash
-   # Copy and modify the example environment file
-   cp .env.example .env
-   # Edit .env with your secure passwords and secrets
+   cp env.example .env
    ```
 
-3. **Start the application**
-
+3. Start the containers:
    ```bash
    docker-compose up -d
    ```
 
-4. **Access the application**
-   - Frontend: <http://localhost>
-   - Backend API: <http://localhost:8000>
-   - API Documentation: <http://localhost:8000/docs>
+4. Open the application:
+   - Frontend: [http://localhost](http://localhost)
+   - Backend API documentation: [http://localhost:8000/docs](http://localhost:8000/docs)
 
-## Documentation
+## Development and Testing
 
-For comprehensive documentation, see the [docs/](./docs/) directory:
+### Backend Tests
 
-- **[Getting Started](./docs/getting-started/README.md)** -
-  User onboarding and application usage guide
-- **[Development Guide](./docs/development/README.md)** -
-  Development setup and workflow
-- **[API Documentation](./docs/development/api.md)** - API endpoints and usage
-- **[Database Guide](./docs/development/database.md)** -
-  Database documentation and migrations
-- **[Testing Guide](./docs/development/testing.md)** -
-  Testing procedures and best practices
-- **[Architecture Documentation](./docs/development/architecture.md)** -
-  System architecture and admin dashboard features
-- **[Permissions Guide](./docs/development/permissions.md)** -
-  User roles, permissions, and access control
-- **[Deployment Guide](./docs/deployment/README.md)** -
-  Comprehensive deployment strategies, Docker, and infrastructure
-- **[Fly.io Guide](./docs/deployment/fly-io.md)** -
-  Advanced Fly.io deployment features and configuration
-- **[Security Documentation](./docs/security/README.md)** -
-  Security measures and best practices
-- **[Maintenance Guide](./docs/maintenance/README.md)** -
-  Database migrations, changelog, and troubleshooting
-- **[Testing Strategy](./docs/TESTING_STRATEGY.md)** -
-  Comprehensive testing strategy and procedures
-- **[Importing Data](./docs/development/importing-data.md)** -
-  Guide for importing dive sites and dives from Subsurface
+CAUTION: Do not run pytest inside the live backend container. That command deletes the development database.
 
-## Development
-
-### Prerequisites
-
-- Docker and Docker Compose
-- Node.js (for local development and testing)
-- Python 3.11+ (for local development)
-
-### Running Tests
-
+To run backend tests in an isolated test database:
 ```bash
-# Backend tests
-docker-compose exec backend python -m pytest
-
-# Frontend validation
-node validate_frontend.js
-
-# Regression testing
-node test_regressions.js
+cd backend
+./docker-test-github-actions.sh
 ```
 
-### Database
+To run a specific test file:
+```bash
+cd backend
+./docker-test-github-actions.sh tests/test_dive_sites.py
+```
 
-The application uses MySQL for data storage. The database is automatically
-initialized with sample data when the containers start.
+### Frontend Tests
+
+To run frontend tests:
+```bash
+cd frontend
+npm test
+```
+
+### Code Quality and Linting
+
+Before you submit code, run the linters:
+
+```bash
+# Check backend code with Ruff
+make lint-backend
+
+# Check frontend code with ESLint
+make lint-frontend
+```
 
 ### Database Migrations
 
-Database schema changes are managed using Alembic migrations:
+Apply schema updates with Alembic:
 
 ```bash
-# Run migrations manually
-cd backend
-source divemap_venv/bin/activate
-export
-PYTHONPATH="/home/kargig/src/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
-
-# Create new migration
-python create_migration.py "Description of changes"
-
-# Run migrations
-python run_migrations.py
-
-# Check migration status
-alembic current
-alembic history
+docker-compose exec backend python run_migrations.py
 ```
 
-**Note**: Migrations run automatically before the backend starts in Docker
-containers.
+## Documentation
 
-### Data Population
+For detailed architecture guides and deployment workflows, see the `docs/` directory:
 
-After running migrations, populate diving organizations with initial data:
-
-```bash
-# Populate diving organizations
-cd backend
-source divemap_venv/bin/activate
-python populate_diving_organizations.py
-
-# List diving organizations
-python populate_diving_organizations.py list
-```
-
-## API Documentation
-
-For comprehensive API documentation including all endpoints, request/response
-formats, authentication methods, and usage examples, see the [API
-Documentation](./docs/development/api.md).
-
-The API provides RESTful endpoints for:
-
-- **Authentication & User Management** - Registration, login, profile management
-- **Dive Sites** - CRUD operations, ratings, comments, media management, wind
-  recommendations
-- **Diving Centers** - Full management with gear rental costs
-- **Diving Organizations** - Complete organization management system
-- **User Certifications** -
-  Certification tracking with organization associations
-- **Dive Logging** - Complete dive logging with media uploads, tags, and buddy
-  management
-- **Dive Routes** - Interactive route drawing, editing, and management
-- **Weather & Wind Data** - Real-time wind data and dive site suitability
-  recommendations
-- **Newsletter Management** - Upload, parse, and manage dive trip information
-- **Tag System** - Comprehensive tag management for dive sites and dives
-- **Media Management** - Photo and video uploads for dive sites and dives
-- **Rating & Comment System** -
-  User ratings and comments for dive sites and centers
-- **System Administration** -
-  Platform statistics, health monitoring, activity tracking, and client IP detection
-
-Interactive API documentation is available at: <http://localhost:8000/docs>
-
-## Contributing
-
-We welcome contributions to Divemap! Please follow these guidelines:
-
-### Development Setup
-
-1. **Fork the repository** and clone it locally
-2. **Set up the development environment** following the [Development
-Guide](./docs/development/README.md)
-3. **Create a feature branch** for your changes
-4. **Follow the coding standards** outlined in the [Architecture
-Documentation](./docs/development/architecture.md)
-
-### Testing Requirements
-
-Before submitting changes, ensure all tests pass:
-
-```bash
-# Backend tests
-docker-compose exec backend python -m pytest
-
-# Frontend validation
-node validate_frontend.js
-
-# Regression testing
-node test_regressions.js
-```
-
-### Documentation Requirements
-
-- **API Changes**: Update the [API Documentation](./docs/development/api.md)
-- **Database Changes**: Follow the [Database Migration
-  Guide](./docs/development/database.md)
-- **Testing**: Refer to the [Testing Guide](./docs/development/testing.md) and
-  [Testing Strategy](./docs/TESTING_STRATEGY.md)
-- **Deployment**: Check the [Deployment
-  Documentation](./docs/deployment/README.md) and [Fly.io
-  Guide](./docs/deployment/fly-io.md)
-- **User Experience**: Update the [Getting Started
-  Guide](./docs/getting-started/README.md) for user-facing changes
-- **Maintenance**: Refer to the [Maintenance
-  Guide](./docs/maintenance/README.md) for operational procedures
-
-**Note**: Documentation has been consolidated to eliminate duplication. See the
-[Documentation Index](./docs/README.md) for the complete structure.
-
-### Code Quality
-
-- Follow the established code style and patterns
-- Add appropriate tests for new functionality
-- Update documentation for any API or database changes
-- Ensure all tests pass before submitting
-
-### Pull Request Process
-
-1. **Test thoroughly** - Run all tests and validation scripts
-2. **Update documentation** - Include relevant documentation updates
-3. **Provide clear descriptions** - Explain the purpose and impact of changes
-4. **Reference issues** - Link to any related issues or discussions
-
-For detailed development guidelines, see the [Development
-Documentation](./docs/development/README.md).
+- [Getting Started Guide](docs/getting-started/README.md) - User guides and setup notes.
+- [Development Workflow](docs/development/README.md) - Development environment and coding standards.
+- [Architecture Overview](docs/development/architecture.md) - System architecture and service components.
+- [API Documentation](docs/development/api.md) - REST endpoints, payloads, and authentication.
+- [Database Guide](docs/development/database.md) - Schema design, spatial indexes, and migration rules.
+- [Testing Strategy](docs/TESTING_STRATEGY.md) - Test architecture and CI test commands.
+- [Importing Dive Logs](docs/development/importing-data.md) - Instructions for Subsurface, Garmin, and CSV imports.
+- [Deployment Guide](docs/deployment/README.md) - Fly.io, Cloudflare, and Nginx configurations.
+- [Security Overview](docs/security/README.md) - Authentication, rate limits, and security headers.
+- [Maintenance Guide](docs/maintenance/README.md) - Operational procedures and troubleshooting.
 
 ## License
 
-This project is licensed under the Apache License, Version 2.0. See the
-[LICENSE](LICENSE) file for details.
+This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for details.
