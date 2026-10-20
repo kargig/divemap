@@ -5,6 +5,8 @@ Provides email sending via AWS SES with Jinja2 template rendering.
 Handles notification emails with HTML and plain text templates.
 """
 
+from __future__ import annotations
+
 import logging
 import os
 from datetime import datetime

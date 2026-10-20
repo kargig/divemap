@@ -92,28 +92,44 @@ Pay special attention to:
 ## 3. Package and Upload the Lambda Function
 
 The Lambda function `backend/lambda/email_processor.py` must be packaged with
-its dependencies and email templates.
+its dependencies (compiled for Amazon Linux) and email templates.
+
+### Recommended Method: Automated Script (Uses `uv` in Docker)
 
 From the project root:
 
 ```bash
-cd terraform
+# Package and upload directly:
+./scripts/package_lambda.sh --deploy
+
+# Or package only:
+./scripts/package_lambda.sh
+```
+
+### Manual Packaging Method (Using `uv`)
+
+From the project root:
+
+```bash
+cd terraform/aws
 
 # Create a temporary directory for packaging
 mkdir -p lambda_package
 cd lambda_package
 
 # Copy Lambda function code
-cp -r ../../backend/lambda/* .
+cp -r ../../../backend/lambda/* .
 
 # Copy email service and templates from backend
 mkdir -p app/services app/templates/emails
-cp ../../backend/app/services/email_service.py app/services/
-cp ../../backend/app/services/ses_service.py app/services/
-cp -r ../../backend/app/templates/emails/* app/templates/emails/
+cp ../../../backend/app/services/email_service.py app/services/
+cp ../../../backend/app/services/ses_service.py app/services/
+cp -r ../../../backend/app/templates/emails/* app/templates/emails/
 
-# Install dependencies (only boto3 and jinja2 are needed)
-pip install boto3 jinja2 -t .
+# Install dependencies using uv inside the Lambda build container
+docker run --rm -v "$PWD":/var/task "public.ecr.aws/sam/build-python3.13" \
+  /bin/sh -c "uv pip install --system --link-mode=copy -r requirements.txt --target . && chown -R \$(id -u):\$(id -g) ."
+rm -f requirements.txt
 
 # Create zip file
 zip -r ../lambda_email_processor.zip .

@@ -28,9 +28,17 @@ Set these in Lambda configuration:
 
 ### Package Lambda Function
 
+Use the automated packaging script from the repository root (recommended):
+
+```bash
+./scripts/package_lambda.sh
+```
+
+Or package manually using `uv`:
+
 ```bash
 cd backend/lambda
-pip install -r requirements.txt -t .
+uv pip install --system --link-mode=copy -r requirements.txt --target .
 zip -r email_processor.zip . -x "*.pyc" "__pycache__/*" "*.md" "*.txt"
 ```
 
@@ -39,7 +47,7 @@ zip -r email_processor.zip . -x "*.pyc" "__pycache__/*" "*.md" "*.txt"
 ```bash
 aws lambda create-function \
   --function-name divemap-email-processor \
-  --runtime python3.11 \
+  --runtime python3.13 \
   --role arn:aws:iam::ACCOUNT_ID:role/lambda-execution-role \
   --handler email_processor.lambda_handler \
   --zip-file fileb://email_processor.zip \
