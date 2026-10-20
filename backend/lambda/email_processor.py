@@ -27,6 +27,11 @@ except ImportError as e:
     WEB_PUSH_AVAILABLE = False
     logger.warning(f"pywebpush not available: {e}")
 
+    class WebPushException(Exception):  # type: ignore
+        response = None
+
+    webpush = None  # type: ignore
+
 # AWS SDK imports
 try:
     import boto3
@@ -344,7 +349,15 @@ def process_push_notification(
                 f"Subscription {subscription_id} is dead (status {ex.response.status_code}). Reporting failure to backend."
             )
             call_backend_api(
-                f"/api/v1/notifications/internal/push-subscriptions/{subscription_id}/fail",
+                f"/api/v1/notifications/internal/push-subscriptions/{subscription_id}/fail?status_code={ex.response.status_code}",
+                method="PUT",
+            )
+        elif ex.response is not None and ex.response.status_code == 400:
+            logger.warning(
+                f"Subscription {subscription_id} failed with bad request (status 400). Reporting failure to backend."
+            )
+            call_backend_api(
+                f"/api/v1/notifications/internal/push-subscriptions/{subscription_id}/fail?status_code={ex.response.status_code}",
                 method="PUT",
             )
         return False

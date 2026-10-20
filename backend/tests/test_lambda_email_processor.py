@@ -5,18 +5,18 @@ Tests the AWS Lambda function that processes email notifications from SQS.
 Focuses on error handling, retry logic, and backend API interaction.
 """
 
-import pytest
+import importlib.util
 import json
 import os
-from unittest.mock import patch, MagicMock, Mock
-from unittest.mock import mock_open
-import urllib.error
-import urllib.request
 
 # Import the Lambda function module
 # Lambda code is in backend/lambda/email_processor.py
 import sys
-import importlib.util
+import urllib.error
+import urllib.request
+from unittest.mock import MagicMock, Mock, mock_open, patch
+
+import pytest
 
 lambda_path = os.path.join(os.path.dirname(__file__), '..', 'lambda')
 email_processor_path = os.path.join(lambda_path, "email_processor.py")
@@ -29,6 +29,7 @@ spec.loader.exec_module(email_processor)
 # Import functions for testing
 call_backend_api = email_processor.call_backend_api
 process_email_notification = email_processor.process_email_notification
+process_push_notification = email_processor.process_push_notification
 lambda_handler = email_processor.lambda_handler
 
 
@@ -423,3 +424,135 @@ class TestLambdaHandler:
             # Should re-raise because it's a retryable error
             error_msg = str(exc_info.value)
             assert "Backend API returned 503" in error_msg or "503" in error_msg
+
+
+class TestLambdaProcessPushNotification:
+    """Test process_push_notification function."""
+
+    @patch.dict(os.environ, {
+        'VAPID_PRIVATE_KEY': 'test-vapid-key',
+        'VAPID_ADMIN_EMAIL': 'mailto:admin@example.com'
+    })
+    @patch.object(email_processor, 'WEB_PUSH_AVAILABLE', True)
+    @patch.object(email_processor, 'webpush')
+    def test_process_push_notification_success(self, mock_webpush):
+        """Test successful push notification."""
+        result = process_push_notification(
+            subscription_id=1,
+            endpoint="https://fcm.googleapis.com/fcm/send/test",
+            p256dh="test-p256dh",
+            auth="test-auth",
+            payload={"title": "Test", "body": "Message"},
+        )
+        assert result is True
+        mock_webpush.assert_called_once()
+
+    @patch.dict(os.environ, {
+        'VAPID_PRIVATE_KEY': 'test-vapid-key',
+        'VAPID_ADMIN_EMAIL': 'mailto:admin@example.com'
+    })
+    @patch.object(email_processor, 'WEB_PUSH_AVAILABLE', True)
+    @patch.object(email_processor, 'call_backend_api')
+    @patch.object(email_processor, 'webpush')
+    def test_process_push_notification_410_gone(self, mock_webpush, mock_call_backend_api):
+        """Test 410 Gone calls backend API with ?status_code=410."""
+        # Create mock WebPushException with response.status_code = 410
+        mock_response = MagicMock()
+        mock_response.status_code = 410
+        ex = email_processor.WebPushException("Push failed: 410 Gone")
+        ex.response = mock_response
+        mock_webpush.side_effect = ex
+
+        result = process_push_notification(
+            subscription_id=12,
+            endpoint="https://fcm.googleapis.com/fcm/send/test",
+            p256dh="test-p256dh",
+            auth="test-auth",
+            payload={"title": "Test"},
+        )
+        assert result is False
+        mock_call_backend_api.assert_called_once_with(
+            "/api/v1/notifications/internal/push-subscriptions/12/fail?status_code=410",
+            method="PUT",
+        )
+
+    @patch.dict(os.environ, {
+        'VAPID_PRIVATE_KEY': 'test-vapid-key',
+        'VAPID_ADMIN_EMAIL': 'mailto:admin@example.com'
+    })
+    @patch.object(email_processor, 'WEB_PUSH_AVAILABLE', True)
+    @patch.object(email_processor, 'call_backend_api')
+    @patch.object(email_processor, 'webpush')
+    def test_process_push_notification_404_not_found(self, mock_webpush, mock_call_backend_api):
+        """Test 404 Not Found calls backend API with ?status_code=404."""
+        mock_response = MagicMock()
+        mock_response.status_code = 404
+        ex = email_processor.WebPushException("Push failed: 404 Not Found")
+        ex.response = mock_response
+        mock_webpush.side_effect = ex
+
+        result = process_push_notification(
+            subscription_id=10,
+            endpoint="https://fcm.googleapis.com/fcm/send/test",
+            p256dh="test-p256dh",
+            auth="test-auth",
+            payload={"title": "Test"},
+        )
+        assert result is False
+        mock_call_backend_api.assert_called_once_with(
+            "/api/v1/notifications/internal/push-subscriptions/10/fail?status_code=404",
+            method="PUT",
+        )
+
+    @patch.dict(os.environ, {
+        'VAPID_PRIVATE_KEY': 'test-vapid-key',
+        'VAPID_ADMIN_EMAIL': 'mailto:admin@example.com'
+    })
+    @patch.object(email_processor, 'WEB_PUSH_AVAILABLE', True)
+    @patch.object(email_processor, 'call_backend_api')
+    @patch.object(email_processor, 'webpush')
+    def test_process_push_notification_400_bad_request(self, mock_webpush, mock_call_backend_api):
+        """Test 400 Bad Request calls backend API with ?status_code=400."""
+        mock_response = MagicMock()
+        mock_response.status_code = 400
+        ex = email_processor.WebPushException("Push failed: 400 Bad Request")
+        ex.response = mock_response
+        mock_webpush.side_effect = ex
+
+        result = process_push_notification(
+            subscription_id=15,
+            endpoint="https://fcm.googleapis.com/fcm/send/test",
+            p256dh="test-p256dh",
+            auth="test-auth",
+            payload={"title": "Test"},
+        )
+        assert result is False
+        mock_call_backend_api.assert_called_once_with(
+            "/api/v1/notifications/internal/push-subscriptions/15/fail?status_code=400",
+            method="PUT",
+        )
+
+    @patch.dict(os.environ, {
+        'VAPID_PRIVATE_KEY': 'test-vapid-key',
+        'VAPID_ADMIN_EMAIL': 'mailto:admin@example.com'
+    })
+    @patch.object(email_processor, 'WEB_PUSH_AVAILABLE', True)
+    @patch.object(email_processor, 'call_backend_api')
+    @patch.object(email_processor, 'webpush')
+    def test_process_push_notification_500_transient_no_fail_call(self, mock_webpush, mock_call_backend_api):
+        """Test 500 server error does not call fail endpoint."""
+        mock_response = MagicMock()
+        mock_response.status_code = 500
+        ex = email_processor.WebPushException("Push failed: 500 Internal Server Error")
+        ex.response = mock_response
+        mock_webpush.side_effect = ex
+
+        result = process_push_notification(
+            subscription_id=16,
+            endpoint="https://fcm.googleapis.com/fcm/send/test",
+            p256dh="test-p256dh",
+            auth="test-auth",
+            payload={"title": "Test"},
+        )
+        assert result is False
+        mock_call_backend_api.assert_not_called()

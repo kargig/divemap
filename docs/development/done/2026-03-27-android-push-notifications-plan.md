@@ -74,7 +74,7 @@ By letting Fly.io pass the unencrypted notification text to SQS, we offload the 
 3.  **AWS SQS:** FastAPI drops these individual device-level messages into SQS (protected by KMS).
 4.  **AWS Lambda:** The Lambda wakes up. It reads the pre-hydrated message from SQS, uses `pywebpush` to perform the Web Push encryption, and fires the encrypted blob directly at Google/Mozilla.
     *   **Zero Database Calls:** Lambda **does not** call the Backend API to fetch user keys or push endpoints.
-5.  **Database Hygiene:** If Lambda gets a `410 Gone` or `404 Not Found` from the push provider (indicating the user uninstalled the app or revoked permission), it immediately calls an internal backend API endpoint (`PUT /api/v1/notifications/internal/push-subscriptions/{id}/fail`). The backend increments the `fail_count` and automatically deletes the token if the count reaches 10.
+5.  **Database Hygiene:** If Lambda gets a `410 Gone` or `404 Not Found` from the push provider (indicating the user uninstalled the app or revoked permission), it immediately calls an internal backend API endpoint (`PUT /api/v1/notifications/internal/push-subscriptions/{id}/fail?status_code=410`). The backend immediately deletes the expired/unsubscribed token to avoid wasteful retry cycles. For other non-permanent errors (e.g., 400 Bad Request), the backend increments the `fail_count` and automatically deletes the token if the count reaches 10.
 
 ---
 

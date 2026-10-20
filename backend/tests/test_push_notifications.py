@@ -1,8 +1,11 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
 from sqlalchemy.orm import Session
-from app.models import User, PushSubscription, Notification
+
+from app.models import Notification, PushSubscription, User
 from app.services.notification_service import NotificationService
-from unittest.mock import MagicMock, patch
+
 
 def test_subscribe_push(client, auth_headers, db_session: Session, test_user):
     payload = {
@@ -76,8 +79,84 @@ def test_internal_fail_subscription(client, db_session: Session, test_user):
         response = client.put(f"/api/v1/notifications/internal/push-subscriptions/{sub.id}/fail", headers=headers)
         assert response.status_code == 200
         assert "deleted" in response.json()["message"]
+        assert response.json()["deleted"] is True
         
         assert db_session.query(PushSubscription).filter(PushSubscription.id == sub.id).first() is None
+
+
+def test_internal_fail_subscription_permanent_410(client, db_session: Session, test_user):
+    sub = PushSubscription(
+        user_id=test_user.id,
+        endpoint="https://fcm.googleapis.com/fail_410",
+        p256dh="key",
+        auth="secret",
+        fail_count=0
+    )
+    db_session.add(sub)
+    db_session.commit()
+
+    with patch("app.routers.notifications.LAMBDA_API_KEY", "test_key"):
+        headers = {"X-API-Key": "test_key"}
+        response = client.put(
+            f"/api/v1/notifications/internal/push-subscriptions/{sub.id}/fail?status_code=410",
+            headers=headers,
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["deleted"] is True
+        assert "permanently deleted" in data["message"]
+        assert db_session.query(PushSubscription).filter(PushSubscription.id == sub.id).first() is None
+
+
+def test_internal_fail_subscription_permanent_404_body(client, db_session: Session, test_user):
+    sub = PushSubscription(
+        user_id=test_user.id,
+        endpoint="https://fcm.googleapis.com/fail_404",
+        p256dh="key",
+        auth="secret",
+        fail_count=2
+    )
+    db_session.add(sub)
+    db_session.commit()
+
+    with patch("app.routers.notifications.LAMBDA_API_KEY", "test_key"):
+        headers = {"X-API-Key": "test_key"}
+        response = client.put(
+            f"/api/v1/notifications/internal/push-subscriptions/{sub.id}/fail",
+            json={"status_code": 404},
+            headers=headers,
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["deleted"] is True
+        assert db_session.query(PushSubscription).filter(PushSubscription.id == sub.id).first() is None
+
+
+def test_internal_fail_subscription_transient_increments_count(client, db_session: Session, test_user):
+    sub = PushSubscription(
+        user_id=test_user.id,
+        endpoint="https://fcm.googleapis.com/transient",
+        p256dh="key",
+        auth="secret",
+        fail_count=2
+    )
+    db_session.add(sub)
+    db_session.commit()
+
+    with patch("app.routers.notifications.LAMBDA_API_KEY", "test_key"):
+        headers = {"X-API-Key": "test_key"}
+        response = client.put(
+            f"/api/v1/notifications/internal/push-subscriptions/{sub.id}/fail?status_code=400",
+            headers=headers,
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["deleted"] is False
+        assert data["fail_count"] == 3
+
+        refreshed = db_session.query(PushSubscription).filter(PushSubscription.id == sub.id).first()
+        assert refreshed is not None
+        assert refreshed.fail_count == 3
 
 @patch("app.services.sqs_service.SQSService.send_push_tasks")
 def test_notification_service_triggers_push(mock_send, db_session: Session, test_user):

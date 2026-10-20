@@ -9,7 +9,7 @@ import os
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Security, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Security, status
 from fastapi.responses import JSONResponse
 from fastapi.security import APIKeyHeader
 from sqlalchemy import desc, func
@@ -1281,14 +1281,19 @@ def get_user_push_subscriptions_for_lambda(
 
 
 @router.put("/internal/push-subscriptions/{subscription_id}/fail")
-def fail_push_subscription(
+async def fail_push_subscription(
     subscription_id: int,
+    request: Request,
+    status_code: int | None = Query(
+        None, description="HTTP status code from push service (e.g. 404, 410)"
+    ),
     db: Session = Depends(get_db),
     _: bool = Depends(verify_lambda_api_key),
 ):
     """
     Internal endpoint for Lambda to report a failed push delivery.
-    Increments fail_count and deletes if >= 10.
+    Immediately deletes subscription if failure is permanent (status_code 404 or 410).
+    Otherwise increments fail_count and deletes if >= 10.
     """
     subscription = (
         db.query(PushSubscription)
@@ -1302,6 +1307,28 @@ def fail_push_subscription(
             detail=f"Subscription {subscription_id} not found",
         )
 
+    effective_status = status_code
+    if effective_status is None:
+        try:
+            body = await request.json()
+            if isinstance(body, dict):
+                effective_status = body.get("status_code")
+        except Exception:
+            pass
+
+    if effective_status in [404, 410]:
+        logger.warning(
+            f"Push subscription {subscription_id} permanently failed with status {effective_status}. Deleting immediately."
+        )
+        db.delete(subscription)
+        db.commit()
+        return {
+            "status": "success",
+            "message": f"Subscription permanently deleted due to push status {effective_status}",
+            "fail_count": subscription.fail_count,
+            "deleted": True,
+        }
+
     subscription.fail_count += 1
 
     if subscription.fail_count >= 10:
@@ -1311,14 +1338,17 @@ def fail_push_subscription(
         db.delete(subscription)
         db.commit()
         message = "Subscription deleted due to excessive failures"
+        deleted = True
     else:
         db.commit()
         message = f"Subscription failure recorded. Count: {subscription.fail_count}"
+        deleted = False
 
     return {
         "status": "success",
         "message": message,
         "fail_count": subscription.fail_count,
+        "deleted": deleted,
     }
 
 
