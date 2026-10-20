@@ -1,11 +1,12 @@
 import os
+import re
 import sys
 import time
-import boto3
-import re
 import unicodedata
+from datetime import UTC, datetime
+
+import boto3
 from botocore.exceptions import ClientError
-from datetime import datetime, timezone
 
 # Ensure backend directory is in path
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -13,18 +14,17 @@ if current_dir not in sys.path:
     sys.path.append(current_dir)
 
 from sqlalchemy.orm import Session, joinedload, selectinload
+
 from app.database import SessionLocal
 from app.models import (
-    DiveSite,
+    CenterDiveSite,
     DiveRoute,
+    DiveSite,
+    DiveSiteTag,
     DivingCenter,
-    Dive,
+    DivingOrganization,
     ParsedDiveTrip,
     User,
-    DivingOrganization,
-    CertificationLevel,
-    DiveSiteTag,
-    CenterDiveSite,
 )
 from app.seo_geo import (
     distinct_approved_countries,
@@ -42,8 +42,17 @@ R2_SECRET_ACCESS_KEY = os.getenv("R2_SECRET_ACCESS_KEY")
 R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME")
 
 OUTPUT_DIR = os.path.join(current_dir, "llm_content")
-REQUIRED_FILES = ["dive-sites.md", "dive-routes.md", "diving-centers.md", "dives.md", "llms.txt", "sitemap.xml", "robots.txt"]
+REQUIRED_FILES = [
+    "dive-sites.md",
+    "dive-routes.md",
+    "diving-centers.md",
+    "dives.md",
+    "llms.txt",
+    "sitemap.xml",
+    "robots.txt",
+]
 CANONICAL_BASE_URL = os.getenv("CANONICAL_BASE_URL", "https://divemap.blue")
+
 
 def slugify(text):
     """
@@ -57,11 +66,12 @@ def slugify(text):
     # but frontend doesn't seem to transliterate, so we stick to simple normalization
     # and ASCII encoding to strip accents/non-ascii if necessary, or keep them if standard allowed.
     # Standard slugify usually strips non-ASCII.
-    text = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('utf-8')
+    text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("utf-8")
     text = text.lower().strip()
-    text = re.sub(r'[\s\W-]+', '-', text)
-    text = text.strip('-')
+    text = re.sub(r"[\s\W-]+", "-", text)
+    text = text.strip("-")
     return text
+
 
 def generate_clean_slug(parts):
     """Generates a clean, deduplicated slug, removing administrative boilerplate."""
@@ -70,15 +80,20 @@ def generate_clean_slug(parts):
 
     # Remove common verbose administrative boilerplate
     boilerplates = [
-        "regional-unit-of-", "municipality-of-", "region-of-",
-        "prefecture-of-", "province-of-", "department-of-",
-        "-and-the-lesser-cyclades", "municipal-unit"
+        "regional-unit-of-",
+        "municipality-of-",
+        "region-of-",
+        "prefecture-of-",
+        "province-of-",
+        "department-of-",
+        "-and-the-lesser-cyclades",
+        "municipal-unit",
     ]
     for b in boilerplates:
         slug = slug.replace(b, "")
 
     # Deduplicate words to prevent "naxos-south-aegean-naxos"
-    words = slug.split('-')
+    words = slug.split("-")
     seen = set()
     deduped = []
     for w in words:
@@ -88,12 +103,14 @@ def generate_clean_slug(parts):
 
     return "-".join(deduped)
 
+
 def get_dive_site_slug(site):
     """Generates an SEO-friendly slug for a dive site including geographical hierarchy."""
     if not site:
         return ""
     parts = [site.country, site.region, site.name]
     return generate_clean_slug(parts)
+
 
 def get_diving_center_slug(center):
     """Generates an SEO-friendly slug for a diving center including geographical hierarchy."""
@@ -104,6 +121,7 @@ def get_diving_center_slug(center):
     parts = [center.country, local_area, center.name]
     return generate_clean_slug(parts)
 
+
 def generate_trip_name(trip):
     """Generate trip name for slug creation."""
     center_name = trip.diving_center.name if trip.diving_center else "Unknown Center"
@@ -112,55 +130,63 @@ def generate_trip_name(trip):
         return f"{center_name} - {date_str}"
     return center_name
 
+
 def get_r2_client():
     if R2_ACCOUNT_ID and R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY and R2_BUCKET_NAME:
         try:
             return boto3.client(
-                's3',
-                endpoint_url=f'https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com',
+                "s3",
+                endpoint_url=f"https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com",
                 aws_access_key_id=R2_ACCESS_KEY_ID,
                 aws_secret_access_key=R2_SECRET_ACCESS_KEY,
-                region_name='auto'
+                region_name="auto",
             )
         except Exception as e:
             print(f"⚠️ Failed to create R2 client: {e}")
     return None
 
+
 def check_r2_freshness(client):
     """Check if llms.txt exists on R2 and is less than 24 hours old."""
     try:
         response = client.head_object(Bucket=R2_BUCKET_NAME, Key="llm_content/llms.txt")
-        last_modified = response['LastModified'].timestamp()
+        last_modified = response["LastModified"].timestamp()
         age_seconds = time.time() - last_modified
 
         if age_seconds < 86400:
-            print(f"✅ R2 content is fresh ({age_seconds/3600:.1f} hours old). Skipping generation.")
+            print(
+                f"✅ R2 content is fresh ({age_seconds / 3600:.1f} hours old). Skipping generation."
+            )
             return True
         else:
-            print(f"R2 content is stale ({age_seconds/3600:.1f} hours old). Regenerating...")
+            print(
+                f"R2 content is stale ({age_seconds / 3600:.1f} hours old). Regenerating..."
+            )
             return False
     except ClientError:
         print("Content not found in R2. Generating...")
         return False
 
+
 def upload_to_r2(client, filename, content):
     """Upload content string to R2."""
     try:
-        content_type = 'text/plain'
-        if filename.endswith('.md'):
-            content_type = 'text/markdown'
-        elif filename.endswith('.xml'):
-            content_type = 'application/xml'
+        content_type = "text/plain"
+        if filename.endswith(".md"):
+            content_type = "text/markdown"
+        elif filename.endswith(".xml"):
+            content_type = "application/xml"
 
         client.put_object(
             Bucket=R2_BUCKET_NAME,
             Key=f"llm_content/{filename}",
-            Body=content.encode('utf-8'),
-            ContentType=content_type
+            Body=content.encode("utf-8"),
+            ContentType=content_type,
         )
         print(f"⬆️ Uploaded {filename} to R2")
     except Exception as e:
         print(f"⚠️ Failed to upload {filename} to R2: {e}")
+
 
 def should_generate_local():
     """Fallback local check."""
@@ -175,9 +201,12 @@ def should_generate_local():
     age_seconds = time.time() - mtime
 
     if age_seconds < 86400:
-        print(f"Skipping generation: Local content is recent ({age_seconds/3600:.1f} hours old).")
+        print(
+            f"Skipping generation: Local content is recent ({age_seconds / 3600:.1f} hours old)."
+        )
         return False
     return True
+
 
 def download_from_r2(client):
     """Download all required files from R2 to local directory."""
@@ -189,7 +218,7 @@ def download_from_r2(client):
             client.download_file(
                 Bucket=R2_BUCKET_NAME,
                 Key=f"llm_content/{filename}",
-                Filename=os.path.join(OUTPUT_DIR, filename)
+                Filename=os.path.join(OUTPUT_DIR, filename),
             )
         except Exception as e:
             print(f"⚠️ Failed to download {filename}: {e}")
@@ -199,61 +228,80 @@ def download_from_r2(client):
         print(f"✅ All content downloaded to {OUTPUT_DIR}.")
     return success
 
+
 def generate_content(db: Session, r2_client=None):
     BASE_URL = CANONICAL_BASE_URL.rstrip("/")
 
     # Data gathering
     sites = (
         db.query(DiveSite)
-        .filter(DiveSite.status == 'approved', DiveSite.deleted_at.is_(None))
+        .filter(DiveSite.status == "approved", DiveSite.deleted_at.is_(None))
         .options(
             joinedload(DiveSite.difficulty),
             joinedload(DiveSite.ratings),
             selectinload(DiveSite.aliases),
             selectinload(DiveSite.tags).joinedload(DiveSiteTag.tag),
             selectinload(DiveSite.routes),
-            selectinload(DiveSite.center_relationships).joinedload(CenterDiveSite.diving_center),
+            selectinload(DiveSite.center_relationships).joinedload(
+                CenterDiveSite.diving_center
+            ),
         )
         .all()
     )
-    routes = db.query(DiveRoute).filter(DiveRoute.deleted_at == None).all()
+    routes = db.query(DiveRoute).filter(DiveRoute.deleted_at.is_(None)).all()
     centers = db.query(DivingCenter).all()
     # LLM markdown: all public logs; sitemap uses the substantial subset below
     dives = query_public_dives(db)
     sitemap_dives = query_substantial_public_dives(db)
 
     # 1. Dive Sites
-    content_sites = ["# Dive Sites\n\n> Comprehensive registry of dive sites including GPS coordinates, depth profiles, difficulty, and marine life.\n\n"]
+    content_sites = [
+        "# Dive Sites\n\n> Comprehensive registry of dive sites including GPS coordinates, depth profiles, difficulty, and marine life.\n\n"
+    ]
     for site in sites:
         # Contextual Header: Name (Region, Country)
         location_suffix = []
-        if site.region: location_suffix.append(site.region)
-        if site.country: location_suffix.append(site.country)
+        if site.region:
+            location_suffix.append(site.region)
+        if site.country:
+            location_suffix.append(site.country)
         location_str = f" ({', '.join(location_suffix)})" if location_suffix else ""
 
         content_sites.append(f"## {site.name}{location_str}\n\n")
 
         # Canonical URL
         slug = get_dive_site_slug(site)
-        url = f"{BASE_URL}/dive-sites/{site.id}/{slug}" if slug else f"{BASE_URL}/dive-sites/{site.id}"
+        url = (
+            f"{BASE_URL}/dive-sites/{site.id}/{slug}"
+            if slug
+            else f"{BASE_URL}/dive-sites/{site.id}"
+        )
         content_sites.append(f"**Link**: {url}\n")
 
         # Standardized Metadata Block (Bulleted for LLM readability)
         if site.latitude is not None and site.longitude is not None:
-            content_sites.append(f"- **Coordinates**: {float(site.latitude):.6f}, {float(site.longitude):.6f}\n")
+            content_sites.append(
+                f"- **Coordinates**: {float(site.latitude):.6f}, {float(site.longitude):.6f}\n"
+            )
         if site.max_depth:
             content_sites.append(f"- **Max Depth**: {site.max_depth}m\n")
         if site.difficulty:
             content_sites.append(f"- **Difficulty**: {site.difficulty.label}\n")
         if site.ratings:
             avg_score = sum(r.score for r in site.ratings) / len(site.ratings)
-            content_sites.append(f"- **Rating**: {avg_score:.1f}/5 ({len(site.ratings)} reviews)\n")
+            content_sites.append(
+                f"- **Rating**: {avg_score:.1f}/5 ({len(site.ratings)} reviews)\n"
+            )
         if site.aliases:
             alias_list = [a.alias for a in site.aliases if getattr(a, "alias", None)]
             if alias_list:
                 content_sites.append(f"- **Also Known As**: {', '.join(alias_list)}\n")
         if site.tags:
-            tag_list = [t.tag.name for t in site.tags if getattr(t, "tag", None) and getattr(t.tag, "name", None)]
+            tag_list = [
+                t.tag.name
+                for t in site.tags
+                if getattr(t, "tag", None) and getattr(t.tag, "name", None)
+            ]
             if tag_list:
                 content_sites.append(f"- **Tags**: {', '.join(tag_list)}\n")
 
@@ -265,66 +313,114 @@ def generate_content(db: Session, r2_client=None):
             content_sites.append(f"\n**Marine Life**:\n{site.marine_life}\n")
 
         if site.safety_information:
-            content_sites.append(f"\n**Safety Information**:\n{site.safety_information}\n")
+            content_sites.append(
+                f"\n**Safety Information**:\n{site.safety_information}\n"
+            )
 
         if site.access_instructions:
             content_sites.append(f"\n**Access**:\n{site.access_instructions}\n")
 
         if site.center_relationships:
-            centers_list = [rel.diving_center for rel in site.center_relationships if getattr(rel, "diving_center", None)]
+            centers_list = [
+                rel.diving_center
+                for rel in site.center_relationships
+                if getattr(rel, "diving_center", None)
+            ]
             if centers_list:
                 content_sites.append("\n**Associated Diving Centers**:\n")
                 for center in centers_list:
                     c_slug = get_diving_center_slug(center)
-                    c_url = f"{BASE_URL}/diving-centers/{center.id}/{c_slug}" if c_slug else f"{BASE_URL}/diving-centers/{center.id}"
-                    c_loc = ", ".join(filter(None, [getattr(center, "city", None), getattr(center, "country", None)]))
+                    c_url = (
+                        f"{BASE_URL}/diving-centers/{center.id}/{c_slug}"
+                        if c_slug
+                        else f"{BASE_URL}/diving-centers/{center.id}"
+                    )
+                    c_loc = ", ".join(
+                        filter(
+                            None,
+                            [
+                                getattr(center, "city", None),
+                                getattr(center, "country", None),
+                            ],
+                        )
+                    )
                     extra = f" ({c_loc})" if c_loc else ""
                     content_sites.append(f"- [{center.name}]({c_url}){extra}\n")
 
         if site.routes:
-            active_routes = [r for r in site.routes if not getattr(r, "deleted_at", None)]
+            active_routes = [
+                r for r in site.routes if not getattr(r, "deleted_at", None)
+            ]
             if active_routes:
                 content_sites.append("\n**Dive Routes**:\n")
                 for route in active_routes:
                     r_slug = slugify(route.name) if getattr(route, "name", None) else ""
-                    r_url = f"{BASE_URL}/dive-routes/{route.id}/{r_slug}" if r_slug else f"{BASE_URL}/dive-routes/{route.id}"
-                    r_type = f" ({route.route_type.name})" if getattr(route, "route_type", None) and getattr(route.route_type, "name", None) else ""
-                    content_sites.append(f"- [{route.name or f'Route #{route.id}'}]({r_url}){r_type}\n")
+                    r_url = (
+                        f"{BASE_URL}/dive-routes/{route.id}/{r_slug}"
+                        if r_slug
+                        else f"{BASE_URL}/dive-routes/{route.id}"
+                    )
+                    r_type = (
+                        f" ({route.route_type.name})"
+                        if getattr(route, "route_type", None)
+                        and getattr(route.route_type, "name", None)
+                        else ""
+                    )
+                    content_sites.append(
+                        f"- [{route.name or f'Route #{route.id}'}]({r_url}){r_type}\n"
+                    )
 
         content_sites.append("\n---\n\n")
 
     # 2. Dive Routes
-    content_routes = ["# Dive Routes\n\n> Specific underwater navigation paths and routes for dive sites.\n\n"]
+    content_routes = [
+        "# Dive Routes\n\n> Specific underwater navigation paths and routes for dive sites.\n\n"
+    ]
     for route in routes:
         content_routes.append(f"## {route.name}\n\n")
 
         slug = slugify(route.name)
-        url = f"{BASE_URL}/dive-routes/{route.id}/{slug}" if slug else f"{BASE_URL}/dive-routes/{route.id}"
+        url = (
+            f"{BASE_URL}/dive-routes/{route.id}/{slug}"
+            if slug
+            else f"{BASE_URL}/dive-routes/{route.id}"
+        )
         content_routes.append(f"**Link**: {url}\n")
 
         if route.dive_site:
             content_routes.append(f"- **Dive Site**: {route.dive_site.name}\n")
-        content_routes.append(f"- **Type**: {route.route_type.name if route.route_type else 'Unknown'}\n\n")
+        content_routes.append(
+            f"- **Type**: {route.route_type.name if route.route_type else 'Unknown'}\n\n"
+        )
 
         if route.description:
             content_routes.append(f"{route.description}\n\n")
         content_routes.append("---\n\n")
 
     # 3. Diving Centers
-    content_centers = ["# Diving Centers\n\n> Directory of professional diving centers, schools, and shops.\n\n"]
+    content_centers = [
+        "# Diving Centers\n\n> Directory of professional diving centers, schools, and shops.\n\n"
+    ]
     for center in centers:
         # Contextual Header: Name (City/Region, Country)
         location_suffix = []
-        if center.city: location_suffix.append(center.city)
-        elif center.region: location_suffix.append(center.region)
-        if center.country: location_suffix.append(center.country)
+        if center.city:
+            location_suffix.append(center.city)
+        elif center.region:
+            location_suffix.append(center.region)
+        if center.country:
+            location_suffix.append(center.country)
         location_str = f" ({', '.join(location_suffix)})" if location_suffix else ""
 
         content_centers.append(f"## {center.name}{location_str}\n\n")
 
         # Canonical URL
         slug = get_diving_center_slug(center)
-        url = f"{BASE_URL}/diving-centers/{center.id}/{slug}" if slug else f"{BASE_URL}/diving-centers/{center.id}"
+        url = (
+            f"{BASE_URL}/diving-centers/{center.id}/{slug}"
+            if slug
+            else f"{BASE_URL}/diving-centers/{center.id}"
+        )
         content_centers.append(f"**Link**: {url}\n")
 
         if center.address:
@@ -338,23 +434,29 @@ def generate_content(db: Session, r2_client=None):
         content_centers.append("\n---\n\n")
 
     # 4. Public Dives
-    content_dives = ["# Public Dive Logs\n\n> Collection of recent public dive logs sharing conditions, visibility, and user ratings.\n\n"]
+    content_dives = [
+        "# Public Dive Logs\n\n> Collection of recent public dive logs sharing conditions, visibility, and user ratings.\n\n"
+    ]
     for dive in dives:
         title = dive.name if dive.name else "Dive Log"
-        date_str = dive.dive_date.strftime("%Y-%m-%d") if dive.dive_date else "Unknown Date"
+        date_str = (
+            dive.dive_date.strftime("%Y-%m-%d") if dive.dive_date else "Unknown Date"
+        )
 
         content_dives.append(f"## {title} - {date_str}\n\n")
 
-        if dive.dive_site: content_dives.append(f"**Site**: {dive.dive_site.name}\n")
-        if dive.user_rating: content_dives.append(f"**Rating**: {dive.user_rating}/5\n")
-        if dive.dive_information: content_dives.append(f"\n{dive.dive_information}\n")
+        if dive.dive_site:
+            content_dives.append(f"**Site**: {dive.dive_site.name}\n")
+        if dive.user_rating:
+            content_dives.append(f"**Rating**: {dive.user_rating}/5\n")
+        if dive.dive_information:
+            content_dives.append(f"\n{dive.dive_information}\n")
         content_dives.append("---\n\n")
 
     # 5. llms.txt
     content_llms = [
         "# Divemap Knowledge Base\n\n",
         "> Divemap is a platform for discovering, logging, and reviewing scuba dive sites and centers.\n\n",
-
         "## Capabilities\n",
         "- **Core Platform**: User Management (OAuth), Dive Sites CRUD, Dive Logging, and Interactive Maps using OpenLayers.\n",
         "- **Weather & Environment**: Real-time wind data overlay with intelligent dive site suitability recommendations based on weather conditions.\n",
@@ -366,15 +468,12 @@ def generate_content(db: Session, r2_client=None):
         "- **Calculators & Tools**: Geographic distance calculations using the Haversine formula and user location integration with manual fallback.\n",
         "- **Admin Dashboard**: Real-time platform statistics, health monitoring, RBAC, and bulk management operations.\n",
         "- **Tech Stack**: React Frontend, FastAPI Backend (Python), MySQL Database, and Cloudflare R2 Storage.\n\n",
-
         "## Core Databases\n",
         "- [Dive Sites](/dive-sites.md): Comprehensive registry of dive sites including GPS coordinates, max depth, difficulty levels, and marine life observations.\n",
         "- [Diving Centers](/diving-centers.md): Directory of dive shops and schools, including location services and contact information.\n\n",
-
         "## Dive Data\n",
         "- [Dive Routes](/dive-routes.md): Specific underwater paths and navigation routes for selected sites.\n",
         "- [Public Dive Logs](/dives.md): Collection of public dive logs sharing visibility conditions, water temperature, and user ratings.\n\n",
-
         "## Documentation & Resources\n",
         "- [API Documentation](/docs): OpenAPI specification and interactive API documentation.\n",
         "- [About Divemap](/about): Project mission, team, and contact information.\n",
@@ -382,12 +481,10 @@ def generate_content(db: Session, r2_client=None):
         "- [Privacy Policy](/privacy): Data handling and user privacy guidelines.\n",
         "- [Changelog](/changelog): Recent updates and feature releases.\n",
         "- [GitHub Repository](https://github.com/kargig/divemap): Source code, issue tracker, and contribution guidelines.\n\n",
-
         "## Platform Features\n",
         "- [Leaderboard](/leaderboard): Ranking of active divers based on logged dives.\n",
         "- [Interactive Map](/map): Global map view of all registered dive sites and centers.\n",
         "- [Diving Organizations](/resources/diving-organizations): Directory of recognized scuba certification agencies.\n\n",
-
         "## Diving Tools & Calculators\n",
         "- [MOD Calculator](/resources/tools/mod): Maximum Operating Depth calculator for nitrox/trimix.\n",
         "- [Best Mix Calculator](/resources/tools/best-mix): Determine the optimal gas mix for a target depth.\n",
@@ -397,11 +494,11 @@ def generate_content(db: Session, r2_client=None):
         "- [ICD Check](/resources/tools/icd): Isobaric Counter Diffusion safety check for trimix.\n",
         "- [Gas Fill Price](/resources/tools/gas-fill): Cost estimation for nitrox and trimix fills.\n",
         "- [Tank Buoyancy](/resources/tools/buoyancy): Calculate tank weight characteristics in water.\n",
-        "- [Weight Calculator](/resources/tools/weight): Estimate required lead based on exposure protection.\n"
+        "- [Weight Calculator](/resources/tools/weight): Estimate required lead based on exposure protection.\n",
     ]
 
     # 6. sitemap.xml
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     sitemap_entries = []
 
@@ -413,18 +510,34 @@ def generate_content(db: Session, r2_client=None):
 
     # High-value static hubs (no login/register — thin auth pages)
     high_priority_paths = [
-        "/", "/about", "/dive-sites", "/diving-centers", "/dives", "/dive-trips",
-        "/dive-routes", "/help", "/privacy",
+        "/",
+        "/about",
+        "/dive-sites",
+        "/diving-centers",
+        "/dives",
+        "/dive-trips",
+        "/dive-routes",
+        "/help",
+        "/privacy",
     ]
     for path in high_priority_paths:
         sitemap_entries.append(_url_entry(f"{BASE_URL}{path}", now, "daily", "0.9"))
 
     mid_priority_paths = [
-        "/map", "/leaderboard", "/changelog",
-        "/resources/tags", "/resources/diving-organizations",
-        "/resources/tools/mod", "/resources/tools/best-mix", "/resources/tools/sac",
-        "/resources/tools/gas-planning", "/resources/tools/min-gas", "/resources/tools/icd",
-        "/resources/tools/gas-fill", "/resources/tools/buoyancy", "/resources/tools/weight",
+        "/map",
+        "/leaderboard",
+        "/changelog",
+        "/resources/tags",
+        "/resources/diving-organizations",
+        "/resources/tools/mod",
+        "/resources/tools/best-mix",
+        "/resources/tools/sac",
+        "/resources/tools/gas-planning",
+        "/resources/tools/min-gas",
+        "/resources/tools/icd",
+        "/resources/tools/gas-fill",
+        "/resources/tools/buoyancy",
+        "/resources/tools/weight",
         "/api-docs",
     ]
     for path in mid_priority_paths:
@@ -435,14 +548,22 @@ def generate_content(db: Session, r2_client=None):
     for country in distinct_approved_countries(db):
         path = geo_hub_path(country)
         if path:
-            sitemap_entries.append(_url_entry(f"{BASE_URL}{path}", now, "weekly", "0.85"))
+            sitemap_entries.append(
+                _url_entry(f"{BASE_URL}{path}", now, "weekly", "0.85")
+            )
         for region in regions_by_country.get(country, []):
             rpath = geo_hub_path(country, region)
             if rpath:
-                sitemap_entries.append(_url_entry(f"{BASE_URL}{rpath}", now, "weekly", "0.85"))
+                sitemap_entries.append(
+                    _url_entry(f"{BASE_URL}{rpath}", now, "weekly", "0.85")
+                )
 
     # Users - Only include public, enabled users
-    users = db.query(User).filter(User.enabled == True, User.buddy_visibility == 'public').all()
+    users = (
+        db.query(User)
+        .filter(User.enabled == True, User.buddy_visibility == "public")
+        .all()
+    )
     for user in users:
         url = f"{BASE_URL}/users/{user.username}"
         sitemap_entries.append(_url_entry(url, now, "weekly", "0.5"))
@@ -451,64 +572,128 @@ def generate_content(db: Session, r2_client=None):
 
     # Dive Sites
     for site in sites:
-        lastmod = site.updated_at.strftime("%Y-%m-%dT%H:%M:%SZ") if hasattr(site, 'updated_at') and site.updated_at else now
+        lastmod = (
+            site.updated_at.strftime("%Y-%m-%dT%H:%M:%SZ")
+            if hasattr(site, "updated_at") and site.updated_at
+            else now
+        )
         slug = get_dive_site_slug(site)
-        url = f"{BASE_URL}/dive-sites/{site.id}/{slug}" if slug else f"{BASE_URL}/dive-sites/{site.id}"
+        url = (
+            f"{BASE_URL}/dive-sites/{site.id}/{slug}"
+            if slug
+            else f"{BASE_URL}/dive-sites/{site.id}"
+        )
         sitemap_entries.append(_url_entry(url, lastmod, "weekly", "0.9"))
 
     # Diving Centers
     for center in centers:
-        lastmod = center.updated_at.strftime("%Y-%m-%dT%H:%M:%SZ") if hasattr(center, 'updated_at') and center.updated_at else now
+        lastmod = (
+            center.updated_at.strftime("%Y-%m-%dT%H:%M:%SZ")
+            if hasattr(center, "updated_at") and center.updated_at
+            else now
+        )
         slug = get_diving_center_slug(center)
-        url = f"{BASE_URL}/diving-centers/{center.id}/{slug}" if slug else f"{BASE_URL}/diving-centers/{center.id}"
+        url = (
+            f"{BASE_URL}/diving-centers/{center.id}/{slug}"
+            if slug
+            else f"{BASE_URL}/diving-centers/{center.id}"
+        )
         sitemap_entries.append(_url_entry(url, lastmod, "weekly", "0.9"))
 
     # Substantial public dive logs only (crawl-budget; not the full dives.md set)
     for dive in sitemap_dives:
-        lastmod = dive.updated_at.strftime("%Y-%m-%dT%H:%M:%SZ") if hasattr(dive, 'updated_at') and dive.updated_at else now
-        name_candidate = dive.name or (dive.dive_site.name if dive.dive_site else "dive")
+        lastmod = (
+            dive.updated_at.strftime("%Y-%m-%dT%H:%M:%SZ")
+            if hasattr(dive, "updated_at") and dive.updated_at
+            else now
+        )
+        name_candidate = dive.name or (
+            dive.dive_site.name if dive.dive_site else "dive"
+        )
         slug = slugify(name_candidate)
-        url = f"{BASE_URL}/dives/{dive.id}/{slug}" if slug else f"{BASE_URL}/dives/{dive.id}"
+        url = (
+            f"{BASE_URL}/dives/{dive.id}/{slug}"
+            if slug
+            else f"{BASE_URL}/dives/{dive.id}"
+        )
         sitemap_entries.append(_url_entry(url, lastmod, "monthly", "0.3"))
 
     # Dive Routes
     for route in routes:
-        lastmod = route.updated_at.strftime("%Y-%m-%dT%H:%M:%SZ") if hasattr(route, 'updated_at') and route.updated_at else now
+        lastmod = (
+            route.updated_at.strftime("%Y-%m-%dT%H:%M:%SZ")
+            if hasattr(route, "updated_at") and route.updated_at
+            else now
+        )
         slug = slugify(route.name)
-        url = f"{BASE_URL}/dive-routes/{route.id}/{slug}" if slug else f"{BASE_URL}/dive-routes/{route.id}"
-        sitemap_entries.append(f"  <url>\n    <loc>{url}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.6</priority>\n  </url>")
+        url = (
+            f"{BASE_URL}/dive-routes/{route.id}/{slug}"
+            if slug
+            else f"{BASE_URL}/dive-routes/{route.id}"
+        )
+        sitemap_entries.append(
+            f"  <url>\n    <loc>{url}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.6</priority>\n  </url>"
+        )
 
     # Dive Trips
     trips = db.query(ParsedDiveTrip).all()
     for trip in trips:
-        lastmod = trip.updated_at.strftime("%Y-%m-%dT%H:%M:%SZ") if hasattr(trip, 'updated_at') and trip.updated_at else now
+        lastmod = (
+            trip.updated_at.strftime("%Y-%m-%dT%H:%M:%SZ")
+            if hasattr(trip, "updated_at") and trip.updated_at
+            else now
+        )
         trip_name = generate_trip_name(trip)
         slug = slugify(trip_name)
-        url = f"{BASE_URL}/dive-trips/{trip.id}/{slug}" if slug else f"{BASE_URL}/dive-trips/{trip.id}"
-        sitemap_entries.append(f"  <url>\n    <loc>{url}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>")
+        url = (
+            f"{BASE_URL}/dive-trips/{trip.id}/{slug}"
+            if slug
+            else f"{BASE_URL}/dive-trips/{trip.id}"
+        )
+        sitemap_entries.append(
+            f"  <url>\n    <loc>{url}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>"
+        )
 
     # Diving Organizations
     orgs = db.query(DivingOrganization).all()
     for org in orgs:
-        lastmod = org.updated_at.strftime("%Y-%m-%dT%H:%M:%SZ") if hasattr(org, 'updated_at') and org.updated_at else now
+        lastmod = (
+            org.updated_at.strftime("%Y-%m-%dT%H:%M:%SZ")
+            if hasattr(org, "updated_at") and org.updated_at
+            else now
+        )
         slug = slugify(org.name)
-        url = f"{BASE_URL}/resources/diving-organizations/{org.id}/{slug}" if slug else f"{BASE_URL}/resources/diving-organizations/{org.id}"
-        sitemap_entries.append(f"  <url>\n    <loc>{url}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.5</priority>\n  </url>")
+        url = (
+            f"{BASE_URL}/resources/diving-organizations/{org.id}/{slug}"
+            if slug
+            else f"{BASE_URL}/resources/diving-organizations/{org.id}"
+        )
+        sitemap_entries.append(
+            f"  <url>\n    <loc>{url}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.5</priority>\n  </url>"
+        )
 
     # High-quality public curated lists only (non-empty; see seo_geo)
     curated_lists = query_substantial_public_lists(db)
     for lst in curated_lists:
-        lastmod = lst.updated_at.strftime("%Y-%m-%dT%H:%M:%SZ") if hasattr(lst, 'updated_at') and lst.updated_at else now
+        if not lst.items or len(lst.items) == 0:
+            continue
+        lastmod = (
+            lst.updated_at.strftime("%Y-%m-%dT%H:%M:%SZ")
+            if hasattr(lst, "updated_at") and lst.updated_at
+            else now
+        )
         username = lst.user.username if lst.user else "unknown"
         url_slug = f"/{lst.slug}" if lst.slug else ""
         url = f"{BASE_URL}/users/{username}/lists/{lst.id}{url_slug}"
-        sitemap_entries.append(f"  <url>\n    <loc>{url}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>")
+        sitemap_entries.append(
+            f"  <url>\n    <loc>{url}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>"
+        )
 
     sitemap_xml = [
         '<?xml version="1.0" encoding="UTF-8"?>',
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
         *sitemap_entries,
-        '</urlset>'
+        "</urlset>",
     ]
 
     robots_txt = [
@@ -523,7 +708,7 @@ def generate_content(db: Session, r2_client=None):
         "Crawl-delay: 10",
         "",
         "User-agent: AhrefsBot",
-        "Crawl-delay: 10"
+        "Crawl-delay: 10",
     ]
 
     files = {
@@ -533,7 +718,7 @@ def generate_content(db: Session, r2_client=None):
         "dives.md": "".join(content_dives),
         "llms.txt": "".join(content_llms),
         "sitemap.xml": "\n".join(sitemap_xml),
-        "robots.txt": "\n".join(robots_txt)
+        "robots.txt": "\n".join(robots_txt),
     }
 
     # Always write to local directory (for serving via Nginx -> Backend proxy)
@@ -549,11 +734,16 @@ def generate_content(db: Session, r2_client=None):
             upload_to_r2(r2_client, fname, content)
         print("✅ All content uploaded to R2.")
 
+
 import argparse
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate LLM content for Divemap.")
-    parser.add_argument("--force", action="store_true", help="Force regeneration of content regardless of freshness.")
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Force regeneration of content regardless of freshness.",
+    )
     args = parser.parse_args()
 
     r2 = get_r2_client()
@@ -576,6 +766,3 @@ if __name__ == "__main__":
         sys.exit(1)
     finally:
         db.close()
-
-
-

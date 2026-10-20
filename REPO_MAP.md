@@ -77,7 +77,7 @@ React application built with Vite, Tailwind CSS, and OpenLayers.
   - **Details:** `DiveSiteDetail.jsx`, `DivingCenterDetail.jsx`, `DiveDetail.jsx`, `TripDetail.jsx`, `UserProfile.jsx`, `RouteDetail.jsx`.
   - **Creation:** `CreateDiveSite.jsx`, `CreateDive.jsx`, `CreateTrip.jsx`, `CreateDivingCenter.jsx`.
   - **Social:** `Messages.jsx` (Chat Inbox), `Buddies.jsx`, `LeaderboardPage.jsx`.
-  - **Admin:** `Admin.jsx` (Dashboard), `AdminUsers.jsx`, `AdminDiveSites.jsx`, `AdminDivesDesktop.jsx`, `AdminNewsletters.jsx`, `AdminAuditLogs.jsx`.
+  - **Admin:** `Admin.jsx` (Dashboard), `AdminUsers.jsx`, `AdminApiKeys.jsx`, `AdminDiveSites.jsx`, `AdminDivesDesktop.jsx`, `AdminNewsletters.jsx`, `AdminAuditLogs.jsx`.
 - `components/`: Reusable UI components.
     - **Navigation & Search:** `Navbar.jsx`, `GlobalSearchBar.jsx`, `DesktopSearchBar.jsx`, `FuzzySearchInput.jsx`, `Breadcrumbs.jsx`.
     - **Map Components:** `LeafletMapView.jsx` (Primary Map), `DiveSitesMap.jsx`, `DivesMap.jsx`, `DivingCentersMap.jsx`, `WindOverlay.jsx`, `MapLayersPanel.jsx`.
