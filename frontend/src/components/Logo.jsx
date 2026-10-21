@@ -32,13 +32,13 @@ const Logo = ({
       case 'medium':
       case 'large':
       case 'xlarge':
-        return '/divemap_navbar_logo.png';
+        return '/divemap_navbar_logo.webp';
       case 'hero':
-        return '/divemap-logo-hero.png';
+        return '/divemap-logo-hero.webp';
       case 'hero-large':
-        return '/divemap-logo-hero-large.png';
+        return '/divemap-logo-hero-large.webp';
       default:
-        return '/divemap_navbar_logo.png';
+        return '/divemap_navbar_logo.webp';
     }
   };
 

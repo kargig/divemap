@@ -1,4 +1,3 @@
-import types
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -13,6 +12,15 @@ def test_add_security_headers_applied():
     assert r.headers["X-Frame-Options"] == "DENY"
     assert r.headers["X-XSS-Protection"].startswith("1;")
     assert "Content-Security-Policy" in r.headers
+    csp_directives = r.headers["Content-Security-Policy"].split(";")
+    script_src = next(
+        (d.strip() for d in csp_directives if d.strip().startswith("script-src")), ""
+    )
+    allowed_script_sources = set(script_src.split())
+    assert any(
+        source == "https://www.googletagmanager.com"
+        for source in allowed_script_sources
+    )
 
 
 def test_enhanced_security_logging_suspicious_chain(monkeypatch):
@@ -23,5 +31,3 @@ def test_enhanced_security_logging_suspicious_chain(monkeypatch):
     }
     r = client.get("/", headers=headers)
     assert r.status_code == 200
-
-

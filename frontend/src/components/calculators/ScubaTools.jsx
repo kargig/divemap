@@ -51,7 +51,7 @@ export default function ScubaTools() {
           <h3 className='text-base font-extrabold text-gray-900 dark:text-slate-100 leading-snug'>
             Scuba Tools
           </h3>
-          <p className='text-xs text-gray-500 dark:text-slate-400 leading-tight mt-0.5'>
+          <p className='text-xs text-gray-600 dark:text-slate-300 leading-tight mt-0.5'>
             Instant, interactive dive planning calculators
           </p>
         </div>
@@ -65,7 +65,7 @@ export default function ScubaTools() {
             className={`flex-1 py-3 text-xs font-bold capitalize transition-all border-b-2 ${
               activeTab === t
                 ? 'bg-white dark:bg-slate-800 border-[#0072B2] dark:border-sky-400 text-[#0072B2] dark:text-sky-400 shadow-sm'
-                : 'text-gray-500 dark:text-slate-400 border-transparent hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-gray-700 dark:hover:text-slate-200'
+                : 'text-gray-600 dark:text-slate-300 border-transparent hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-gray-800 dark:hover:text-slate-100'
             }`}
           >
             {t === 'mod' ? 'Max Depth (MOD)' : t === 'mix' ? 'Nitrox Best Mix' : 'Buoyancy Weight'}
@@ -78,21 +78,26 @@ export default function ScubaTools() {
           {activeTab === 'mod' && (
             <div className='space-y-4'>
               <div>
-                <label className='block text-xs font-bold text-gray-600 dark:text-slate-300 mb-1.5'>
+                <label
+                  htmlFor='mod-o2-range'
+                  className='block text-xs font-bold text-gray-700 dark:text-slate-300 mb-1.5'
+                >
                   Oxygen Percentage:{' '}
                   <span className='text-[#0072B2] dark:text-sky-400'>{modO2}%</span>
                 </label>
                 <input
+                  id='mod-o2-range'
                   type='range'
                   min='21'
                   max='40'
                   value={modO2}
                   onChange={e => setModO2(parseInt(e.target.value, 10))}
+                  aria-label='Oxygen percentage'
                   className='w-full accent-[#0072B2] cursor-pointer'
                 />
               </div>
               <div>
-                <span className='block text-xs font-bold text-gray-600 dark:text-slate-300 mb-2'>
+                <span className='block text-xs font-bold text-gray-700 dark:text-slate-300 mb-2'>
                   Max ppO2 Limit (bar):
                 </span>
                 <div className='flex flex-wrap gap-x-4 gap-y-2 items-center'>
@@ -112,7 +117,7 @@ export default function ScubaTools() {
                       <span>{val.toFixed(1)} bar</span>
                     </label>
                   ))}
-                  <span className='text-[10px] text-gray-400 dark:text-slate-400 italic sm:ml-auto leading-tight'>
+                  <span className='text-[10px] text-gray-600 dark:text-slate-300 italic sm:ml-auto leading-tight'>
                     For other ppO2 limits (like 1.3 or 1.6), try our{' '}
                     <Link
                       to='/resources/tools/mod'
@@ -124,7 +129,7 @@ export default function ScubaTools() {
                 </div>
               </div>
               <div className='bg-[#eaf4f9]/50 dark:bg-slate-700/60 p-4 rounded-xl text-center border border-[#eaf4f9] dark:border-slate-600'>
-                <span className='text-xs text-gray-500 dark:text-slate-300 block font-semibold'>
+                <span className='text-xs text-gray-700 dark:text-slate-200 block font-semibold'>
                   Maximum Operating Depth
                 </span>
                 <span className='text-3xl font-black text-[#0072B2] dark:text-sky-400 mt-1 block'>
@@ -137,21 +142,26 @@ export default function ScubaTools() {
           {activeTab === 'mix' && (
             <div className='space-y-4'>
               <div>
-                <label className='block text-xs font-bold text-gray-600 dark:text-slate-300 mb-1.5'>
+                <label
+                  htmlFor='mix-depth-range'
+                  className='block text-xs font-bold text-gray-700 dark:text-slate-300 mb-1.5'
+                >
                   Target Max Depth:{' '}
                   <span className='text-[#0072B2] dark:text-sky-400'>{mixDepth} meters</span>
                 </label>
                 <input
+                  id='mix-depth-range'
                   type='range'
                   min='10'
                   max='40'
                   value={mixDepth}
                   onChange={e => setMixDepth(parseInt(e.target.value, 10))}
+                  aria-label='Target max depth in meters'
                   className='w-full accent-[#0072B2] cursor-pointer'
                 />
               </div>
               <div>
-                <span className='block text-xs font-bold text-gray-600 dark:text-slate-300 mb-2'>
+                <span className='block text-xs font-bold text-gray-700 dark:text-slate-300 mb-2'>
                   Max ppO2 Limit (bar):
                 </span>
                 <div className='flex flex-wrap gap-x-4 gap-y-2 items-center'>
@@ -171,7 +181,7 @@ export default function ScubaTools() {
                       <span>{val.toFixed(1)} bar</span>
                     </label>
                   ))}
-                  <span className='text-[10px] text-gray-400 dark:text-slate-400 italic sm:ml-auto leading-tight'>
+                  <span className='text-[10px] text-gray-600 dark:text-slate-300 italic sm:ml-auto leading-tight'>
                     For other ppO2 limits (like 1.3 or 1.6), try our{' '}
                     <Link
                       to='/resources/tools/best-mix'
@@ -183,7 +193,7 @@ export default function ScubaTools() {
                 </div>
               </div>
               <div className='bg-[#eaf4f9]/50 dark:bg-slate-700/60 p-4 rounded-xl text-center border border-[#eaf4f9] dark:border-slate-600'>
-                <span className='text-xs text-gray-500 dark:text-slate-300 block font-semibold'>
+                <span className='text-xs text-gray-700 dark:text-slate-200 block font-semibold'>
                   Recommended Nitrox Blend
                 </span>
                 <span className='text-3xl font-black text-[#0072B2] dark:text-sky-400 mt-1 block'>
@@ -196,27 +206,37 @@ export default function ScubaTools() {
           {activeTab === 'weight' && (
             <div className='space-y-4'>
               <div>
-                <label className='block text-xs font-bold text-gray-600 dark:text-slate-300 mb-1.5'>
+                <label
+                  htmlFor='weight-kg-range'
+                  className='block text-xs font-bold text-gray-700 dark:text-slate-300 mb-1.5'
+                >
                   Your Weight:{' '}
                   <span className='text-[#0072B2] dark:text-sky-400'>{weightKg} kg</span>
                 </label>
                 <input
+                  id='weight-kg-range'
                   type='range'
                   min='40'
                   max='120'
                   value={weightKg}
                   onChange={e => setWeightKg(parseInt(e.target.value, 10))}
+                  aria-label='Diver body weight in kilograms'
                   className='w-full accent-[#0072B2] cursor-pointer'
                 />
               </div>
               <div className='grid grid-cols-2 gap-3 text-xs'>
                 <div>
-                  <label className='block font-bold text-gray-600 dark:text-slate-300 mb-1'>
+                  <label
+                    htmlFor='weight-suit-select'
+                    className='block font-bold text-gray-700 dark:text-slate-300 mb-1'
+                  >
                     Wetsuit Type
                   </label>
                   <select
+                    id='weight-suit-select'
                     value={weightSuit}
                     onChange={e => setWeightSuit(e.target.value)}
+                    aria-label='Wetsuit Type'
                     className='w-full border border-gray-200 dark:border-slate-600 rounded-lg p-2 bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-slate-100 outline-none focus:border-[#0072B2] focus:ring-1 focus:ring-[#0072B2]'
                   >
                     {Object.entries(SUIT_MULTIPLIERS).map(([k, v]) => (
@@ -227,12 +247,17 @@ export default function ScubaTools() {
                   </select>
                 </div>
                 <div>
-                  <label className='block font-bold text-gray-600 dark:text-slate-300 mb-1'>
+                  <label
+                    htmlFor='weight-water-select'
+                    className='block font-bold text-gray-700 dark:text-slate-300 mb-1'
+                  >
                     Water Type
                   </label>
                   <select
+                    id='weight-water-select'
                     value={weightWater}
                     onChange={e => setWeightWater(e.target.value)}
+                    aria-label='Water Type'
                     className='w-full border border-gray-200 dark:border-slate-600 rounded-lg p-2 bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-slate-100 outline-none focus:border-[#0072B2] focus:ring-1 focus:ring-[#0072B2]'
                   >
                     <option value='salt'>Salt Water (Ocean)</option>
@@ -241,7 +266,7 @@ export default function ScubaTools() {
                 </div>
               </div>
               <div className='bg-[#eaf4f9]/50 dark:bg-slate-700/60 p-4 rounded-xl text-center border border-[#eaf4f9] dark:border-slate-600'>
-                <span className='text-xs text-gray-500 dark:text-slate-300 block font-semibold'>
+                <span className='text-xs text-gray-700 dark:text-slate-200 block font-semibold'>
                   Recommended Lead Weight
                 </span>
                 <span className='text-2xl font-black text-[#0072B2] dark:text-sky-400 mt-1 block'>

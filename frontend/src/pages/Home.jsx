@@ -769,7 +769,7 @@ const Home = () => {
           {activeSlide === 0 && (
             <div className='text-center transition-all duration-500 animate-fadeIn px-2'>
               <img
-                src='/divemap_navbar_logo.png'
+                src='/divemap_navbar_logo.webp'
                 alt='Divemap'
                 className='mx-auto max-h-[45px] sm:max-h-[60px] md:max-h-[80px] object-contain mb-3 sm:mb-4 select-none pointer-events-none'
               />
@@ -909,34 +909,38 @@ const Home = () => {
         </div>
 
         {/* Carousel Indicators & Manual Pagination */}
-        <div className='absolute bottom-4 left-0 right-0 flex justify-center items-center gap-2 z-20 select-none'>
+        <div className='absolute bottom-4 left-0 right-0 flex justify-center items-center gap-1 z-20 select-none'>
           {/* Left Arrow */}
           <button
             onClick={() => setActiveSlide(prev => (prev - 1 + 3) % 3)}
-            className='p-1 rounded-full text-gray-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-white/20 dark:hover:bg-slate-700/50 transition-all mr-2'
+            className='min-w-[36px] min-h-[36px] p-2 flex items-center justify-center rounded-full text-gray-500 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-white/20 dark:hover:bg-slate-700/50 transition-all mr-1'
             aria-label='Previous Slide'
           >
-            ‹
+            <span className='text-lg leading-none'>‹</span>
           </button>
           {[0, 1, 2].map(idx => (
             <button
               key={idx}
               onClick={() => setActiveSlide(idx)}
-              className={`h-2 rounded-full transition-all duration-300 ${
-                activeSlide === idx
-                  ? 'w-6 bg-blue-600 dark:bg-sky-400'
-                  : 'w-2 bg-gray-300 dark:bg-slate-600 hover:bg-gray-400'
-              }`}
+              className='min-w-[32px] min-h-[32px] p-2 flex items-center justify-center focus:outline-none'
               aria-label={`Go to slide ${idx + 1}`}
-            />
+            >
+              <span
+                className={`h-2 rounded-full transition-all duration-300 block ${
+                  activeSlide === idx
+                    ? 'w-6 bg-blue-600 dark:bg-sky-400'
+                    : 'w-2 bg-gray-400 dark:bg-slate-500 hover:bg-gray-500'
+                }`}
+              />
+            </button>
           ))}
           {/* Right Arrow */}
           <button
             onClick={() => setActiveSlide(prev => (prev + 1) % 3)}
-            className='p-1 rounded-full text-gray-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-white/20 dark:hover:bg-slate-700/50 transition-all ml-2'
+            className='min-w-[36px] min-h-[36px] p-2 flex items-center justify-center rounded-full text-gray-500 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-white/20 dark:hover:bg-slate-700/50 transition-all ml-1'
             aria-label='Next Slide'
           >
-            ›
+            <span className='text-lg leading-none'>›</span>
           </button>
         </div>
       </div>
@@ -1259,7 +1263,7 @@ const Home = () => {
                   </p>
                 </div>
               </div>
-              <span className='text-[10px] text-gray-400 dark:text-slate-300 font-bold uppercase tracking-wider bg-white dark:bg-slate-700 border border-gray-100 dark:border-slate-600 px-2 py-1 rounded-md shrink-0 self-center hidden sm:inline-block'>
+              <span className='text-[10px] text-gray-700 dark:text-slate-200 font-bold uppercase tracking-wider bg-white dark:bg-slate-700 border border-gray-100 dark:border-slate-600 px-2 py-1 rounded-md shrink-0 self-center hidden sm:inline-block'>
                 Live Feed
               </span>
             </div>

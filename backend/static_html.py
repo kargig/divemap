@@ -998,7 +998,7 @@ def render_seo_page(
   <div class="container mx-auto px-4 relative z-20" style="max-width: 80rem; margin: 0 auto; padding: 0 1rem;">
     <div class="flex justify-between items-center h-16" style="display: flex; justify-content: space-between; align-items: center; height: 4rem;">
       <a class="flex items-center space-x-2" href="/" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none; color: white;">
-        <img src="/divemap_navbar_logo.png" alt="Divemap Logo" class="h-10 w-10 drop-shadow-sm" style="height: 2.5rem; width: 2.5rem;">
+        <img src="/divemap_navbar_logo.webp" alt="Divemap Logo" class="h-10 w-10 drop-shadow-sm" style="height: 2.5rem; width: 2.5rem;">
         <span class="font-bold text-lg text-white" style="font-weight: 700; font-size: 1.125rem;">Divemap</span>
       </a>
       

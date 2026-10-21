@@ -13,7 +13,7 @@ const BackgroundLogo = ({ opacity = 0.03, size = 'large', className = '' }) => {
       className={`fixed inset-0 pointer-events-none flex items-center justify-center ${className}`}
     >
       <img
-        src='/divemap-logo-hero.png'
+        src='/divemap-logo-hero.webp'
         alt='Divemap Watermark Logo'
         className={`${sizeClasses[size]} opacity-${Math.round(opacity * 100)} object-contain`}
         style={{ opacity }}

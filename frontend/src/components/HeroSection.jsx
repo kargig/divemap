@@ -80,7 +80,7 @@ const HeroSection = ({
                 </div>
                 <div className='pointer-events-none absolute inset-0 z-[1] flex items-center justify-center'>
                   <img
-                    src='/divemap_logo_domain_top5_extend.png'
+                    src='/divemap_logo_domain_top5_extend.webp'
                     alt='Divemap Extended Brand Header Logo'
                     className='max-h-[min(280px,55vh)] w-full object-contain object-center'
                     fetchpriority='high'
@@ -153,13 +153,13 @@ const HeroSection = ({
           <div className='absolute inset-0 flex items-center justify-center opacity-8 bg-white'>
             {/* Desktop Logo */}
             <img
-              src='/divemap-logo-hero-background.png'
+              src='/divemap-logo-hero-background.webp'
               alt='Divemap Ocean Theme Desktop Hero Background'
               className='hidden md:block h-full w-full object-contain'
             />
             {/* Mobile Logo */}
             <img
-              src='/divemap-logo-hero-background-mobile.png'
+              src='/divemap-logo-hero-background-mobile.webp'
               alt='Divemap Ocean Theme Mobile Hero Background'
               className='md:hidden h-full w-full object-contain'
             />
@@ -210,13 +210,13 @@ const HeroSection = ({
         <div className='absolute inset-0 flex items-center justify-center opacity-8 bg-white'>
           {/* Desktop Logo */}
           <img
-            src='/divemap-logo-hero-background.png'
+            src='/divemap-logo-hero-background.webp'
             alt='Divemap Ocean Theme Desktop Hero Background'
             className='hidden md:block h-full w-full object-contain'
           />
           {/* Mobile Logo */}
           <img
-            src='/divemap-logo-hero-background-mobile.png'
+            src='/divemap-logo-hero-background-mobile.webp'
             alt='Divemap Ocean Theme Mobile Hero Background'
             className='md:hidden h-full w-full object-contain'
           />
@@ -228,8 +228,8 @@ const HeroSection = ({
             <img
               src={
                 logoSize === 'hero-large'
-                  ? '/divemap-logo-hero-large.png'
-                  : '/divemap-logo-hero.png'
+                  ? '/divemap-logo-hero-large.webp'
+                  : '/divemap-logo-hero.webp'
               }
               alt='Divemap Logo'
               className={
