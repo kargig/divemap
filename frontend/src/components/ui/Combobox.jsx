@@ -28,7 +28,12 @@ const Combobox = ({
   const [internalOpen, setInternalOpen] = useState(false);
   const [internalSearchTerm, setInternalSearchTerm] = useState('');
 
-  const accessibleName = ariaLabelProp || ariaLabel || label || placeholder || 'Select option';
+  // If an explicit aria-label was passed, use it. Otherwise, if no visible label is rendered,
+  // fall back to placeholder or 'Select option' so the button always has an accessible name
+  // without overriding visible <label> elements (preventing WCAG 2.5.3 Label-in-Name mismatch).
+  const explicitAriaLabel = ariaLabelProp || ariaLabel;
+  const buttonAriaLabel =
+    explicitAriaLabel || (!label ? placeholder || 'Select option' : undefined);
   const open = internalOpen;
   const setOpen = setInternalOpen;
   const searchTerm = externalSearchTerm !== undefined ? externalSearchTerm : internalSearchTerm;
@@ -117,7 +122,7 @@ const Combobox = ({
             role='combobox'
             aria-expanded={open}
             aria-controls={id ? `${id}-content` : undefined}
-            aria-label={accessibleName}
+            aria-label={buttonAriaLabel}
             className={`
               flex h-10 w-full items-center justify-between rounded-md border bg-white dark:bg-slate-700 px-3 py-2 text-sm 
               ring-offset-background focus:outline-none focus:ring-2 

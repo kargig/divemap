@@ -53,5 +53,6 @@ describe('Combobox Component Accessibility', () => {
 
     const combobox = screen.getByRole('combobox', { name: 'Dive Site' });
     expect(combobox).toHaveAttribute('aria-controls', 'site-selector-content');
+    expect(combobox).not.toHaveAttribute('aria-label');
   });
 });
