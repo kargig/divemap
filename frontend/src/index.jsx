@@ -6,6 +6,12 @@ import './index.css';
 import App from './App';
 import { initConsentMode } from './utils/consent';
 
+// Automatically reload if a dynamic import or chunk fails due to a new deployment
+window.addEventListener('vite:preloadError', event => {
+  event.preventDefault();
+  window.location.reload();
+});
+
 // Initialize Google Consent Mode defaults
 initConsentMode();
 

@@ -23,7 +23,7 @@ import {
   Sparkles,
   Building,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
 
@@ -31,7 +31,7 @@ import api, { getRecentActivity } from '../api';
 import AnimatedCounter from '../components/AnimatedCounter';
 import Avatar from '../components/Avatar';
 import BackgroundLogo from '../components/BackgroundLogo';
-import ScubaTools from '../components/calculators/ScubaTools';
+import ScubaToolsSkeleton from '../components/calculators/ScubaToolsSkeleton';
 import GlobalSearchBar from '../components/GlobalSearchBar';
 import HeroSection from '../components/HeroSection';
 import LoadingSkeleton from '../components/LoadingSkeleton';
@@ -44,6 +44,8 @@ import { getDiveSites, getDiveRoutes } from '../services/diveSites';
 import { getManagedDivingCenters, getDivingCenters } from '../services/divingCenters';
 import { getMonthlyLeaderboard, getCategoryLeaderboard } from '../services/leaderboard';
 import { slugify } from '../utils/slugify';
+
+const ScubaTools = lazy(() => import('../components/calculators/ScubaTools'));
 
 const { useBreakpoint } = Grid;
 const { Title, Paragraph, Text } = Typography;
@@ -1241,7 +1243,9 @@ const Home = () => {
       <div className='grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-[1600px] mx-auto mb-16 items-start'>
         {/* Scuba Tools (First on Mobile, Left/5-columns on Desktop) */}
         <div className='lg:col-span-5 w-full order-1 lg:order-none'>
-          <ScubaTools />
+          <Suspense fallback={<ScubaToolsSkeleton />}>
+            <ScubaTools />
+          </Suspense>
         </div>
 
         {/* Live Pulse Recent Activity Timeline (Second on Mobile, Right/7-columns on Desktop) */}

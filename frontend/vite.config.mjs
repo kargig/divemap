@@ -86,23 +86,23 @@ export default defineConfig(({ mode }) => {
         ],
         screenshots: [
           {
-            src: "/help-screenshots/dive-sites-map-view.png",
-            sizes: "2038x2388",
-            type: "image/png",
+            src: "/help-screenshots/dive-sites-map-view.webp",
+            sizes: "1092x1280",
+            type: "image/webp",
             form_factor: "narrow",
             label: "Explore Dive Sites"
           },
           {
-            src: "/help-screenshots/dives-logging-interface.png",
-            sizes: "2036x2108",
-            type: "image/png",
+            src: "/help-screenshots/dives-logging-interface.webp",
+            sizes: "1236x1280",
+            type: "image/webp",
             form_factor: "narrow",
             label: "Log Your Dives"
           },
           {
-            src: "/help-screenshots/dedicated-map-view.png",
-            sizes: "2038x1053",
-            type: "image/png",
+            src: "/help-screenshots/dedicated-map-view.webp",
+            sizes: "1280x661",
+            type: "image/webp",
             form_factor: "wide",
             label: "Map View"
           }
@@ -154,8 +154,23 @@ export default defineConfig(({ mode }) => {
       });
       gtag('js', new Date());
       gtag('config', '${gaId}');
-    </script>
-    <script async src="https://www.googletagmanager.com/gtag/js?id=${gaId}"></script>`
+
+      function initGTM() {
+        if (window._gtmLoaded) return;
+        window._gtmLoaded = true;
+        var s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=${gaId}';
+        document.head.appendChild(s);
+      }
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(initGTM, { timeout: 2500 });
+      } else {
+        window.addEventListener('load', function() {
+          setTimeout(initGTM, 1000);
+        });
+      }
+    </script>`
         );
       }
     });
