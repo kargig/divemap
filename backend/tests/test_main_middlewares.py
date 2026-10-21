@@ -1,4 +1,5 @@
 import types
+
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -13,6 +14,7 @@ def test_add_security_headers_applied():
     assert r.headers["X-Frame-Options"] == "DENY"
     assert r.headers["X-XSS-Protection"].startswith("1;")
     assert "Content-Security-Policy" in r.headers
+    assert "https://www.googletagmanager.com" in r.headers["Content-Security-Policy"]
 
 
 def test_enhanced_security_logging_suspicious_chain(monkeypatch):

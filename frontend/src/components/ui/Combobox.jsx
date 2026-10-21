@@ -22,10 +22,13 @@ const Combobox = ({
   isLoading = false,
   renderItem,
   popoverClassName = 'z-[10002]',
+  'aria-label': ariaLabelProp,
+  ariaLabel,
 }) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const [internalSearchTerm, setInternalSearchTerm] = useState('');
 
+  const accessibleName = ariaLabelProp || ariaLabel || label || placeholder || 'Select option';
   const open = internalOpen;
   const setOpen = setInternalOpen;
   const searchTerm = externalSearchTerm !== undefined ? externalSearchTerm : internalSearchTerm;
@@ -113,7 +116,8 @@ const Combobox = ({
             disabled={disabled}
             role='combobox'
             aria-expanded={open}
-            aria-controls={`${id}-content`}
+            aria-controls={id ? `${id}-content` : undefined}
+            aria-label={accessibleName}
             className={`
               flex h-10 w-full items-center justify-between rounded-md border bg-white dark:bg-slate-700 px-3 py-2 text-sm 
               ring-offset-background focus:outline-none focus:ring-2 
@@ -143,7 +147,7 @@ const Combobox = ({
         </PopoverPrimitive.Trigger>
         <PopoverPrimitive.Portal>
           <PopoverPrimitive.Content
-            id={`${id}-content`}
+            id={id ? `${id}-content` : undefined}
             className={`${popoverClassName} w-[var(--radix-popover-trigger-width)] overflow-hidden rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-0 text-gray-950 dark:text-slate-100 shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95`}
             align='start'
             sideOffset={4}
@@ -225,6 +229,8 @@ Combobox.propTypes = {
   isLoading: PropTypes.bool,
   renderItem: PropTypes.func,
   popoverClassName: PropTypes.string,
+  'aria-label': PropTypes.string,
+  ariaLabel: PropTypes.string,
 };
 
 export default Combobox;
