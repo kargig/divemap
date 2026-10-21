@@ -16,7 +16,11 @@ def test_add_security_headers_applied():
     script_src = next(
         (d.strip() for d in csp_directives if d.strip().startswith("script-src")), ""
     )
-    assert "https://www.googletagmanager.com" in script_src.split()
+    allowed_script_sources = set(script_src.split())
+    assert any(
+        source == "https://www.googletagmanager.com"
+        for source in allowed_script_sources
+    )
 
 
 def test_enhanced_security_logging_suspicious_chain(monkeypatch):
