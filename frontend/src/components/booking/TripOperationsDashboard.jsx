@@ -34,7 +34,6 @@ import TripFormModal from '../TripFormModal';
 import AddDiverModal from './AddDiverModal';
 import BoatManifestTable from './BoatManifestTable';
 import BriefingReviewModal from './BriefingReviewModal';
-import CenterRentalPricingModal from './CenterRentalPricingModal';
 import DiverDetailsModal from './DiverDetailsModal';
 import DiverEquipmentChecklist from './DiverEquipmentChecklist';
 import GearPackingManifest from './GearPackingManifest';
@@ -62,7 +61,6 @@ const TripOperationsDashboard = () => {
   const [detailsDiver, setDetailsDiver] = useState(null);
   const [modalEditMode, setModalEditMode] = useState(false);
   const [staffModalOpen, setStaffModalOpen] = useState(false);
-  const [rentalPricingModalOpen, setRentalPricingModalOpen] = useState(false);
   const [briefingModalOpen, setBriefingModalOpen] = useState(false);
   const [editTripModalOpen, setEditTripModalOpen] = useState(false);
   const [editingTrip, setEditingTrip] = useState(null);
@@ -492,7 +490,7 @@ const TripOperationsDashboard = () => {
           <span>Rental pricing</span>
         </span>
       ),
-      onClick: () => setRentalPricingModalOpen(true),
+      onClick: () => navigate(`/diving-centers/${centerId}/gear-rental?fromTrip=${tripId}`),
     },
   ];
 
@@ -855,6 +853,9 @@ const TripOperationsDashboard = () => {
         {activeTab === 'manifest' ? (
           <BoatManifestTable
             participants={participants}
+            centerId={centerId}
+            tripId={tripId}
+            onRefresh={fetchManifest}
             onToggleCheckin={handleToggleCheckin}
             onTogglePayment={handleTogglePayment}
             onDeleteDiver={handleDeleteDiver}
@@ -1006,13 +1007,6 @@ const TripOperationsDashboard = () => {
             </div>
           </form>
         </Modal>
-
-        {/* Center Equipment Rental Pricing Modal */}
-        <CenterRentalPricingModal
-          isOpen={rentalPricingModalOpen}
-          onClose={() => setRentalPricingModalOpen(false)}
-          centerId={centerId}
-        />
 
         {/* Pre-Dive Briefing Review Modal */}
         <BriefingReviewModal

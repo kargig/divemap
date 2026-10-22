@@ -2104,6 +2104,10 @@ class DivingCenterBookingSettings(Base):
     )  # EU, US, UK
     hold_duration_minutes = Column(Integer, default=20, nullable=False)
     briefing_lead_hours = Column(Integer, default=24, nullable=False)
+    default_valve_fitting = Column(
+        String(10), default="DIN", nullable=False
+    )  # DIN, YOKE
+    daily_insurance_price = Column(DECIMAL(6, 2), default=0.00, nullable=False)
 
     # Optional equipment rental pricing configuration: itemized item prices or bundled full kit price
     rental_equipment_pricing = Column(JSON, nullable=True)
@@ -2457,6 +2461,8 @@ class OctoBookingUnitItem(Base):
     signed_waiver_path = Column(String(500), nullable=True)
     signed_at = Column(DateTime(timezone=True), nullable=True)
     onboard_checkin_status = Column(Boolean, default=False, nullable=False)
+    gas_mix_status = Column(String(32), default="APPROVED", nullable=False)
+    checkin_verifications = Column(sa.JSON, nullable=True)
 
     booking = relationship(
         "OctoBooking",

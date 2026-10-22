@@ -1,5 +1,6 @@
 import io
 import logging
+import re
 from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
@@ -34,6 +35,56 @@ logger = logging.getLogger(__name__)
 
 class BriefingService:
     """Pre-Dive Briefing & Emergency Action Plan (EAP) compilation and dispatch service."""
+
+    @staticmethod
+    def extract_species_from_text(text: str) -> list[dict[str, str]]:
+        """Parses marine life text from a dive site into clean species and depth/habitat notes."""
+        if not text or not text.strip():
+            return []
+
+        cleaned_lines = [
+            re.sub(r"^[\s*•\-–—\d.]+", "", line).strip()
+            for line in re.split(r"[\n;\r]+", text)
+            if line.strip()
+        ]
+
+        extracted = []
+        for line in cleaned_lines:
+            sub_items = [s.strip() for s in line.split(",") if len(s.strip()) > 2]
+            for item in sub_items:
+                depth_match = re.search(
+                    r"(\d+\s*[-–]\s*\d+\s*m|\d+\s*m)", item, re.IGNORECASE
+                )
+                depth = (
+                    depth_match.group(1).replace(" ", "")
+                    if depth_match
+                    else "Reef depths"
+                )
+                species_name = re.sub(r"\(.*?\)", "", item).strip()
+                if species_name and len(species_name) > 2:
+                    extracted.append(
+                        {
+                            "species": species_name,
+                            "depth": depth,
+                            "notes": "Observed at this dive site",
+                        }
+                    )
+                if len(extracted) >= 6:
+                    break
+            if len(extracted) >= 6:
+                break
+
+        return (
+            extracted
+            if extracted
+            else [
+                {
+                    "species": text[:50].strip(),
+                    "depth": "Reef depths",
+                    "notes": "Native wildlife",
+                }
+            ]
+        )
 
     @staticmethod
     def compile_draft_briefing(db: Session, slot_id: str) -> TripBriefing:
@@ -161,29 +212,36 @@ class BriefingService:
             "deployment mandatory for independent diver buddy pairs. Never hold breath; equalize early and often."
         )
 
-        # 5. Marine Life Highlights
-        briefing.marine_life_highlights = [
-            {
-                "species": "Loggerhead Sea Turtle (Caretta caretta)",
-                "likelihood": "Common",
-                "depth": "5-15m",
-            },
-            {
-                "species": "Mediterranean Dusky Grouper",
-                "likelihood": "Frequent",
-                "depth": "12-25m",
-            },
-            {
-                "species": "Octopus & Moray Eels",
-                "likelihood": "High",
-                "depth": "All depths",
-            },
-            {
-                "species": "Damselfish & Anthias schools",
-                "likelihood": "High",
-                "depth": "Reef top",
-            },
-        ]
+        # 5. Marine Life Highlights (Extracted from dive site marine life text and cached on TripBriefing)
+        if not briefing.marine_life_highlights:
+            site_ml_text = getattr(site, "marine_life", None) if site else None
+            if site_ml_text and site_ml_text.strip():
+                briefing.marine_life_highlights = (
+                    BriefingService.extract_species_from_text(site_ml_text)
+                )
+            else:
+                briefing.marine_life_highlights = [
+                    {
+                        "species": "Loggerhead Sea Turtle (Caretta caretta)",
+                        "depth": "5-15m",
+                        "notes": "Grazing along shallow reefs",
+                    },
+                    {
+                        "species": "Mediterranean Dusky Grouper",
+                        "depth": "12-25m",
+                        "notes": "Rocky overhangs and drop-offs",
+                    },
+                    {
+                        "species": "Octopus & Moray Eels",
+                        "depth": "All depths",
+                        "notes": "Crevices and boulder fields",
+                    },
+                    {
+                        "species": "Damselfish & Anthias schools",
+                        "depth": "Reef top (3-10m)",
+                        "notes": "Active around pinnacles",
+                    },
+                ]
 
         # 6. Meeting & Logistics Notes
         dep_time = (
@@ -416,20 +474,22 @@ class BriefingService:
             )
             ml_rows = [
                 [
-                    Paragraph("<b>Species</b>", body_style),
-                    Paragraph("<b>Likelihood</b>", body_style),
-                    Paragraph("<b>Typical Depth</b>", body_style),
+                    Paragraph("<b>Species / Marine Life</b>", body_style),
+                    Paragraph("<b>Typical Depth & Habitat Notes</b>", body_style),
                 ]
             ]
-            for item in briefing.marine_life_highlights[:6]:
+            for item in briefing.marine_life_highlights[:8]:
+                species = item.get("species", "")
+                depth = item.get("depth", "Reef depths")
+                notes = item.get("notes", "")
+                depth_notes = f"{depth} — {notes}" if notes else depth
                 ml_rows.append(
                     [
-                        Paragraph(item.get("species", ""), body_style),
-                        Paragraph(item.get("likelihood", "Common"), body_style),
-                        Paragraph(item.get("depth", "5-20m"), body_style),
+                        Paragraph(species, body_style),
+                        Paragraph(depth_notes, body_style),
                     ]
                 )
-            ml_table = Table(ml_rows, colWidths=[240, 130, 150])
+            ml_table = Table(ml_rows, colWidths=[260, 260])
             ml_table.setStyle(
                 TableStyle(
                     [

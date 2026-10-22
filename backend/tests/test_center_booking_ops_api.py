@@ -1,29 +1,34 @@
+from datetime import UTC, date, datetime, time, timedelta, timezone
+
 import pytest
-from datetime import datetime, time, timezone, timedelta, date
+from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
-from cryptography.fernet import Fernet
 
 from app.auth import create_access_token
 from app.models import (
-    User,
+    DiverMedicalRecord,
     DivingCenter,
-    OwnershipStatus,
-    OctoProduct,
-    OctoOption,
-    OctoUnit,
+    DivingCenterVessel,
     OctoAvailabilitySlot,
     OctoBooking,
     OctoBookingUnitItem,
-    DivingCenterVessel,
-    DiverMedicalRecord,
+    OctoOption,
+    OctoProduct,
+    OctoUnit,
+    OwnershipStatus,
+    User,
 )
-from app.services.booking_medical_encryption_service import BookingMedicalEncryptionService
+from app.services.booking_medical_encryption_service import (
+    BookingMedicalEncryptionService,
+)
+
 
 @pytest.fixture(autouse=True)
 def setup_encryption_key(monkeypatch):
     test_key = Fernet.generate_key().decode()
     monkeypatch.setenv("BOOKING_MEDICAL_MASTER_KEYS", test_key)
+
 
 @pytest.fixture
 def center_ops_setup(db_session: Session, test_user: User):
@@ -80,7 +85,7 @@ def center_ops_setup(db_session: Session, test_user: User):
     db_session.flush()
 
     # Slot
-    start_dt = datetime.now(timezone.utc) + timedelta(days=2)
+    start_dt = datetime.now(UTC) + timedelta(days=2)
     end_dt = start_dt + timedelta(hours=4)
     slot = OctoAvailabilitySlot(
         id="slot-ops-test",
@@ -125,7 +130,13 @@ def center_ops_setup(db_session: Session, test_user: User):
         certification_level="Instructor",
         selected_tank_id="15",
         selected_gas_mix_id="ean32",
-        equipment_sizing={"estimated_lead_kg": 4.0, "wetsuit_size": "M", "wetsuit_thickness": "5mm", "bcd_size": "M", "shoe_size_eu": 39},
+        equipment_sizing={
+            "estimated_lead_kg": 4.0,
+            "wetsuit_size": "M",
+            "wetsuit_thickness": "5mm",
+            "bcd_size": "M",
+            "shoe_size_eu": 39,
+        },
         onboard_checkin_status=True,
     )
     item2 = OctoBookingUnitItem(
@@ -141,7 +152,13 @@ def center_ops_setup(db_session: Session, test_user: User):
         certification_level="Rescue Diver",
         selected_tank_id="12",
         selected_gas_mix_id="air",
-        equipment_sizing={"estimated_lead_kg": 6.0, "wetsuit_size": "L", "wetsuit_thickness": "5mm", "bcd_size": "L", "shoe_size_eu": 43},
+        equipment_sizing={
+            "estimated_lead_kg": 6.0,
+            "wetsuit_size": "L",
+            "wetsuit_thickness": "5mm",
+            "bcd_size": "L",
+            "shoe_size_eu": 43,
+        },
         onboard_checkin_status=False,
     )
     db_session.add_all([item1, item2])
@@ -164,7 +181,10 @@ def test_get_trip_manifest(client: TestClient, center_ops_setup):
     token = create_access_token(data={"sub": owner.username})
     headers = {"Authorization": f"Bearer {token}"}
 
-    res = client.get(f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/manifest", headers=headers)
+    res = client.get(
+        f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/manifest",
+        headers=headers,
+    )
     assert res.status_code == 200
     data = res.json()
 
@@ -181,7 +201,7 @@ def test_get_trip_manifest(client: TestClient, center_ops_setup):
     summary = data["crate_packing_summary"]
     assert any("15L EAN32" in k for k in summary["cylinders"])
     assert any("12L AIR" in k for k in summary["cylinders"])
-    assert summary["total_lead_kg"] == 10.0 # 4.0 + 6.0
+    assert summary["total_lead_kg"] == 10.0  # 4.0 + 6.0
     assert summary["total_participants"] == 2
     assert any("M (5mm)" in k for k in summary["wetsuits"])
     assert "blocks_05kg" in summary["lead_breakdown"]
@@ -205,7 +225,11 @@ def test_add_walkin_participant(client: TestClient, center_ops_setup):
         "certification_level": "Advanced Open Water",
         "selected_tank_id": "12",
         "selected_gas_mix_id": "air",
-        "equipment_sizing": {"wetsuit_size": "XL", "wetsuit_thickness": "5mm", "estimated_lead_kg": 7.0},
+        "equipment_sizing": {
+            "wetsuit_size": "XL",
+            "wetsuit_thickness": "5mm",
+            "estimated_lead_kg": 7.0,
+        },
         "mark_as_paid": True,
         "onboard_checkin_status": True,
     }
@@ -218,7 +242,7 @@ def test_add_walkin_participant(client: TestClient, center_ops_setup):
     assert res.status_code == 201
     data = res.json()
     assert data["diver_full_name"] == "Barnaby Jones"
-    assert data["seats_available"] == 9 # Was 10, decremented to 9
+    assert data["seats_available"] == 9  # Was 10, decremented to 9
 
 
 def test_get_single_participant_details(client: TestClient, center_ops_setup):
@@ -374,7 +398,7 @@ def test_update_trip_staff(client: TestClient, center_ops_setup):
         "skipper_license": "GR-SK-9988",
         "lead_guide_name": "Maria K.",
         "lead_guide_cert": "PADI OWSI #112233",
-        "crew_names": ["Yiannis (Deckhand)"]
+        "crew_names": ["Yiannis (Deckhand)"],
     }
     res = client.put(
         f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/staff",
@@ -429,11 +453,13 @@ def test_export_port_authority_manifest(client: TestClient, center_ops_setup):
     )
     assert res_pdf.status_code == 200
     assert "application/pdf" in res_pdf.headers["content-type"]
-    assert len(res_pdf.content) > 1000 # Valid non-empty PDF bytes
+    assert len(res_pdf.content) > 1000  # Valid non-empty PDF bytes
     assert res_pdf.content[:4] == b"%PDF"
 
 
-def test_unauthorized_user_forbidden(client: TestClient, db_session: Session, center_ops_setup):
+def test_unauthorized_user_forbidden(
+    client: TestClient, db_session: Session, center_ops_setup
+):
     center = center_ops_setup["center"]
     slot = center_ops_setup["slot"]
 
@@ -450,12 +476,17 @@ def test_unauthorized_user_forbidden(client: TestClient, db_session: Session, ce
     token = create_access_token(data={"sub": random_user.username})
     headers = {"Authorization": f"Bearer {token}"}
 
-    res = client.get(f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/manifest", headers=headers)
+    res = client.get(
+        f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/manifest",
+        headers=headers,
+    )
     assert res.status_code == 403
     assert "Not authorized" in res.json()["detail"]
 
 
-def test_nitrox_requires_qualifying_certification(client: TestClient, center_ops_setup):
+def test_nitrox_requires_qualifying_certification(
+    client: TestClient, db_session: Session, center_ops_setup
+):
     center = center_ops_setup["center"]
     slot = center_ops_setup["slot"]
     owner = center_ops_setup["owner"]
@@ -463,24 +494,58 @@ def test_nitrox_requires_qualifying_certification(client: TestClient, center_ops
     token = create_access_token(data={"sub": owner.username})
     headers = {"Authorization": f"Bearer {token}"}
 
-    # Attempt walk-in with Scuba Diver (no nitrox) requesting ean32 -> 400
+    # Attempt walk-in with Scuba Diver (no nitrox) requesting ean32 -> non-blocking 201 with PENDING_APPROVAL
     invalid_walkin = {
         "diver_full_name": "Novice Diver",
         "diver_email": "novice@test.com",
         "certification_agency": "PADI",
-        "certification_level": "Scuba Diver", # Not nitrox
+        "certification_level": "Scuba Diver",  # Not nitrox
         "selected_tank_id": "12",
         "selected_gas_mix_id": "ean32",
     }
-    res_fail = client.post(
+    res_pending = client.post(
         f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/participants",
         json=invalid_walkin,
         headers=headers,
     )
-    assert res_fail.status_code == 400
-    assert "requires an Enriched Air Diver" in res_fail.json()["detail"]
+    assert res_pending.status_code == 201
+    pending_p_id = res_pending.json()["id"]
 
-    # Now with Enriched Air Diver (Nitrox) -> 201
+    from app.models import OctoBookingUnitItem
+
+    item_pending = (
+        db_session.query(OctoBookingUnitItem)
+        .filter(OctoBookingUnitItem.id == pending_p_id)
+        .first()
+    )
+    assert item_pending is not None
+    assert item_pending.selected_gas_mix_id == "ean32"
+    assert item_pending.gas_mix_status == "PENDING_APPROVAL"
+
+    # Pass gear check and medical gates to test gas mix clearance gate specifically
+    item_pending.equipment_sizing = {"gear_checked": True}
+    from app.models import DiverMedicalRecord
+
+    med = DiverMedicalRecord(
+        booking_unit_item_id=item_pending.id,
+        user_id=None,
+        status="CLEARED",
+        encrypted_dek="test-dek",
+        encrypted_answers=b"{}",
+    )
+    db_session.add(med)
+    db_session.commit()
+
+    # Boarding gate blocks unverified EANx
+    res_board = client.post(
+        f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/participants/{pending_p_id}/toggle-checkin",
+        headers=headers,
+    )
+    assert res_board.status_code == 400
+    assert "Safety Gate" in res_board.json()["detail"]
+    assert "EAN32" in res_board.json()["detail"]
+
+    # Now with Enriched Air Diver (Nitrox) -> 201 with APPROVED
     valid_walkin = {
         "diver_full_name": "Nitrox Diver",
         "diver_email": "nitrox@test.com",
@@ -495,9 +560,19 @@ def test_nitrox_requires_qualifying_certification(client: TestClient, center_ops
         headers=headers,
     )
     assert res_ok.status_code == 201
+    item_ok = (
+        db_session.query(OctoBookingUnitItem)
+        .filter(OctoBookingUnitItem.id == res_ok.json()["id"])
+        .first()
+    )
+    assert item_ok is not None
+    assert item_ok.selected_gas_mix_id == "ean32"
+    assert item_ok.gas_mix_status == "APPROVED"
 
 
-def test_medical_review_and_physician_clearance_override(client: TestClient, db_session: Session, center_ops_setup):
+def test_medical_review_and_physician_clearance_override(
+    client: TestClient, db_session: Session, center_ops_setup
+):
     center = center_ops_setup["center"]
     slot = center_ops_setup["slot"]
     owner = center_ops_setup["owner"]
@@ -506,8 +581,11 @@ def test_medical_review_and_physician_clearance_override(client: TestClient, db_
     headers = {"Authorization": f"Bearer {token}"}
 
     # Create encrypted medical record with a flagged condition for part-item-2
-    from app.services.booking_medical_encryption_service import BookingMedicalEncryptionService
     from app.models import DiverMedicalRecord
+    from app.services.booking_medical_encryption_service import (
+        BookingMedicalEncryptionService,
+    )
+
     encryption_svc = BookingMedicalEncryptionService()
     flagged_answers = {"q1": True, "q2": False, "q3": False}
     enc_dek, enc_answers = encryption_svc.encrypt_answers(flagged_answers)
@@ -518,7 +596,7 @@ def test_medical_review_and_physician_clearance_override(client: TestClient, db_
         status="FLAGGED_CONTACT_CENTER",
         encrypted_dek=enc_dek,
         encrypted_answers=enc_answers,
-        expires_at=datetime.now(timezone.utc) + timedelta(days=365),
+        expires_at=datetime.now(UTC) + timedelta(days=365),
     )
     db_session.add(med_rec)
     db_session.commit()
@@ -593,7 +671,7 @@ def test_manager_modify_medical_questionnaire_answers_with_audit(
         status="FLAGGED_CONTACT_CENTER",
         encrypted_dek=enc_dek,
         encrypted_answers=enc_answers,
-        expires_at=datetime.now(timezone.utc) + timedelta(days=365),
+        expires_at=datetime.now(UTC) + timedelta(days=365),
     )
     db_session.add(med_rec)
     db_session.commit()
@@ -620,10 +698,16 @@ def test_manager_modify_medical_questionnaire_answers_with_audit(
     mod_data = res_mod.json()
     assert mod_data["status"] == "CLEARED"
     assert mod_data["modified_by"] == owner.username
-    assert mod_data["modification_reason"] == "Diver confirmed no asthma; misclick during registration."
+    assert (
+        mod_data["modification_reason"]
+        == "Diver confirmed no asthma; misclick during registration."
+    )
     assert "modified_at" in mod_data
     assert len(mod_data["modification_history"]) == 1
-    assert mod_data["modification_history"][0]["previous_status"] == "FLAGGED_CONTACT_CENTER"
+    assert (
+        mod_data["modification_history"][0]["previous_status"]
+        == "FLAGGED_CONTACT_CENTER"
+    )
     assert mod_data["modification_history"][0]["new_status"] == "CLEARED"
 
     # 3. Verify medical review endpoint returns modification audit
@@ -635,7 +719,10 @@ def test_manager_modify_medical_questionnaire_answers_with_audit(
     review_data = res_review.json()
     assert review_data["status"] == "CLEARED"
     assert review_data["modification_audit"]["modified_by_name"] == owner.username
-    assert review_data["modification_audit"]["modification_reason"] == "Diver confirmed no asthma; misclick during registration."
+    assert (
+        review_data["modification_audit"]["modification_reason"]
+        == "Diver confirmed no asthma; misclick during registration."
+    )
     assert len(review_data["flagged_questions"]) == 0
 
 
@@ -687,7 +774,9 @@ def test_toggle_participant_gear_check(client: TestClient, center_ops_setup):
         f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/manifest",
         headers=headers,
     )
-    p1_updated = next(p for p in res_man2.json()["participants"] if p["id"] == "part-item-1")
+    p1_updated = next(
+        p for p in res_man2.json()["participants"] if p["id"] == "part-item-1"
+    )
     assert p1_updated["gear_checked"] is True
 
     # 4. Toggle back to False

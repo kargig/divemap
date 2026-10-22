@@ -11,6 +11,7 @@ import {
   Download,
   AlertTriangle,
   Compass,
+  Fish,
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
@@ -29,6 +30,7 @@ const BriefingReviewModal = ({ isOpen, onClose, centerId, tripId, onBriefingDisp
   const [siteProfileNotes, setSiteProfileNotes] = useState('');
   const [hazardsNotes, setHazardsNotes] = useState('');
   const [contingencyNotes, setContingencyNotes] = useState('');
+  const [marineLife, setMarineLife] = useState([]);
 
   useEffect(() => {
     if (!isOpen || !centerId || !tripId) return;
@@ -45,6 +47,7 @@ const BriefingReviewModal = ({ isOpen, onClose, centerId, tripId, onBriefingDisp
         setSiteProfileNotes(b.site_profile_notes || '');
         setHazardsNotes(b.hazards_and_safety_notes || '');
         setContingencyNotes(b.contingency_notes || '');
+        setMarineLife(b.marine_life_highlights || []);
       } catch (err) {
         console.error('Failed to load briefing:', err);
         toast.error('Failed to load pre-dive briefing.');
@@ -56,6 +59,14 @@ const BriefingReviewModal = ({ isOpen, onClose, centerId, tripId, onBriefingDisp
     fetchBriefing();
   }, [isOpen, centerId, tripId]);
 
+  const handleUpdateMarineLife = (index, field, value) => {
+    setMarineLife(prev => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], [field]: value };
+      return copy;
+    });
+  };
+
   const handleSaveNotes = async () => {
     try {
       setSaving(true);
@@ -64,6 +75,7 @@ const BriefingReviewModal = ({ isOpen, onClose, centerId, tripId, onBriefingDisp
         site_profile_notes: siteProfileNotes,
         hazards_and_safety_notes: hazardsNotes,
         contingency_notes: contingencyNotes,
+        marine_life_highlights: marineLife,
       };
       const res = await api.put(
         `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/briefing`,
@@ -282,6 +294,43 @@ const BriefingReviewModal = ({ isOpen, onClose, centerId, tripId, onBriefingDisp
                 />
               </div>
             </div>
+
+            {/* Marine Wildlife Highlights */}
+            {marineLife && marineLife.length > 0 && (
+              <div className='p-3.5 bg-blue-50/60 dark:bg-blue-950/20 rounded-xl border border-blue-100 dark:border-blue-900/40 space-y-2'>
+                <span className='font-bold text-blue-900 dark:text-blue-300 flex items-center gap-1.5 text-xs'>
+                  <Fish size={14} className='text-blue-600' />
+                  Marine Wildlife & Species Highlights (From Dive Site Profile)
+                </span>
+                <div className='space-y-1.5'>
+                  {marineLife.map((item, idx) => (
+                    <div key={idx} className='grid grid-cols-12 gap-2 items-center text-xs'>
+                      <input
+                        type='text'
+                        value={item.species || ''}
+                        onChange={e => handleUpdateMarineLife(idx, 'species', e.target.value)}
+                        className='col-span-5 px-2.5 py-1.5 border rounded-lg bg-white dark:bg-gray-800 text-xs font-semibold'
+                        placeholder='Species name'
+                      />
+                      <input
+                        type='text'
+                        value={item.depth || ''}
+                        onChange={e => handleUpdateMarineLife(idx, 'depth', e.target.value)}
+                        className='col-span-3 px-2 py-1.5 border rounded-lg bg-white dark:bg-gray-800 text-xs font-mono text-gray-700 dark:text-gray-300'
+                        placeholder='Depth (e.g. 10-25m)'
+                      />
+                      <input
+                        type='text'
+                        value={item.notes || ''}
+                        onChange={e => handleUpdateMarineLife(idx, 'notes', e.target.value)}
+                        className='col-span-4 px-2.5 py-1.5 border rounded-lg bg-white dark:bg-gray-800 text-xs text-gray-700 dark:text-gray-300'
+                        placeholder='Habitat / behavior notes'
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Emergency Action Plan (EAP) Box */}
             <div className='p-3.5 bg-red-50/70 dark:bg-red-950/20 rounded-xl border border-red-200 dark:border-red-900/60 space-y-1.5'>

@@ -12,7 +12,10 @@ import {
   Lock,
   MoreHorizontal,
 } from 'lucide-react';
-import React from 'react';
+import React, { useState } from 'react';
+import toast from 'react-hot-toast';
+
+import api from '../../api';
 
 const PAID_STATUSES = new Set(['PAID_IN_FULL', 'PAID_ONLINE', 'PAID']);
 
@@ -104,14 +107,19 @@ const rowActions = (p, { onViewDetails, onEditDiver, onDeleteDiver }) => [
 
 const BoardButton = ({ p, isMedicalHold, onToggleCheckin, onViewDetails, compact = false }) => {
   const gearPending = !p.gear_checked;
-  const blocked = !p.onboard_checkin_status && (isMedicalHold || gearPending);
+  const isGasHold =
+    Boolean(p.selected_gas_mix_id) &&
+    p.selected_gas_mix_id.toLowerCase() !== 'air' &&
+    p.gas_mix_status !== 'APPROVED' &&
+    p.gas_mix_status !== 'REVERTED_AIR';
+  const blocked = !p.onboard_checkin_status && (isMedicalHold || gearPending || isGasHold);
 
   const title = blocked
-    ? isMedicalHold && gearPending
-      ? 'Clear medical and complete gear check before boarding'
-      : gearPending
-        ? 'Complete gear check before boarding'
-        : 'Medical clearance required before boarding'
+    ? isMedicalHold
+      ? 'Medical clearance required before boarding'
+      : isGasHold
+        ? 'Approve EAN32 or Revert to Air before boarding'
+        : 'Complete gear check before boarding'
     : p.onboard_checkin_status
       ? 'Revoke boarding'
       : 'Confirm diver boarded';
@@ -119,10 +127,12 @@ const BoardButton = ({ p, isMedicalHold, onToggleCheckin, onViewDetails, compact
   const label = p.onboard_checkin_status
     ? 'Boarded'
     : isMedicalHold
-      ? 'Med hold'
-      : gearPending
-        ? 'Gear hold'
-        : 'Board';
+      ? 'Medical hold'
+      : isGasHold
+        ? 'Gas hold'
+        : gearPending
+          ? 'Gear hold'
+          : 'Board';
 
   return (
     <button
@@ -132,7 +142,7 @@ const BoardButton = ({ p, isMedicalHold, onToggleCheckin, onViewDetails, compact
           onViewDetails(p);
           return;
         }
-        if (gearPending && !p.onboard_checkin_status) return;
+        if ((gearPending || isGasHold) && !p.onboard_checkin_status) return;
         onToggleCheckin(p.id);
       }}
       disabled={blocked}
@@ -161,12 +171,72 @@ const BoardButton = ({ p, isMedicalHold, onToggleCheckin, onViewDetails, compact
 
 const BoatManifestTable = ({
   participants = [],
+  centerId,
+  tripId,
+  onRefresh,
   onToggleCheckin,
   onTogglePayment,
   onEditDiver,
   onDeleteDiver,
   onViewDetails,
 }) => {
+  const [actionLoadingKey, setActionLoadingKey] = useState(null);
+
+  const handleApproveGas = async p => {
+    if (!centerId || !tripId || actionLoadingKey) return;
+    const actionKey = `${p.id}_gas`;
+    try {
+      setActionLoadingKey(actionKey);
+      await api.post(
+        `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/participants/${p.id}/approve-gas`
+      );
+      toast.success(`EAN32 approved for ${p.diver_full_name}`);
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to approve EAN32');
+    } finally {
+      setActionLoadingKey(null);
+    }
+  };
+
+  const handleRevertAir = async p => {
+    if (!centerId || !tripId || actionLoadingKey) return;
+    const actionKey = `${p.id}_gas`;
+    try {
+      setActionLoadingKey(actionKey);
+      await api.post(
+        `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/participants/${p.id}/revert-air`
+      );
+      toast.success(`Reverted to Air for ${p.diver_full_name}`);
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to revert gas to Air');
+    } finally {
+      setActionLoadingKey(null);
+    }
+  };
+
+  const handleToggleCheckinItem = async (p, item, verified) => {
+    if (!centerId || !tripId || actionLoadingKey) return;
+    const actionKey = `${p.id}_${item}`;
+    try {
+      setActionLoadingKey(actionKey);
+      await api.post(
+        `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/participants/${p.id}/verify-checkin-item`,
+        {
+          item,
+          verified,
+        }
+      );
+      toast.success(`Updated check-in verification for ${p.diver_full_name}`);
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to update verification');
+    } finally {
+      setActionLoadingKey(null);
+    }
+  };
+
   if (participants.length === 0) {
     return (
       <div className='p-8 text-center bg-gray-50 dark:bg-gray-800/40 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700'>
@@ -191,6 +261,7 @@ const BoatManifestTable = ({
               <th className='py-2.5 px-3 w-10 text-center'>#</th>
               <th className='py-2.5 px-3'>Diver</th>
               <th className='py-2.5 px-3'>Kit</th>
+              <th className='py-2.5 px-3'>Doc checks</th>
               <th className='py-2.5 px-3'>Status</th>
               <th className='py-2.5 px-3 text-center'>Pay</th>
               <th className='py-2.5 px-3 text-center'>Board</th>
@@ -270,28 +341,143 @@ const BoatManifestTable = ({
                   </td>
 
                   <td className='py-3 px-3'>
+                    <div className='flex flex-col gap-1 items-start text-[11px]'>
+                      {/* Medical Clearance Check (Clickable: opens modal to Physician Clearance form) */}
+                      {p.medical_status === 'PHYSICIAN_APPROVED' && (
+                        <button
+                          type='button'
+                          onClick={() => onViewDetails(p)}
+                          className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300 hover:bg-emerald-200 transition-colors'
+                          title={
+                            p.medical_clearance_audit?.physician_name
+                              ? `Medical clearance approved by Dr. ${p.medical_clearance_audit.physician_name}. Click to view details.`
+                              : 'Medical clearance approved. Click to view details.'
+                          }
+                        >
+                          <Check size={10} /> Medical Clearance
+                        </button>
+                      )}
+                      {p.medical_status === 'FLAGGED_CONTACT_CENTER' && (
+                        <button
+                          type='button'
+                          onClick={() => onViewDetails(p)}
+                          className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200 hover:bg-amber-200 transition-colors'
+                          title='Medical clearance required! Click to review conditions and record physician clearance.'
+                        >
+                          <AlertTriangle size={10} /> Medical Clearance
+                        </button>
+                      )}
+
+                      {/* Nitrox Approval Actions (Clickable: approve gas or revert) */}
+                      {p.selected_gas_mix_id &&
+                        p.selected_gas_mix_id.toLowerCase() !== 'air' &&
+                        (p.gas_mix_status === 'APPROVED' ? (
+                          <button
+                            type='button'
+                            disabled={Boolean(actionLoadingKey)}
+                            onClick={() => handleRevertAir(p)}
+                            className='text-[10px] text-gray-400 hover:text-red-600 dark:hover:text-red-400 underline decoration-dotted disabled:opacity-50'
+                            title='Click to revert gas mix to Air (21% O2)'
+                          >
+                            Revert to Air
+                          </button>
+                        ) : p.gas_mix_status === 'REVERTED_AIR' ? (
+                          <button
+                            type='button'
+                            disabled={Boolean(actionLoadingKey)}
+                            onClick={() => handleApproveGas(p)}
+                            className='text-[10px] text-blue-600 hover:underline disabled:opacity-50'
+                            title='Click to re-approve EAN32'
+                          >
+                            Re-approve EAN32
+                          </button>
+                        ) : (
+                          <div className='inline-flex items-center gap-1'>
+                            <button
+                              type='button'
+                              disabled={Boolean(actionLoadingKey)}
+                              onClick={() => handleApproveGas(p)}
+                              className='px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200 hover:bg-emerald-200 hover:text-emerald-900 transition-colors disabled:opacity-50'
+                              title='Approve EAN32 after inspecting card or analyzer'
+                            >
+                              Approve EAN32
+                            </button>
+                            <button
+                              type='button'
+                              disabled={Boolean(actionLoadingKey)}
+                              onClick={() => handleRevertAir(p)}
+                              className='px-1.5 py-0.5 rounded text-[10px] text-gray-500 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-50'
+                              title='Revert to Air (21% O2)'
+                            >
+                              Air
+                            </button>
+                          </div>
+                        ))}
+                      {(p.equipment_sizing?.secondary_nitrox_cert ||
+                        p.checkin_verifications?.secondary_nitrox_cert) && (
+                        <span
+                          className='text-[9px] text-gray-500 dark:text-gray-400 font-mono block truncate max-w-[140px]'
+                          title={`Provided Nitrox Card: ${
+                            p.equipment_sizing?.secondary_nitrox_cert ||
+                            p.checkin_verifications?.secondary_nitrox_cert
+                          }`}
+                        >
+                          Nitrox:{' '}
+                          {p.equipment_sizing?.secondary_nitrox_cert ||
+                            p.checkin_verifications?.secondary_nitrox_cert}
+                        </span>
+                      )}
+
+                      {/* Scuba Certification Card Check (Clickable: toggle verified) */}
+                      {p.checkin_verifications?.c_card_verified ? (
+                        <button
+                          type='button'
+                          disabled={Boolean(actionLoadingKey)}
+                          onClick={() => handleToggleCheckinItem(p, 'c_card', false)}
+                          className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 disabled:opacity-50'
+                          title='Certification card verified. Click to undo.'
+                        >
+                          <Check size={10} /> Cert Card
+                        </button>
+                      ) : (
+                        <button
+                          type='button'
+                          disabled={Boolean(actionLoadingKey)}
+                          onClick={() => handleToggleCheckinItem(p, 'c_card', true)}
+                          className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-gray-500 dark:text-gray-400 hover:text-blue-600 border border-dashed border-gray-300 dark:border-gray-600 disabled:opacity-50'
+                          title='Click to mark certification card inspected'
+                        >
+                          Check Cert
+                        </button>
+                      )}
+                    </div>
+                  </td>
+
+                  <td className='py-3 px-3'>
                     <div className='flex flex-wrap items-center gap-1'>
+                      {/* Medical Status: Read-only */}
                       <StatusDot
                         ok={medOk}
                         warn={medHold}
-                        label={
-                          p.medical_status === 'PHYSICIAN_APPROVED'
-                            ? 'MD'
-                            : medOk
-                              ? 'Med'
-                              : p.medical_status === 'PENDING'
-                                ? 'Med?'
-                                : 'Med!'
-                        }
+                        label='Medical'
                         title={
-                          p.medical_status === 'PHYSICIAN_APPROVED'
-                            ? `Physician approved${p.medical_clearance_audit?.physician_name ? `: Dr. ${p.medical_clearance_audit.physician_name}` : ''}`
-                            : medOk
-                              ? 'Medically cleared'
-                              : 'Needs medical review'
+                          medOk
+                            ? p.medical_status === 'PHYSICIAN_APPROVED'
+                              ? `Medical cleared (Physician approved${p.medical_clearance_audit?.physician_name ? `: Dr. ${p.medical_clearance_audit.physician_name}` : ''})`
+                              : 'Medical cleared (Screening complete)'
+                            : 'Medical clearance required'
                         }
-                        onClick={() => onViewDetails(p)}
                       />
+
+                      {/* Waiver Status: Read-only */}
+                      <StatusDot
+                        ok={waiverOk}
+                        warn={!waiverOk}
+                        label='Waiver'
+                        title={waiverOk ? 'Waiver signed' : 'Waiver incomplete'}
+                      />
+
+                      {/* Gear Status: Read-only */}
                       <StatusDot
                         ok={p.gear_checked}
                         warn={!p.gear_checked}
@@ -302,13 +488,30 @@ const BoatManifestTable = ({
                             : 'Gear check pending — use Gear tab'
                         }
                       />
-                      <StatusDot
-                        ok={waiverOk}
-                        warn={!waiverOk}
-                        label='Waiver'
-                        title={waiverOk ? 'Waivers complete' : 'Waivers incomplete'}
-                        onClick={() => onViewDetails(p)}
-                      />
+
+                      {/* Gas / Nitrox Status: Read-only */}
+                      {p.selected_gas_mix_id && p.selected_gas_mix_id.toLowerCase() !== 'air' && (
+                        <StatusDot
+                          ok={p.gas_mix_status === 'APPROVED'}
+                          warn={
+                            p.gas_mix_status !== 'APPROVED' && p.gas_mix_status !== 'REVERTED_AIR'
+                          }
+                          label={
+                            p.gas_mix_status === 'APPROVED'
+                              ? `${p.selected_gas_mix_id.toUpperCase()} OK`
+                              : p.gas_mix_status === 'REVERTED_AIR'
+                                ? 'Air'
+                                : `${p.selected_gas_mix_id.toUpperCase()} Pending`
+                          }
+                          title={
+                            p.gas_mix_status === 'APPROVED'
+                              ? `${p.selected_gas_mix_id.toUpperCase()} approved`
+                              : p.gas_mix_status === 'REVERTED_AIR'
+                                ? 'Reverted to Air (21% O2)'
+                                : 'Gas mix approval pending document check'
+                          }
+                        />
+                      )}
                     </div>
                   </td>
 
@@ -432,9 +635,14 @@ const BoatManifestTable = ({
                 <StatusDot
                   ok={medOk}
                   warn={medHold}
-                  label='Med'
-                  title='Medical status'
-                  onClick={() => onViewDetails(p)}
+                  label='Medical'
+                  title={medOk ? 'Medical cleared' : 'Medical clearance required'}
+                />
+                <StatusDot
+                  ok={Boolean(p.waivers_complete)}
+                  warn={!p.waivers_complete}
+                  label='Waiver'
+                  title='Waiver status'
                 />
                 <StatusDot
                   ok={p.gear_checked}
@@ -442,13 +650,105 @@ const BoatManifestTable = ({
                   label='Gear'
                   title='Gear check'
                 />
-                <StatusDot
-                  ok={Boolean(p.waivers_complete)}
-                  warn={!p.waivers_complete}
-                  label='Waiver'
-                  title='Waiver status'
-                  onClick={() => onViewDetails(p)}
-                />
+                {p.selected_gas_mix_id && p.selected_gas_mix_id.toLowerCase() !== 'air' && (
+                  <StatusDot
+                    ok={p.gas_mix_status === 'APPROVED'}
+                    warn={p.gas_mix_status !== 'APPROVED' && p.gas_mix_status !== 'REVERTED_AIR'}
+                    label={
+                      p.gas_mix_status === 'APPROVED'
+                        ? `${p.selected_gas_mix_id.toUpperCase()} OK`
+                        : p.gas_mix_status === 'REVERTED_AIR'
+                          ? 'Air'
+                          : `${p.selected_gas_mix_id.toUpperCase()} Pending`
+                    }
+                  />
+                )}
+              </div>
+
+              {/* Doc Checks in mobile card (All clickable) */}
+              <div className='mt-2.5 ml-8 flex flex-wrap items-center gap-1.5 pt-2 border-t border-gray-100 dark:border-slate-700/60'>
+                <span className='text-[10px] font-bold text-gray-400 uppercase tracking-wider mr-1'>
+                  Doc checks:
+                </span>
+                {p.medical_status === 'PHYSICIAN_APPROVED' && (
+                  <button
+                    type='button'
+                    onClick={() => onViewDetails(p)}
+                    className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'
+                  >
+                    <Check size={10} /> Medical Clearance
+                  </button>
+                )}
+                {p.medical_status === 'FLAGGED_CONTACT_CENTER' && (
+                  <button
+                    type='button'
+                    onClick={() => onViewDetails(p)}
+                    className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200'
+                  >
+                    <AlertTriangle size={10} /> Medical Clearance
+                  </button>
+                )}
+
+                {p.selected_gas_mix_id &&
+                  p.selected_gas_mix_id.toLowerCase() !== 'air' &&
+                  (p.gas_mix_status === 'APPROVED' ? (
+                    <button
+                      type='button'
+                      disabled={Boolean(actionLoadingKey)}
+                      onClick={() => handleRevertAir(p)}
+                      className='text-[10px] text-gray-400 hover:text-red-600 underline disabled:opacity-50'
+                    >
+                      Revert Air
+                    </button>
+                  ) : p.gas_mix_status === 'REVERTED_AIR' ? (
+                    <button
+                      type='button'
+                      disabled={Boolean(actionLoadingKey)}
+                      onClick={() => handleApproveGas(p)}
+                      className='text-[10px] text-blue-600 hover:underline disabled:opacity-50'
+                    >
+                      Re-approve EAN32
+                    </button>
+                  ) : (
+                    <div className='inline-flex items-center gap-1'>
+                      <button
+                        type='button'
+                        disabled={Boolean(actionLoadingKey)}
+                        onClick={() => handleApproveGas(p)}
+                        className='px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200 disabled:opacity-50'
+                      >
+                        Approve EAN32
+                      </button>
+                      <button
+                        type='button'
+                        disabled={Boolean(actionLoadingKey)}
+                        onClick={() => handleRevertAir(p)}
+                        className='px-1.5 py-0.5 rounded text-[10px] text-gray-500 hover:text-red-600 disabled:opacity-50'
+                      >
+                        Air
+                      </button>
+                    </div>
+                  ))}
+
+                {p.checkin_verifications?.c_card_verified ? (
+                  <button
+                    type='button'
+                    disabled={Boolean(actionLoadingKey)}
+                    onClick={() => handleToggleCheckinItem(p, 'c_card', false)}
+                    className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 disabled:opacity-50'
+                  >
+                    <Check size={10} /> Cert Card
+                  </button>
+                ) : (
+                  <button
+                    type='button'
+                    disabled={Boolean(actionLoadingKey)}
+                    onClick={() => handleToggleCheckinItem(p, 'c_card', true)}
+                    className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-gray-500 border border-dashed border-gray-300 dark:border-gray-600 disabled:opacity-50'
+                  >
+                    Check Cert
+                  </button>
+                )}
               </div>
 
               <div className='flex items-center justify-between gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700/60'>

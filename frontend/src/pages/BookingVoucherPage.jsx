@@ -14,6 +14,8 @@ import {
   FileCheck,
   Ship,
   Download,
+  AlertTriangle,
+  Award,
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
@@ -281,6 +283,76 @@ const BookingVoucherPage = () => {
               </div>
             </div>
 
+            {/* Required Check-in Documents & Verifications */}
+            <div className='bg-gradient-to-br from-blue-50/80 to-indigo-50/50 dark:from-gray-800 dark:to-gray-800/80 rounded-2xl border border-blue-200/80 dark:border-blue-900/50 p-4 space-y-3 shadow-sm'>
+              <div className='flex items-center gap-2'>
+                <Shield className='h-4 w-4 text-blue-600 dark:text-blue-400' />
+                <h2 className='text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider'>
+                  Mandatory Check-in Documents — Please Bring to Dive Center
+                </h2>
+              </div>
+
+              <div className='space-y-2 text-xs'>
+                {/* 1. Scuba Certification Card */}
+                <div className='flex items-start gap-2.5 p-2.5 bg-white dark:bg-gray-750 rounded-xl border border-gray-200 dark:border-gray-700'>
+                  <Award className='h-4 w-4 text-blue-600 shrink-0 mt-0.5' />
+                  <div>
+                    <strong className='text-gray-900 dark:text-white block'>
+                      Scuba Certification Card
+                    </strong>
+                    <span className='text-gray-600 dark:text-gray-300 text-[11px] block'>
+                      Please present your physical certification card or digital agency app (PADI,
+                      SSI, CMAS, etc.) at the reception desk.
+                    </span>
+                  </div>
+                </div>
+
+                {/* 2. Doctor's Medical Certificate (if flagged/physician clearance needed) */}
+                {(primaryItem?.medicalStatus === 'PHYSICIAN_APPROVED' ||
+                  primaryItem?.medicalStatus === 'FLAGGED_CONTACT_CENTER') && (
+                  <div className='flex items-start gap-2.5 p-2.5 bg-amber-50 dark:bg-amber-950/30 rounded-xl border border-amber-300 dark:border-amber-800 text-amber-950 dark:text-amber-200'>
+                    <AlertTriangle className='h-4 w-4 text-amber-600 shrink-0 mt-0.5' />
+                    <div>
+                      <strong className='block text-amber-900 dark:text-amber-300'>
+                        ⚠️ Signed Physician Medical Clearance Required
+                      </strong>
+                      <span className='text-[11px] block text-amber-800 dark:text-amber-300/90 leading-relaxed'>
+                        Because a medical condition was flagged on your diving questionnaire, you
+                        must present an official doctor&apos;s signed written approval declaring you
+                        medically fit for scuba diving to board the boat.
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. Nitrox (EANx) Certification Card (if EANx selected) */}
+                {primaryItem?.selectedGasMixId &&
+                  primaryItem.selectedGasMixId.toLowerCase() !== 'air' && (
+                    <div
+                      className={`flex items-start gap-2.5 p-2.5 rounded-xl border ${
+                        primaryItem.gasMixStatus === 'APPROVED'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800 text-emerald-950 dark:text-emerald-200'
+                          : 'bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800 text-amber-950 dark:text-amber-200'
+                      }`}
+                    >
+                      <Gauge className='h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5' />
+                      <div>
+                        <strong className='block'>
+                          {primaryItem.gasMixStatus === 'APPROVED'
+                            ? '✓ Nitrox (EAN32) Reserved & Confirmed'
+                            : '⚠️ Nitrox (EAN32) Requested — Verification Required at Check-in'}
+                        </strong>
+                        <span className='text-[11px] block leading-relaxed opacity-90'>
+                          {primaryItem.gasMixStatus === 'APPROVED'
+                            ? 'Your Enriched Air Nitrox qualification is on file. Please keep your certification card accessible for cylinder gas analysis sign-off.'
+                            : 'You requested an Enriched Air (Nitrox) cylinder. You must show your Nitrox certification card to the dive center manager on arrival, or standard Air (21% O2) will be supplied.'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+              </div>
+            </div>
+
             {/* Diver & Equipment Checklist */}
             <div>
               <h2 className='text-xs font-bold text-gray-400 uppercase tracking-wider mb-3'>
@@ -318,9 +390,11 @@ const BookingVoucherPage = () => {
                       </strong>
                     </div>
                     <div>
-                      <span className='text-gray-400 block'>Lead Ballast</span>
+                      <span className='text-gray-400 block'>Lead Weights</span>
                       <strong className='text-gray-800 dark:text-gray-200'>
-                        {primaryItem.equipmentSizing?.lead_kg || 4} kg
+                        {primaryItem.equipmentSizing?.has_own_lead_weights
+                          ? '0 kg (Own Lead)'
+                          : `${primaryItem.equipmentSizing?.lead_kg || 4} kg`}
                       </strong>
                     </div>
                     <div>

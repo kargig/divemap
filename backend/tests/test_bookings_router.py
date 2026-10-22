@@ -1,30 +1,36 @@
+from datetime import UTC, datetime, time, timedelta, timezone
+
 import pytest
-from datetime import datetime, time, timezone, timedelta
+from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
+
 from app.auth import create_access_token
 from app.models import (
-    User,
-    UserGearProfile,
+    DiverMedicalRecord,
     DivingCenter,
     DivingCenterBookingSettings,
-    OctoProduct,
-    OctoOption,
-    OctoUnit,
     OctoAvailabilitySlot,
     OctoBooking,
     OctoBookingUnitItem,
-    DiverMedicalRecord,
+    OctoOption,
+    OctoProduct,
+    OctoUnit,
+    User,
+    UserGearProfile,
 )
-from cryptography.fernet import Fernet
+
 
 @pytest.fixture(autouse=True)
 def setup_encryption_key(monkeypatch):
     test_key = Fernet.generate_key().decode()
     monkeypatch.setenv("BOOKING_MEDICAL_MASTER_KEYS", test_key)
 
+
 @pytest.fixture
-def booking_setup(db_session: Session, test_diving_center: DivingCenter, test_user: User):
+def booking_setup(
+    db_session: Session, test_diving_center: DivingCenter, test_user: User
+):
     # Center Settings
     settings = DivingCenterBookingSettings(
         diving_center_id=test_diving_center.id,
@@ -33,7 +39,7 @@ def booking_setup(db_session: Session, test_diving_center: DivingCenter, test_us
         hold_duration_minutes=20,
     )
     db_session.add(settings)
-    
+
     # User Gear Profile
     profile = UserGearProfile(
         user_id=test_user.id,
@@ -55,7 +61,7 @@ def booking_setup(db_session: Session, test_diving_center: DivingCenter, test_us
         insurance_policy_number="DAN-123456",
     )
     db_session.add(profile)
-    
+
     # Product, Option, Unit
     product = OctoProduct(
         id="prod-checkout-test",
@@ -82,9 +88,9 @@ def booking_setup(db_session: Session, test_diving_center: DivingCenter, test_us
     )
     db_session.add_all([product, option, unit])
     db_session.flush()
-    
+
     # Slot
-    start_dt = datetime.now(timezone.utc) + timedelta(days=3)
+    start_dt = datetime.now(UTC) + timedelta(days=3)
     end_dt = start_dt + timedelta(hours=4)
     slot = OctoAvailabilitySlot(
         id="slot-checkout-test",
@@ -96,7 +102,7 @@ def booking_setup(db_session: Session, test_diving_center: DivingCenter, test_us
         seats_available=10,
     )
     db_session.add(slot)
-    
+
     # Existing held booking
     booking = OctoBooking(
         uuid="book-checkout-uuid-1",
@@ -106,13 +112,13 @@ def booking_setup(db_session: Session, test_diving_center: DivingCenter, test_us
         availability_id=slot.id,
         user_id=test_user.id,
         status="ON_HOLD",
-        utc_hold_expiration=datetime.now(timezone.utc) + timedelta(minutes=20),
+        utc_hold_expiration=datetime.now(UTC) + timedelta(minutes=20),
         total_amount=105.00,
         currency="EUR",
     )
     db_session.add(booking)
     db_session.flush()
-    
+
     unit_item = OctoBookingUnitItem(
         id="item-checkout-uuid-1",
         booking_uuid=booking.uuid,
@@ -125,7 +131,7 @@ def booking_setup(db_session: Session, test_diving_center: DivingCenter, test_us
     )
     db_session.add(unit_item)
     db_session.commit()
-    
+
     return {
         "user": test_user,
         "center": test_diving_center,
@@ -135,12 +141,13 @@ def booking_setup(db_session: Session, test_diving_center: DivingCenter, test_us
         "unit_item": unit_item,
     }
 
+
 def test_get_checkout_context(client: TestClient, booking_setup):
     user = booking_setup["user"]
     slot = booking_setup["slot"]
     token = create_access_token({"sub": user.username})
     headers = {"Authorization": f"Bearer {token}"}
-    
+
     res = client.get(f"/api/v1/bookings/checkout-context/{slot.id}", headers=headers)
     assert res.status_code == 200
     data = res.json()
@@ -150,13 +157,56 @@ def test_get_checkout_context(client: TestClient, booking_setup):
     assert data["prefill_gear"]["height_cm"] == 185
     assert "dmsc_schema" in data
 
+
+def test_get_checkout_context_filters_inactive_certifications(
+    client: TestClient, db_session, booking_setup
+):
+    from app.models import DivingOrganization, UserCertification
+
+    user = booking_setup["user"]
+    slot = booking_setup["slot"]
+    token = create_access_token({"sub": user.username})
+    headers = {"Authorization": f"Bearer {token}"}
+
+    org = db_session.query(DivingOrganization).first()
+    if not org:
+        org = DivingOrganization(name="PADI", acronym="PADI")
+        db_session.add(org)
+        db_session.flush()
+
+    active_cert = UserCertification(
+        user_id=user.id,
+        diving_organization_id=org.id,
+        certification_level="Advanced Open Water",
+        is_active=True,
+    )
+    inactive_cert = UserCertification(
+        user_id=user.id,
+        diving_organization_id=org.id,
+        certification_level="Expired Specialty",
+        is_active=False,
+    )
+    db_session.add_all([active_cert, inactive_cert])
+    db_session.commit()
+
+    res = client.get(f"/api/v1/bookings/checkout-context/{slot.id}", headers=headers)
+    assert res.status_code == 200
+    data = res.json()
+    assert "diver_capabilities" in data
+    user_certs = data.get("user_certifications", [])
+    levels = [c["level"] for c in user_certs]
+    assert "Advanced Open Water" in levels
+    assert "Expired Specialty" not in levels
+    assert "allows_nitrox" in user_certs[0]
+
+
 def test_submit_paperwork_clean_flow(client: TestClient, booking_setup):
     user = booking_setup["user"]
     booking = booking_setup["booking"]
     unit_item = booking_setup["unit_item"]
     token = create_access_token({"sub": user.username})
     headers = {"Authorization": f"Bearer {token}"}
-    
+
     paperwork_payload = {
         "unitItemId": unit_item.id,
         "dmscAnswers": {f"q{i}": False for i in range(1, 11)},
@@ -169,16 +219,21 @@ def test_submit_paperwork_clean_flow(client: TestClient, booking_setup):
             "fin_type": "OPEN_HEEL",
             "shoe_size_eu": 44.0,
             "regulator_fitting": "DIN",
-            "lead_kg": 5.0
-        }
+            "lead_kg": 5.0,
+        },
     }
-    
-    res = client.post(f"/api/v1/bookings/{booking.uuid}/submit-paperwork", json=paperwork_payload, headers=headers)
+
+    res = client.post(
+        f"/api/v1/bookings/{booking.uuid}/submit-paperwork",
+        json=paperwork_payload,
+        headers=headers,
+    )
     assert res.status_code == 200
     data = res.json()
     assert data["status"] == "CONFIRMED"
     assert data["medicalStatus"] == "CLEARED"
     assert data["waiversComplete"] is True
+
 
 def test_submit_paperwork_flagged_medical(client: TestClient, booking_setup):
     user = booking_setup["user"]
@@ -186,21 +241,26 @@ def test_submit_paperwork_flagged_medical(client: TestClient, booking_setup):
     unit_item = booking_setup["unit_item"]
     token = create_access_token({"sub": user.username})
     headers = {"Authorization": f"Bearer {token}"}
-    
+
     flagged_answers = {f"q{i}": False for i in range(1, 11)}
-    flagged_answers["q1"] = True # Asthma or chest surgery
-    
+    flagged_answers["q1"] = True  # Asthma or chest surgery
+
     paperwork_payload = {
         "unitItemId": unit_item.id,
         "dmscAnswers": flagged_answers,
         "signatureName": "Jean-Luc Picard",
         "selectedTankId": "12",
     }
-    
-    res = client.post(f"/api/v1/bookings/{booking.uuid}/submit-paperwork", json=paperwork_payload, headers=headers)
+
+    res = client.post(
+        f"/api/v1/bookings/{booking.uuid}/submit-paperwork",
+        json=paperwork_payload,
+        headers=headers,
+    )
     assert res.status_code == 200
     data = res.json()
     assert data["medicalStatus"] == "FLAGGED_CONTACT_CENTER"
+
 
 def test_get_booking_voucher_requires_auth(client: TestClient, booking_setup):
     booking = booking_setup["booking"]
@@ -218,6 +278,7 @@ def test_get_booking_voucher_requires_auth(client: TestClient, booking_setup):
     assert voucher["paymentStatus"] == "PENDING_AT_CHECKIN"
     assert voucher["currency"] == "EUR"
 
+
 def test_download_booking_voucher_pdf(client: TestClient, booking_setup):
     booking = booking_setup["booking"]
     user = booking_setup["user"]
@@ -228,4 +289,3 @@ def test_download_booking_voucher_pdf(client: TestClient, booking_setup):
     assert "application/pdf" in res.headers["content-type"]
     assert res.content[:4] == b"%PDF"
     assert len(res.content) > 1000
-
