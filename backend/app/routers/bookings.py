@@ -86,6 +86,10 @@ class BookingVoucherUnitItem(BaseModel):
     unitTitle: str
     selectedTankId: str
     selectedGasMixId: str
+    gasMixStatus: str = "APPROVED"
+    medicalStatus: str = "PENDING"
+    certificationAgency: str | None = None
+    certificationLevel: str | None = None
     equipmentSizing: dict[str, Any] | None = None
 
 
@@ -291,6 +295,7 @@ def get_checkout_context(
     prefill_gear = None
     user_certifications = []
     user_gear_profiles = []
+    diver_capabilities = None
     if current_user:
         gear_prof = (
             db.query(UserGearProfile)
@@ -402,20 +407,68 @@ def get_checkout_context(
                 joinedload(UserCertification.certification_level_link),
                 joinedload(UserCertification.diving_organization),
             )
-            .filter(UserCertification.user_id == current_user.id)
+            .filter(
+                UserCertification.user_id == current_user.id,
+                UserCertification.is_active.is_(True),
+            )
             .all()
         )
+        from app.routers.users import calculate_certification_stats
+
         certs_sorted = sorted(certs, key=calculate_certification_rank, reverse=True)
         for i, c in enumerate(certs_sorted):
             org_name = c.diving_organization.name if c.diving_organization else "PADI"
+            link = c.certification_level_link
+            gases = link.gases if link else None
+            max_d = link.max_depth if link else None
+            allows_nitrox = False
+            if gases and any(
+                k in gases.lower()
+                for k in ["nitrox", "safeair", "o2", "trimix", "triox"]
+            ):
+                allows_nitrox = True
+            elif c.certification_level and any(
+                k in c.certification_level.lower()
+                for k in [
+                    "nitrox",
+                    "ean",
+                    "safeair",
+                    "extended range",
+                    "xr",
+                    "tec",
+                    "trimix",
+                ]
+            ):
+                allows_nitrox = True
+
             user_certifications.append(
                 {
                     "agency": org_name,
                     "level": c.certification_level,
                     "number": getattr(c, "certification_number", None) or "",
+                    "gases": gases,
+                    "max_depth": max_d,
+                    "allows_nitrox": allows_nitrox,
                     "is_most_advanced": i == 0,
                 }
             )
+
+        cert_stats = calculate_certification_stats(certs)
+        if cert_stats:
+            diver_capabilities = {
+                "max_cert_depth": cert_stats.max_depth,
+                "max_cert_depth_str": cert_stats.max_depth_str,
+                "max_nitrox_pct": cert_stats.max_nitrox_pct,
+                "allows_nitrox": bool(
+                    cert_stats.max_nitrox_pct and cert_stats.max_nitrox_pct > 21
+                ),
+                "best_gases": cert_stats.best_gases,
+                "primary_rig": (
+                    cert_stats.largest_tanks[0]
+                    if cert_stats.largest_tanks
+                    else "Single"
+                ),
+            }
 
     waiver_svc = WaiverService()
     dmsc_schema = waiver_svc.get_questionnaire_schema("dmsc_2020_medical")
@@ -533,7 +586,23 @@ def get_checkout_context(
         "prefill_gear": prefill_gear,
         "user_gear_profiles": user_gear_profiles,
         "user_certifications": user_certifications,
+        "diver_capabilities": diver_capabilities,
         "dmsc_schema": dmsc_schema,
+        "center_settings": {
+            "default_valve_fitting": getattr(
+                (
+                    c_set := db.query(DivingCenterBookingSettings)
+                    .filter(DivingCenterBookingSettings.diving_center_id == center.id)
+                    .first()
+                ),
+                "default_valve_fitting",
+                "DIN",
+            )
+            or "DIN",
+            "daily_insurance_price": float(c_set.daily_insurance_price)
+            if c_set and c_set.daily_insurance_price is not None
+            else 0.0,
+        },
         "rental_pricing": (
             db.query(DivingCenterBookingSettings)
             .filter(DivingCenterBookingSettings.diving_center_id == center.id)
@@ -747,25 +816,28 @@ def _apply_diver_paperwork_for_unit_item(
         unit_item.medical_record = med_rec
 
     if req.selectedGasMixId and req.selectedGasMixId.lower() != "air":
-        if not check_nitrox_eligibility(
+        is_eligible = check_nitrox_eligibility(
             unit_item.certification_level,
             req.selectedGasMixId,
             db,
             user_id=unit_item.user_id,
-        ):
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    f"Gas mix '{req.selectedGasMixId.upper()}' requires an Enriched Air Diver (Nitrox) "
-                    f"or qualifying technical certification. Your current level "
-                    f"'{unit_item.certification_level or 'Unspecified'}' does not permit Nitrox."
-                ),
-            )
+        )
+        unit_item.selected_gas_mix_id = req.selectedGasMixId
+        unit_item.gas_mix_status = "APPROVED" if is_eligible else "PENDING_APPROVAL"
+    else:
+        unit_item.selected_gas_mix_id = req.selectedGasMixId or "air"
+        unit_item.gas_mix_status = "APPROVED"
 
     unit_item.selected_tank_id = req.selectedTankId or "12"
     unit_item.selected_gas_mix_id = req.selectedGasMixId or "air"
     if req.equipmentSizing:
         unit_item.equipment_sizing = req.equipmentSizing
+        if req.equipmentSizing.get("secondary_nitrox_cert"):
+            verifs = dict(unit_item.checkin_verifications or {})
+            verifs["secondary_nitrox_cert"] = req.equipmentSizing[
+                "secondary_nitrox_cert"
+            ]
+            unit_item.checkin_verifications = verifs
     unit_item.waivers_complete = True
     unit_item.signed_at = now_utc
 
@@ -1059,6 +1131,12 @@ def get_booking_voucher(
             unitTitle=item.unit.title if item.unit else "Diver Slot",
             selectedTankId=item.selected_tank_id or "12",
             selectedGasMixId=item.selected_gas_mix_id or "air",
+            gasMixStatus=getattr(item, "gas_mix_status", "APPROVED") or "APPROVED",
+            medicalStatus=item.medical_record.status
+            if item.medical_record
+            else "PENDING",
+            certificationAgency=item.certification_agency,
+            certificationLevel=item.certification_level,
             equipmentSizing=item.equipment_sizing,
         )
         for item in booking.unit_items

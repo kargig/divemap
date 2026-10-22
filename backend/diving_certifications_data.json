@@ -31,7 +31,7 @@
         "name": "Advanced Open Water Diver (AOWD)",
         "category": "Recreational Track",
         "max_depth": "30m (100ft)",
-        "gases": "Air/Nitrox",
+        "gases": "Air",
         "tanks": "Single",
         "prerequisites": null
       },
@@ -39,7 +39,7 @@
         "name": "Rescue Diver",
         "category": "Recreational Track",
         "max_depth": "30m (100ft)",
-        "gases": "Air/Nitrox",
+        "gases": "Air",
         "tanks": "Single",
         "prerequisites": null
       },
@@ -138,7 +138,7 @@
         "name": "Tec Trimix Diver",
         "category": "Technical Track (Tecrec)",
         "max_depth": "Beyond 65m (limit set by training, often 90m+)",
-        "gases": null,
+        "gases": "Hypoxic Trimix / multiple stages / O2",
         "tanks": "Double + 3+ stages",
         "prerequisites": null
       },
@@ -146,7 +146,7 @@
         "name": "Enriched Air Diver (Nitrox)",
         "category": "Specialties",
         "max_depth": null,
-        "gases": null,
+        "gases": "Nitrox up to 40% O2",
         "tanks": "Single",
         "prerequisites": null
       },
@@ -240,7 +240,7 @@
         "name": "Advanced Adventurer",
         "category": "Recreational Track",
         "max_depth": "30m (Intro to 5 specialties)",
-        "gases": "Air/Nitrox",
+        "gases": "Air",
         "tanks": "Single",
         "prerequisites": null
       },
@@ -248,7 +248,7 @@
         "name": "Diver Stress & Rescue",
         "category": "Recreational Track",
         "max_depth": null,
-        "gases": null,
+        "gases": "Air",
         "tanks": "Single",
         "prerequisites": null
       },
@@ -364,7 +364,7 @@
         "name": "Enriched Air Nitrox",
         "category": "Specialties",
         "max_depth": null,
-        "gases": "Up to 40% O2",
+        "gases": "Nitrox up to 40% O2",
         "tanks": "Single",
         "prerequisites": null
       },
@@ -643,7 +643,7 @@
         "name": "Intro to Tech",
         "category": "General",
         "max_depth": "23m",
-        "gases": null,
+        "gases": "Air / Nitrox up to 40%",
         "tanks": "Double/Sidemount",
         "prerequisites": null
       },
@@ -660,7 +660,7 @@
         "name": "Decompression Procedures Diver",
         "category": "General",
         "max_depth": "45m",
-        "gases": null,
+        "gases": "Air / Nitrox / O2 for deco",
         "tanks": "Double + Stage",
         "deco_time_limit": "Unlimited (gas limited)",
         "prerequisites": null
@@ -702,7 +702,7 @@
         "name": "CCR Air Diluent / Decompression / Mixed Gas / Hypoxic",
         "category": "General",
         "max_depth": "40m-100m",
-        "gases": null,
+        "gases": "Air / Nitrox / Trimix / O2 (CCR)",
         "tanks": "CCR + Bailouts",
         "prerequisites": null
       },
@@ -748,7 +748,7 @@
         "name": "Advanced Adventure Diver",
         "category": "General",
         "max_depth": "30m (5 specialties intro)",
-        "gases": "Air/Nitrox",
+        "gases": "Air",
         "tanks": "Single",
         "prerequisites": null
       },
@@ -780,7 +780,7 @@
         "name": "Computer Nitrox",
         "category": "Specialties",
         "max_depth": null,
-        "gases": "Nitrox",
+        "gases": "Nitrox up to 40% O2",
         "tanks": "Single",
         "prerequisites": null
       },
@@ -788,7 +788,7 @@
         "name": "Deep Diver",
         "category": "Specialties",
         "max_depth": "40m",
-        "gases": "Air/Nitrox",
+        "gases": "Air",
         "tanks": "Single",
         "prerequisites": null
       },
@@ -866,7 +866,7 @@
         "name": "Advanced Scuba Diver",
         "category": "General",
         "max_depth": "40m",
-        "gases": "Air/Nitrox",
+        "gases": "Air",
         "tanks": "Single",
         "prerequisites": null
       },
@@ -1144,7 +1144,7 @@
   },
   {
     "acronym": "CMAS",
-    "name": "Confédération Mondiale des Activités Subaquatiques",
+    "name": "Conf\u00e9d\u00e9ration Mondiale des Activit\u00e9s Subaquatiques",
     "certifications": [
       {
         "name": "One Star Diver (*)",
@@ -1158,7 +1158,7 @@
         "name": "Two Star Diver (**)",
         "category": "General",
         "max_depth": "40m",
-        "gases": "Air/Nitrox",
+        "gases": "Air",
         "tanks": "Single",
         "prerequisites": null
       },
@@ -1166,7 +1166,7 @@
         "name": "Three Star Diver (***)",
         "category": "General",
         "max_depth": "56m (Rec limit)",
-        "gases": "Air/Nitrox",
+        "gases": "Air",
         "tanks": "Double recommended",
         "prerequisites": null
       },
@@ -1244,7 +1244,7 @@
         "name": "Advanced Open Water",
         "category": "General",
         "max_depth": "30m",
-        "gases": "Air/Nitrox",
+        "gases": "Air",
         "tanks": "Single",
         "prerequisites": null
       },
@@ -1269,7 +1269,7 @@
         "name": "Advanced Nitrox",
         "category": "General",
         "max_depth": "42m",
-        "gases": null,
+        "gases": "Nitrox up to 50% O2",
         "tanks": "Single + Stage or Double",
         "deco_time_limit": "15 minutes",
         "prerequisites": null
@@ -1359,7 +1359,7 @@
         "name": "Advanced Open Water Diver (L2)",
         "category": "Recreational Track",
         "max_depth": "30m",
-        "gases": "Air/SafeAir (if qualified)",
+        "gases": "Air",
         "tanks": "Single",
         "deco_time_limit": "No decompression",
         "prerequisites": "OWD"
@@ -1368,7 +1368,7 @@
         "name": "Rescue Diver (L2)",
         "category": "Recreational Track",
         "max_depth": "30m",
-        "gases": "Air/SafeAir",
+        "gases": "Air",
         "tanks": "Single",
         "deco_time_limit": "No decompression",
         "prerequisites": "AOWD + CPR"
@@ -1377,7 +1377,7 @@
         "name": "Limited SafeAir User (LSU) / SafeAir Diver",
         "category": "SafeAir (Nitrox)",
         "max_depth": "40m (training dependent)",
-        "gases": "SafeAir 22-40%",
+        "gases": "SafeAir (Nitrox) 22-40%",
         "tanks": "Single",
         "deco_time_limit": "No decompression",
         "prerequisites": "OWD"

@@ -1,7 +1,7 @@
 import { Coins, Check, Loader2, Sparkles, ChevronLeft, ShieldAlert } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 
 import api from '../api';
 import SEO from '../components/SEO';
@@ -27,9 +27,19 @@ const DEFAULT_PRICING = {
 
 const CenterRentalPricingPage = () => {
   const params = useParams();
+  const [searchParams] = useSearchParams();
   const centerId = params.id || params.centerId;
   const slug = params.slug;
+  const fromTrip = searchParams.get('fromTrip');
   const navigate = useNavigate();
+
+  const handleBack = () => {
+    if (fromTrip) {
+      navigate(`/manage/centers/${centerId}/trips/${fromTrip}`);
+    } else {
+      navigate(`/diving-centers/${centerId}${slug ? `/${slug}` : ''}?tab=manage`);
+    }
+  };
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -38,6 +48,8 @@ const CenterRentalPricingPage = () => {
 
   const [packagePrice, setPackagePrice] = useState('30.00');
   const [currency, setCurrency] = useState('EUR');
+  const [defaultValve, setDefaultValve] = useState('DIN');
+  const [dailyInsurancePrice, setDailyInsurancePrice] = useState('0.00');
   const [items, setItems] = useState(DEFAULT_PRICING.items);
 
   useEffect(() => {
@@ -58,6 +70,8 @@ const CenterRentalPricingPage = () => {
         const data = pricingRes.data || DEFAULT_PRICING;
         setCurrency(data.currency || 'EUR');
         setPackagePrice((data.full_kit_package ?? 30).toString());
+        setDefaultValve(data.default_valve_fitting || 'DIN');
+        setDailyInsurancePrice((data.daily_insurance_price ?? 0).toString());
         setItems(data.items || DEFAULT_PRICING.items);
       } catch (err) {
         console.error('Failed to load rental pricing:', err);
@@ -90,10 +104,15 @@ const CenterRentalPricingPage = () => {
         full_kit_package: parseFloat(packagePrice) || 0,
         pricing_mode: 'ITEMIZED_OR_PACKAGE',
         items: items,
+        default_valve_fitting: defaultValve,
+        daily_insurance_price: parseFloat(dailyInsurancePrice) || 0,
       };
 
       await api.put(`/api/v1/centers/${centerId}/booking-ops/rental-pricing`, payload);
       toast.success('Equipment rental pricing updated successfully!');
+      if (fromTrip) {
+        navigate(`/manage/centers/${centerId}/trips/${fromTrip}`);
+      }
     } catch (err) {
       console.error('Failed to save rental pricing:', err);
       toast.error(err.response?.data?.detail || 'Failed to update rental pricing.');
@@ -117,10 +136,10 @@ const CenterRentalPricingPage = () => {
             configure equipment rental rates.
           </p>
           <button
-            onClick={() => navigate(`/diving-centers/${centerId}${slug ? `/${slug}` : ''}`)}
+            onClick={handleBack}
             className='w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm'
           >
-            Back to Diving Center
+            {fromTrip ? 'Back to Trip Operations' : 'Back to Diving Center'}
           </button>
         </div>
       </div>
@@ -137,13 +156,12 @@ const CenterRentalPricingPage = () => {
       <div className='max-w-[95vw] xl:max-w-[1200px] mx-auto px-0 sm:px-4 lg:px-6'>
         {/* Navigation & Header */}
         <button
-          onClick={() =>
-            navigate(`/diving-centers/${centerId}${slug ? `/${slug}` : ''}?tab=manage`)
-          }
+          type='button'
+          onClick={handleBack}
           className='inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 mb-4'
         >
           <ChevronLeft size={18} className='mr-1' />
-          Back to Center Management
+          {fromTrip ? 'Back to Trip Operations' : 'Back to Center Management'}
         </button>
 
         <div className='bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden'>
@@ -157,10 +175,15 @@ const CenterRentalPricingPage = () => {
                   Equipment Rental Rates & Package Bundling
                 </h1>
                 <p className='text-xs text-gray-500'>
-                  Managing rental rates for{' '}
+                  Managing center-wide rental rates & defaults for{' '}
                   <span className='font-semibold text-gray-700 dark:text-gray-300'>
                     {centerName || `Center #${centerId}`}
                   </span>
+                  {fromTrip && (
+                    <span className='italic text-blue-600 dark:text-blue-400 ml-1.5'>
+                      (return to trip on save)
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
@@ -168,9 +191,7 @@ const CenterRentalPricingPage = () => {
             <div className='flex items-center gap-2'>
               <button
                 type='button'
-                onClick={() =>
-                  navigate(`/diving-centers/${centerId}${slug ? `/${slug}` : ''}?tab=manage`)
-                }
+                onClick={handleBack}
                 className='px-4 py-2 border border-gray-300 dark:border-gray-600 text-xs font-semibold text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all'
               >
                 Cancel
@@ -229,6 +250,56 @@ const CenterRentalPricingPage = () => {
                   <span className='text-xs text-gray-500 font-medium'>
                     per diver / day (Smart Cap applied if individual rentals exceed this)
                   </span>
+                </div>
+              </div>
+
+              {/* Center Default Valve & Daily Insurance */}
+              <div className='p-4 sm:p-5 bg-gray-50 dark:bg-gray-750 rounded-2xl border border-gray-200 dark:border-gray-700 space-y-4'>
+                <div>
+                  <h3 className='font-bold text-gray-900 dark:text-white text-sm'>
+                    Center Defaults & Daily Insurance
+                  </h3>
+                  <p className='text-xs text-gray-500'>
+                    Configure default cylinder rigging and optional daily dive insurance pricing.
+                  </p>
+                </div>
+
+                <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+                  <div className='bg-white dark:bg-gray-800 p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 space-y-1.5'>
+                    <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300'>
+                      Default Tank Valve Fitting
+                    </label>
+                    <select
+                      value={defaultValve}
+                      onChange={e => setDefaultValve(e.target.value)}
+                      className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-xs bg-white dark:bg-gray-800 font-medium'
+                    >
+                      <option value='DIN'>DIN (G 5/8" Threaded) — Europe Standard</option>
+                      <option value='YOKE'>Yoke (INT / A-clamp) — International</option>
+                    </select>
+                    <span className='text-[11px] text-gray-400 block'>
+                      Applied automatically when customers rent regulators & cylinders.
+                    </span>
+                  </div>
+
+                  <div className='bg-white dark:bg-gray-800 p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 space-y-1.5'>
+                    <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300'>
+                      Center Daily Insurance Cost (€)
+                    </label>
+                    <div className='flex items-center gap-2'>
+                      <span className='font-bold text-sm text-gray-700 dark:text-gray-300'>€</span>
+                      <input
+                        type='number'
+                        step='0.5'
+                        value={dailyInsurancePrice}
+                        onChange={e => setDailyInsurancePrice(e.target.value)}
+                        className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-xs font-mono font-bold bg-white dark:bg-gray-800'
+                      />
+                    </div>
+                    <span className='text-[11px] text-gray-400 block'>
+                      Per diver / day when choosing Center Daily Coverage (0.00 = complimentary).
+                    </span>
+                  </div>
                 </div>
               </div>
 

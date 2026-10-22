@@ -1,22 +1,25 @@
+from datetime import UTC, datetime, time, timedelta, timezone
+
 import pytest
-from datetime import datetime, time, timezone, timedelta
+from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
+
 from app.auth import create_access_token
 from app.models import (
-    User,
-    UserGearProfile,
+    DiverMedicalRecord,
     DivingCenter,
     DivingCenterBookingSettings,
-    OctoProduct,
-    OctoOption,
-    OctoUnit,
     OctoAvailabilitySlot,
     OctoBooking,
     OctoBookingUnitItem,
-    DiverMedicalRecord,
+    OctoOption,
+    OctoProduct,
+    OctoUnit,
+    User,
+    UserGearProfile,
 )
-from cryptography.fernet import Fernet
+
 
 @pytest.fixture(autouse=True)
 def setup_encryption_key(monkeypatch):
@@ -84,7 +87,7 @@ def booking_setup(db_session: Session, test_diving_center: DivingCenter, test_us
     db_session.flush()
     
     # Slot
-    start_dt = datetime.now(timezone.utc) + timedelta(days=3)
+    start_dt = datetime.now(UTC) + timedelta(days=3)
     end_dt = start_dt + timedelta(hours=4)
     slot = OctoAvailabilitySlot(
         id="slot-checkout-test",
@@ -106,7 +109,7 @@ def booking_setup(db_session: Session, test_diving_center: DivingCenter, test_us
         availability_id=slot.id,
         user_id=test_user.id,
         status="ON_HOLD",
-        utc_hold_expiration=datetime.now(timezone.utc) + timedelta(minutes=20),
+        utc_hold_expiration=datetime.now(UTC) + timedelta(minutes=20),
         total_amount=105.00,
         currency="EUR",
     )
@@ -149,6 +152,45 @@ def test_get_checkout_context(client: TestClient, booking_setup):
     assert data["prefill_gear"]["preferred_tank_id"] == "15"
     assert data["prefill_gear"]["height_cm"] == 185
     assert "dmsc_schema" in data
+
+
+def test_get_checkout_context_filters_inactive_certifications(client: TestClient, db_session, booking_setup):
+    from app.models import DivingOrganization, UserCertification
+    user = booking_setup["user"]
+    slot = booking_setup["slot"]
+    token = create_access_token({"sub": user.username})
+    headers = {"Authorization": f"Bearer {token}"}
+
+    org = db_session.query(DivingOrganization).first()
+    if not org:
+        org = DivingOrganization(name="PADI", acronym="PADI")
+        db_session.add(org)
+        db_session.flush()
+
+    active_cert = UserCertification(
+        user_id=user.id,
+        diving_organization_id=org.id,
+        certification_level="Advanced Open Water",
+        is_active=True,
+    )
+    inactive_cert = UserCertification(
+        user_id=user.id,
+        diving_organization_id=org.id,
+        certification_level="Expired Specialty",
+        is_active=False,
+    )
+    db_session.add_all([active_cert, inactive_cert])
+    db_session.commit()
+
+    res = client.get(f"/api/v1/bookings/checkout-context/{slot.id}", headers=headers)
+    assert res.status_code == 200
+    data = res.json()
+    assert "diver_capabilities" in data
+    user_certs = data.get("user_certifications", [])
+    levels = [c["level"] for c in user_certs]
+    assert "Advanced Open Water" in levels
+    assert "Expired Specialty" not in levels
+    assert "allows_nitrox" in user_certs[0]
 
 def test_submit_paperwork_clean_flow(client: TestClient, booking_setup):
     user = booking_setup["user"]

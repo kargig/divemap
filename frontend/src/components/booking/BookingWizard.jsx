@@ -24,7 +24,7 @@ import {
   ExternalLink,
   CheckCircle,
 } from 'lucide-react';
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 
@@ -89,15 +89,76 @@ const BookingWizard = () => {
   const [finType, setFinType] = useState('OPEN_HEEL');
   const [finSize, setFinSize] = useState('None');
   const [bootSize, setBootSize] = useState('None');
-  const [shoeSizeEu, setShoeSizeEu] = useState('43');
+  const [shoeSizeEu, setShoeSizeEu] = useState('42');
   const [rentalRegulator, setRentalRegulator] = useState(false);
   const [rentalMask, setRentalMask] = useState(false);
   const [hasOwnLeadWeights, setHasOwnLeadWeights] = useState(false);
   const [selectedProfileId, setSelectedProfileId] = useState('');
   const [rentalTorch, setRentalTorch] = useState(false);
   const [rentalComputer, setRentalComputer] = useState(false);
-  const [leadKg, setLeadKg] = useState('4.0');
+  const [leadKg, setLeadKg] = useState('5.0');
+  const [secondaryNitroxCert, setSecondaryNitroxCert] = useState('');
   const [weightSystem, setWeightSystem] = useState('INTEGRATED');
+  const [weightSystems, setWeightSystems] = useState(['INTEGRATED']);
+
+  const applyWeightSystem = useCallback(sys => {
+    if (!sys) return;
+    if (sys === 'BOTH') {
+      setWeightSystems(['INTEGRATED', 'BELT']);
+      setWeightSystem('BOTH');
+    } else if (Array.isArray(sys)) {
+      setWeightSystems(sys);
+      setWeightSystem(sys.length > 1 ? 'BOTH' : sys[0] || 'INTEGRATED');
+    } else {
+      setWeightSystems([sys]);
+      setWeightSystem(sys);
+    }
+  }, []);
+
+  const handleToggleWeightSystem = useCallback(system => {
+    setWeightSystems(prev => {
+      let updated;
+      if (system === 'INTEGRATED') {
+        if (prev.includes('INTEGRATED')) {
+          updated = prev.filter(s => s !== 'INTEGRATED');
+          if (updated.length === 0) updated = ['BELT'];
+        } else {
+          updated = [...prev, 'INTEGRATED'];
+        }
+      } else if (system === 'BELT') {
+        if (prev.includes('BELT')) {
+          updated = prev.filter(s => s !== 'BELT');
+          if (updated.length === 0) updated = ['INTEGRATED'];
+        } else {
+          updated = [...prev.filter(s => s !== 'OWN_BELT'), 'BELT'];
+        }
+      } else if (system === 'OWN_BELT') {
+        if (prev.includes('OWN_BELT')) {
+          updated = prev.filter(s => s !== 'OWN_BELT');
+          if (updated.length === 0) updated = ['INTEGRATED'];
+        } else {
+          updated = [...prev.filter(s => s !== 'BELT'), 'OWN_BELT'];
+        }
+      } else {
+        updated = prev;
+      }
+
+      if (
+        updated.includes('INTEGRATED') &&
+        (updated.includes('BELT') || updated.includes('OWN_BELT'))
+      ) {
+        setWeightSystem('BOTH');
+      } else if (updated.includes('OWN_BELT')) {
+        setWeightSystem('OWN_BELT');
+      } else if (updated.includes('BELT')) {
+        setWeightSystem('BELT');
+      } else {
+        setWeightSystem('INTEGRATED');
+      }
+
+      return updated;
+    });
+  }, []);
 
   const activeProfile = useMemo(() => {
     return savedProfiles.find(p => p.id === parseInt(selectedProfileId, 10)) || null;
@@ -300,10 +361,13 @@ const BookingWizard = () => {
       unit?.title?.toLowerCase().includes('rental');
 
     if (isRental) {
-      setWetsuitSize(prev => (prev === 'None' ? 'L' : prev));
+      setWetsuitSize(prev => (prev === 'None' ? 'M' : prev));
+      setWetsuitThickness(prev => prev || '5mm');
       setBcdSize(prev => (prev === 'None' ? 'M' : prev));
-      setFinSize(prev => (prev === 'None' ? 'M' : prev));
-      setBootSize(prev => (prev === 'None' ? '43' : prev));
+      setFinSize(prev => (prev === 'None' ? '42' : prev));
+      setBootSize(prev => (prev === 'None' ? '42' : prev));
+      setShoeSizeEu('42');
+      setLeadKg(prev => (!prev || prev === '0' || prev === '0.0' ? '5.0' : prev));
       setRentalMask(true);
       setRentalRegulator(true);
       setRentalComputer(true);
@@ -376,7 +440,7 @@ const BookingWizard = () => {
           if (primaryProf.preferred_gas_mix_id)
             setSelectedGasMixId(primaryProf.preferred_gas_mix_id);
           if (primaryProf.regulator_fitting) setRegulatorFitting(primaryProf.regulator_fitting);
-          if (primaryProf.weight_system) setWeightSystem(primaryProf.weight_system);
+          if (primaryProf.weight_system) applyWeightSystem(primaryProf.weight_system);
           if (primaryProf.wetsuit_gender) setWetsuitGender(primaryProf.wetsuit_gender);
           if (primaryProf.wetsuit_thickness) setWetsuitThickness(primaryProf.wetsuit_thickness);
           if (primaryProf.bcd_gender) setBcdGender(primaryProf.bcd_gender);
@@ -431,7 +495,7 @@ const BookingWizard = () => {
           setSelectedTankId('12');
           setSelectedGasMixId('air');
           setRegulatorFitting('DIN');
-          if (pg.weight_system) setWeightSystem(pg.weight_system);
+          if (pg.weight_system) applyWeightSystem(pg.weight_system);
           if (pg.wetsuit_gender) setWetsuitGender(pg.wetsuit_gender);
           if (pg.wetsuit_thickness) setWetsuitThickness(pg.wetsuit_thickness);
           if (pg.bcd_gender) setBcdGender(pg.bcd_gender);
@@ -495,7 +559,7 @@ const BookingWizard = () => {
           if (cookiePrefs.selectedTankId) setSelectedTankId(cookiePrefs.selectedTankId);
           if (cookiePrefs.selectedGasMixId) setSelectedGasMixId(cookiePrefs.selectedGasMixId);
           if (cookiePrefs.regulatorFitting) setRegulatorFitting(cookiePrefs.regulatorFitting);
-          if (cookiePrefs.weightSystem) setWeightSystem(cookiePrefs.weightSystem);
+          if (cookiePrefs.weightSystem) applyWeightSystem(cookiePrefs.weightSystem);
           if (cookiePrefs.leadKg) setLeadKg(cookiePrefs.leadKg.toString());
           if (cookiePrefs.wetsuitGender) setWetsuitGender(cookiePrefs.wetsuitGender);
           if (cookiePrefs.wetsuitSize) setWetsuitSize(cookiePrefs.wetsuitSize);
@@ -639,7 +703,7 @@ const BookingWizard = () => {
     if (prof.preferred_tank_id) setSelectedTankId(prof.preferred_tank_id);
     if (prof.preferred_gas_mix_id) setSelectedGasMixId(prof.preferred_gas_mix_id);
     if (prof.regulator_fitting) setRegulatorFitting(prof.regulator_fitting);
-    if (prof.weight_system) setWeightSystem(prof.weight_system);
+    if (prof.weight_system) applyWeightSystem(prof.weight_system);
     if (prof.wetsuit_gender) setWetsuitGender(prof.wetsuit_gender);
     if (prof.wetsuit_thickness) setWetsuitThickness(prof.wetsuit_thickness);
     if (prof.bcd_gender) setBcdGender(prof.bcd_gender);
@@ -732,6 +796,15 @@ const BookingWizard = () => {
       rentalItems.push({ label: 'Rental Dive Torch', price: items.dive_torch });
     }
 
+    const dailyInsFee =
+      hasInsurance === 'CENTER'
+        ? Number(contextData?.center_settings?.daily_insurance_price || 0)
+        : 0;
+
+    if (dailyInsFee > 0) {
+      rentalItems.push({ label: 'Center Daily Dive Insurance', price: dailyInsFee });
+    }
+
     // 2. Core equipment items
     if (isFullRentalUnit) {
       if (rentalComputer && items.dive_computer) {
@@ -797,25 +870,74 @@ const BookingWizard = () => {
     bootSize,
     rentalComputer,
     rentalTorch,
+    hasInsurance,
   ]);
 
-  // Nitrox eligibility
-  const isNitroxEligible = (() => {
-    if (!certLevel) return false;
-    const l = certLevel.toLowerCase();
-    return (
-      l.includes('nitrox') ||
-      l.includes('ean') ||
-      l.includes('enriched air') ||
-      l.includes('advanced') ||
-      l.includes('rescue') ||
-      l.includes('master') ||
-      l.includes('divemaster') ||
-      l.includes('instructor') ||
-      l.includes('tec') ||
-      l.includes('trimix')
-    );
-  })();
+  // Specification-driven Nitrox eligibility
+  const isNitroxEligible = useMemo(() => {
+    // 1. Registered profile portfolio check (from calculate_certification_stats)
+    if (contextData?.diver_capabilities?.allows_nitrox) {
+      return true;
+    }
+
+    // 2. Check if user has an active Nitrox card in their profile certifications
+    if (
+      Array.isArray(contextData?.user_certifications) &&
+      contextData.user_certifications.some(c => c.allows_nitrox)
+    ) {
+      return true;
+    }
+
+    // 3. User entered a secondary Nitrox certification number
+    if (secondaryNitroxCert.trim()) {
+      return true;
+    }
+
+    // 4. Specification check from availableLevels database specifications
+    if (certLevel) {
+      const activeLevelObj = availableLevels.find(
+        lvl => lvl.name?.toLowerCase() === certLevel.toLowerCase()
+      );
+      if (activeLevelObj && activeLevelObj.gases) {
+        const gasesStr = activeLevelObj.gases.toLowerCase();
+        if (
+          gasesStr.includes('nitrox') ||
+          gasesStr.includes('safeair') ||
+          gasesStr.includes('o2') ||
+          gasesStr.includes('trimix') ||
+          gasesStr.includes('triox')
+        ) {
+          return true;
+        }
+      }
+
+      // 5. Fallback check for technical or dedicated nitrox ratings
+      const cl = certLevel.toLowerCase();
+      const techOrNitroxKeywords = [
+        'nitrox',
+        'ean',
+        'enriched air',
+        'safeair',
+        'extended range',
+        'xr',
+        'tec',
+        'technical',
+        'trimix',
+        'helitrox',
+        'triox',
+        'rebreather',
+        'ccr',
+        'decompression',
+        'fundamentals',
+        'fundies',
+      ];
+      if (techOrNitroxKeywords.some(kw => cl.includes(kw))) {
+        return true;
+      }
+    }
+
+    return false;
+  }, [contextData, availableLevels, certLevel, secondaryNitroxCert]);
 
   // Step Validation Handlers
   const validateStep1 = () => {
@@ -841,12 +963,6 @@ const BookingWizard = () => {
   };
 
   const validateStep2 = () => {
-    if (selectedGasMixId.toLowerCase() !== 'air' && !isNitroxEligible) {
-      toast.error(
-        'Enriched Air Nitrox requires an Enriched Air (Nitrox) or qualifying certification. Please select Air (21%) or update your certification.'
-      );
-      return false;
-    }
     return true;
   };
 
@@ -982,8 +1098,10 @@ const BookingWizard = () => {
               has_own_dive_computer: !rentalComputer,
               regulator_fitting: regulatorFitting,
               weight_system: weightSystem,
-              estimated_lead_kg: parseFloat(leadKg) || 4.0,
-              lead_kg: parseFloat(leadKg) || 4.0,
+              weight_systems: weightSystems,
+              secondary_nitrox_cert: secondaryNitroxCert.trim() || undefined,
+              estimated_lead_kg: parseFloat(leadKg) || 5.0,
+              lead_kg: parseFloat(leadKg) || 5.0,
               insurance_type: hasInsurance,
               insurance_provider:
                 hasInsurance === 'OWN'
@@ -1054,8 +1172,10 @@ const BookingWizard = () => {
           has_own_dive_computer: !rentalComputer,
           regulator_fitting: regulatorFitting,
           weight_system: weightSystem,
-          estimated_lead_kg: parseFloat(leadKg) || 4.0,
-          lead_kg: parseFloat(leadKg) || 4.0,
+          weight_systems: weightSystems,
+          secondary_nitrox_cert: secondaryNitroxCert.trim() || undefined,
+          estimated_lead_kg: parseFloat(leadKg) || 5.0,
+          lead_kg: parseFloat(leadKg) || 5.0,
           insurance_type: hasInsurance,
           insurance_provider:
             hasInsurance === 'OWN'
@@ -1811,7 +1931,7 @@ const BookingWizard = () => {
                       Step 2: Equipment Needed for Rent & Sizing
                     </h2>
                     <p className='text-xs text-gray-500 mt-0.5'>
-                      Specify cylinders, gas mixes, ballast requirements, and anatomical rental
+                      Specify cylinders, gas mixes, lead weight requirements, and anatomical rental
                       sizing.
                     </p>
                   </div>
@@ -1824,15 +1944,10 @@ const BookingWizard = () => {
                     <div>
                       <div className='flex items-center gap-2 text-xs font-bold text-blue-900 dark:text-blue-200'>
                         <Layers size={16} className='text-blue-600 shrink-0' />
-                        <span>Active Gear Configuration:</span>
-                        <span className='px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 text-xs font-semibold'>
-                          {activeProfile?.name || 'Custom Setup'}
-                          {activeProfile?.is_default ? ' (Primary)' : ''}
-                        </span>
+                        <span>Apply Saved Gear Profile:</span>
                       </div>
                       <p className='text-[11px] text-blue-700 dark:text-blue-300 mt-0.5'>
-                        Equipment you own is automatically excluded from rental fees and marked as
-                        brought by you below.
+                        Equipment you own is automatically marked as brought by you below.
                       </p>
                     </div>
                     <div className='flex items-center gap-2 shrink-0'>
@@ -1872,13 +1987,13 @@ const BookingWizard = () => {
                   </div>
                 )}
 
-                {/* Cylinder, Gas Mix & Ballast */}
+                {/* Cylinder & Breathing Gas Configuration */}
                 <div>
                   <span className='text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2'>
-                    Cylinder & Ballast Loadout
+                    Cylinder & Breathing Gas Configuration
                   </span>
 
-                  <div className='grid grid-cols-2 sm:grid-cols-5 gap-3'>
+                  <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
                     <div>
                       <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
                         Cylinder *
@@ -1905,85 +2020,55 @@ const BookingWizard = () => {
                         className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white font-medium'
                       >
                         <option value='air'>Air (21% O2) — Standard</option>
-                        <option value='ean32'>EAN32 (32% O2 Nitrox) — Requires Cert</option>
+                        <option value='ean32'>EAN32 (32% O2 Nitrox) — Requires Cert Check</option>
                       </select>
                     </div>
-
-                    <div>
-                      <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
-                        Regulator Valve *
-                      </label>
-                      <select
-                        value={regulatorFitting}
-                        onChange={e => setRegulatorFitting(e.target.value)}
-                        className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white font-medium'
-                      >
-                        <option value='DIN'>DIN (G 5/8" Threaded) — Standard</option>
-                        <option value='YOKE'>Yoke (INT / A-clamp)</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
-                        Lead Ballast (kg)
-                      </label>
-                      <input
-                        type='number'
-                        step='0.5'
-                        disabled={hasOwnLeadWeights}
-                        value={hasOwnLeadWeights ? '0.0' : leadKg}
-                        onChange={e => setLeadKg(e.target.value)}
-                        className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs font-mono font-bold disabled:bg-gray-100 disabled:text-gray-400'
-                      />
-                    </div>
-
-                    <div>
-                      <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
-                        Weight System *
-                      </label>
-                      <select
-                        value={weightSystem}
-                        onChange={e => setWeightSystem(e.target.value)}
-                        className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white font-medium'
-                      >
-                        <option value='INTEGRATED'>Integrated BCD Pockets</option>
-                        <option value='BELT'>Traditional Weight Belt</option>
-                        <option value='OWN_BELT'>Bringing Own Weight Belt</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className='mt-2.5 flex items-center justify-between'>
-                    <label className='flex items-center gap-2 cursor-pointer text-xs'>
-                      <input
-                        type='checkbox'
-                        checked={hasOwnLeadWeights}
-                        onChange={e => setHasOwnLeadWeights(e.target.checked)}
-                        className='rounded text-blue-600'
-                      />
-                      <span className='font-semibold text-gray-800 dark:text-gray-200'>
-                        Bringing Own Lead Weights (Local Diver — 0 kg needed from dive center)
-                      </span>
-                    </label>
-                    <span className='text-[11px] text-gray-400 italic'>
-                      {!hasOwnLeadWeights
-                        ? `Center will prepare ${leadKg || '4.0'} kg of lead blocks for the boat.`
-                        : 'Center will not pack lead blocks for you.'}
-                    </span>
                   </div>
                 </div>
 
-                {/* Nitrox Eligibility Warning */}
-                {selectedGasMixId.toLowerCase() !== 'air' && !isNitroxEligible && (
-                  <div className='p-2.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-800 rounded-lg text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2'>
-                    <AlertTriangle size={15} className='text-amber-600 shrink-0 mt-0.5' />
-                    <div>
-                      <strong>Nitrox Certification Required:</strong> Breathing Enriched Air (EANx)
-                      requires an <em>Enriched Air Diver (Nitrox)</em> specialty or qualifying
-                      certification.
+                {/* Nitrox Eligibility Info */}
+                {selectedGasMixId.toLowerCase() !== 'air' &&
+                  (isNitroxEligible ? (
+                    <div className='p-2.5 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-300 dark:border-emerald-800 rounded-lg text-xs text-emerald-900 dark:text-emerald-200 flex items-start gap-2'>
+                      <Check size={15} className='text-emerald-600 shrink-0 mt-0.5' />
+                      <div>
+                        <strong>Verified Nitrox Diver:</strong> Your qualification permits Enriched
+                        Air (EAN32).
+                      </div>
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div className='p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-800 rounded-lg text-xs text-amber-900 dark:text-amber-200 space-y-2'>
+                      <div className='flex items-start gap-2'>
+                        <AlertTriangle size={15} className='text-amber-600 shrink-0 mt-0.5' />
+                        <div>
+                          <strong>EAN32 Requested (Pending Center Verification):</strong> Your
+                          selected primary qualification ({certLevel || 'Unspecified'}) is an
+                          Air-only certification.
+                          <span className='block mt-0.5 text-[11px] text-amber-800 dark:text-amber-300'>
+                            Enriched Air requires a separate Enriched Air Diver specialty or
+                            qualifying technical certification.
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className='pl-6 space-y-1'>
+                        <label className='block text-[11px] font-semibold text-amber-950 dark:text-amber-100'>
+                          Hold a separate Nitrox / Enriched Air Certification? (Optional)
+                        </label>
+                        <input
+                          type='text'
+                          value={secondaryNitroxCert}
+                          onChange={e => setSecondaryNitroxCert(e.target.value)}
+                          placeholder='e.g. PADI Enriched Air Diver # 12345678'
+                          className='w-full px-2.5 py-1.5 border border-amber-300 dark:border-amber-700 rounded-lg text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder:text-gray-400 font-medium'
+                        />
+                        <span className='text-[10px] text-amber-700 dark:text-amber-300/80 block'>
+                          You can record your separate Nitrox card details above, or present your
+                          physical/digital card to the dive center manager at check-in.
+                        </span>
+                      </div>
+                    </div>
+                  ))}
 
                 {/* Equipment Configuration Cards (Owned vs Rental) */}
                 <div className='pt-3 border-t border-gray-100 dark:border-gray-700 space-y-3'>
@@ -2012,7 +2097,7 @@ const BookingWizard = () => {
                         </span>
                         {wetsuitSize === 'None' ? (
                           <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'>
-                            ✓ Bringing Own ({wetsuitThickness})
+                            ✓ Bringing Own
                           </span>
                         ) : (
                           <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300'>
@@ -2102,7 +2187,7 @@ const BookingWizard = () => {
                         </span>
                         {bcdSize === 'None' ? (
                           <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'>
-                            ✓ Bringing Own BCD
+                            ✓ Bringing Own
                           </span>
                         ) : (
                           <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300'>
@@ -2184,7 +2269,7 @@ const BookingWizard = () => {
                         </span>
                         {!rentalRegulator ? (
                           <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'>
-                            ✓ Bringing Own ({regulatorFitting})
+                            ✓ Bringing Own
                           </span>
                         ) : (
                           <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300'>
@@ -2194,40 +2279,58 @@ const BookingWizard = () => {
                       </div>
 
                       {!rentalRegulator ? (
-                        <div className='flex items-center justify-between pt-1'>
-                          <span className='text-[11px] text-gray-500'>
-                            Valve matched to {regulatorFitting}.
-                          </span>
-                          <button
-                            type='button'
-                            onClick={() => setRentalRegulator(true)}
-                            className='text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 hover:underline'
-                          >
-                            + Need to rent regulator
-                          </button>
-                        </div>
-                      ) : (
                         <div className='space-y-2 pt-1'>
                           <div>
                             <label className='block text-[11px] font-medium text-gray-600 dark:text-gray-400 mb-0.5'>
-                              Fitting
+                              Your Regulator First Stage Valve *
                             </label>
                             <select
                               value={regulatorFitting}
                               onChange={e => setRegulatorFitting(e.target.value)}
-                              className='w-full px-2 py-1 border border-gray-300 rounded-md text-xs bg-white'
+                              className='w-full px-2 py-1 border border-gray-300 rounded-md text-xs bg-white font-medium'
                             >
-                              <option value='DIN'>DIN (G 5/8&quot; Threaded)</option>
+                              <option value='DIN'>DIN (G 5/8&quot; Threaded) — Standard</option>
                               <option value='YOKE'>Yoke (INT / A-clamp)</option>
                             </select>
+                            <span className='text-[10px] text-gray-400 mt-0.5 block'>
+                              Center deck crew will configure your cylinder with matching valve
+                              connection.
+                            </span>
                           </div>
+                          <div className='flex items-center justify-between pt-1'>
+                            <span className='text-[10px] text-emerald-600 font-medium'>
+                              ✓ Cylinder matched to {regulatorFitting}
+                            </span>
+                            <button
+                              type='button'
+                              onClick={() => {
+                                setRentalRegulator(true);
+                                setRegulatorFitting(
+                                  contextData?.center_settings?.default_valve_fitting || 'DIN'
+                                );
+                              }}
+                              className='text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 hover:underline'
+                            >
+                              + Rent center regulator
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className='space-y-2 pt-1'>
+                          <p className='text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed'>
+                            Center provides rental regulator with matched{' '}
+                            <strong>
+                              {contextData?.center_settings?.default_valve_fitting || 'DIN'}
+                            </strong>{' '}
+                            valve.
+                          </p>
                           <div className='flex items-center justify-end pt-1'>
                             <button
                               type='button'
                               onClick={() => setRentalRegulator(false)}
                               className='text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:underline'
                             >
-                              I&apos;ll bring my own
+                              I&apos;ll bring my own regulator
                             </button>
                           </div>
                         </div>
@@ -2248,7 +2351,7 @@ const BookingWizard = () => {
                         </span>
                         {finSize === 'None' && bootSize === 'None' ? (
                           <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'>
-                            ✓ Bringing Own Fins
+                            ✓ Bringing Own
                           </span>
                         ) : (
                           <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300'>
@@ -2345,7 +2448,7 @@ const BookingWizard = () => {
                         </span>
                         {!rentalMask ? (
                           <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'>
-                            ✓ Bringing Own Mask
+                            ✓ Bringing Own
                           </span>
                         ) : (
                           <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300'>
@@ -2383,7 +2486,7 @@ const BookingWizard = () => {
                       )}
                     </div>
 
-                    {/* 6. Lead Ballast Weights Card */}
+                    {/* 6. Lead Weights & System Card */}
                     <div
                       className={`p-3.5 rounded-xl border transition-all ${
                         hasOwnLeadWeights
@@ -2393,22 +2496,24 @@ const BookingWizard = () => {
                     >
                       <div className='flex items-center justify-between mb-2'>
                         <span className='font-bold text-xs text-gray-900 dark:text-white'>
-                          Lead Ballast Weights
+                          Lead Weights & System
                         </span>
                         {hasOwnLeadWeights ? (
                           <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'>
-                            ✓ Bringing Own Lead (0 kg)
+                            ✓ Bringing Own
                           </span>
                         ) : (
                           <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300'>
-                            Center Supplies {leadKg || '4.0'} kg
+                            Rent from Center
                           </span>
                         )}
                       </div>
 
                       {hasOwnLeadWeights ? (
                         <div className='flex items-center justify-between pt-1'>
-                          <span className='text-[11px] text-gray-500'>0 kg packed by center.</span>
+                          <span className='text-[11px] text-gray-500'>
+                            0 kg lead packed by center.
+                          </span>
                           <button
                             type='button'
                             onClick={() => setHasOwnLeadWeights(false)}
@@ -2419,33 +2524,64 @@ const BookingWizard = () => {
                         </div>
                       ) : (
                         <div className='space-y-2 pt-1'>
-                          <div className='grid grid-cols-2 gap-2'>
-                            <div>
-                              <label className='block text-[11px] font-medium text-gray-600 dark:text-gray-400 mb-0.5'>
-                                Target (kg)
+                          <div>
+                            <label className='block text-[11px] font-medium text-gray-600 dark:text-gray-400 mb-0.5'>
+                              Total Lead Weights (kg)
+                            </label>
+                            <input
+                              type='number'
+                              step='0.5'
+                              value={leadKg}
+                              onChange={e => setLeadKg(e.target.value)}
+                              className='w-full px-2 py-1 border border-gray-300 rounded-md text-xs font-mono font-bold'
+                            />
+                          </div>
+                          <div>
+                            <label className='block text-[11px] font-medium text-gray-600 dark:text-gray-400 mb-1'>
+                              Weight System (Select one or both)
+                            </label>
+                            <div className='space-y-1 bg-gray-50 dark:bg-gray-750 p-2 rounded-lg border border-gray-200 dark:border-gray-700 text-xs'>
+                              <label className='flex items-center gap-2 cursor-pointer'>
+                                <input
+                                  type='checkbox'
+                                  checked={weightSystems.includes('INTEGRATED')}
+                                  onChange={() => handleToggleWeightSystem('INTEGRATED')}
+                                  className='rounded text-blue-600'
+                                />
+                                <span className='text-gray-800 dark:text-gray-200 text-xs'>
+                                  Integrated BCD Pockets
+                                </span>
                               </label>
-                              <input
-                                type='number'
-                                step='0.5'
-                                value={leadKg}
-                                onChange={e => setLeadKg(e.target.value)}
-                                className='w-full px-2 py-1 border border-gray-300 rounded-md text-xs font-mono font-bold'
-                              />
-                            </div>
-                            <div>
-                              <label className='block text-[11px] font-medium text-gray-600 dark:text-gray-400 mb-0.5'>
-                                System
+                              <label className='flex items-center gap-2 cursor-pointer'>
+                                <input
+                                  type='checkbox'
+                                  checked={weightSystems.includes('BELT')}
+                                  onChange={() => handleToggleWeightSystem('BELT')}
+                                  className='rounded text-blue-600'
+                                />
+                                <span className='text-gray-800 dark:text-gray-200 text-xs'>
+                                  Weight Belt (Center Rental)
+                                </span>
                               </label>
-                              <select
-                                value={weightSystem}
-                                onChange={e => setWeightSystem(e.target.value)}
-                                className='w-full px-2 py-1 border border-gray-300 rounded-md text-xs bg-white'
-                              >
-                                <option value='INTEGRATED'>BCD Pockets</option>
-                                <option value='BELT'>Weight Belt</option>
-                                <option value='OWN_BELT'>Own Belt</option>
-                              </select>
+                              <label className='flex items-center gap-2 cursor-pointer'>
+                                <input
+                                  type='checkbox'
+                                  checked={weightSystems.includes('OWN_BELT')}
+                                  onChange={() => handleToggleWeightSystem('OWN_BELT')}
+                                  className='rounded text-blue-600'
+                                />
+                                <span className='text-gray-800 dark:text-gray-200 text-xs'>
+                                  Bringing Own Weight Belt
+                                </span>
+                              </label>
                             </div>
+                            {weightSystems.includes('INTEGRATED') &&
+                              (weightSystems.includes('BELT') ||
+                                weightSystems.includes('OWN_BELT')) && (
+                                <span className='text-[10px] text-blue-600 dark:text-blue-400 block pt-0.5 italic'>
+                                  ✓ Weights split between BCD pockets and weight belt
+                                </span>
+                              )}
                           </div>
                           <div className='flex items-center justify-end pt-1'>
                             <button
@@ -2538,7 +2674,7 @@ const BookingWizard = () => {
                         {!rentalComputer ? <li>Own Personal Dive Computer</li> : null}
                         {!rentalTorch ? <li>Own Primary Dive Torch</li> : null}
                         {hasOwnLeadWeights ? (
-                          <li>Own Lead Ballast (0 kg needed from center)</li>
+                          <li>Own Lead Weights (0 kg needed from center)</li>
                         ) : null}
                       </ul>
                     </div>
@@ -2566,42 +2702,20 @@ const BookingWizard = () => {
                         {rentalTorch ? <li>Rental Primary Dive Torch</li> : null}
                         {!hasOwnLeadWeights ? (
                           <li>
-                            Center Lead Ballast: {leadKg || '4.0'} kg (
-                            {weightSystem === 'BELT'
-                              ? 'Traditional Weight Belt'
-                              : weightSystem === 'OWN_BELT'
+                            Center Lead Weights: {leadKg || '4.0'} kg (
+                            {weightSystems.includes('INTEGRATED') &&
+                            (weightSystems.includes('BELT') || weightSystems.includes('OWN_BELT'))
+                              ? 'Split BCD Pockets & Belt'
+                              : weightSystems.includes('OWN_BELT')
                                 ? 'Loaded into Diver Belt'
-                                : 'BCD Pockets'}
+                                : weightSystems.includes('BELT')
+                                  ? 'Traditional Weight Belt'
+                                  : 'BCD Pockets'}
                             )
                           </li>
                         ) : null}
                       </ul>
                     </div>
-                  </div>
-
-                  {/* Cylinder Valve Setting Box */}
-                  <div className='p-3 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs'>
-                    <div className='flex items-center gap-2'>
-                      <span className='font-bold text-gray-900 dark:text-white'>
-                        Cylinder Valve for Boat:
-                      </span>
-                      <span
-                        className={`px-2 py-0.5 rounded font-mono font-bold text-xs ${
-                          regulatorFitting === 'DIN'
-                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200'
-                            : 'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200'
-                        }`}
-                      >
-                        {regulatorFitting === 'DIN'
-                          ? 'DIN (G 5/8" Threaded 232/300 Bar)'
-                          : 'YOKE (INT / A-clamp)'}
-                      </span>
-                    </div>
-                    <span className='text-[11px] text-gray-500 italic'>
-                      {!rentalRegulator
-                        ? `Cylinder valve locked to your personal regulator fitting (${regulatorFitting}).`
-                        : `Center staff will supply a matching ${regulatorFitting} regulator & cylinder.`}
-                    </span>
                   </div>
                 </div>
 
@@ -2737,9 +2851,24 @@ const BookingWizard = () => {
                         className='h-4 w-4 text-blue-600 mt-0.5'
                       />
                       <div>
-                        <span className='text-xs font-bold text-gray-900 dark:text-white block'>
-                          I need daily insurance from the dive center
-                        </span>
+                        <div className='flex items-center gap-2'>
+                          <span className='text-xs font-bold text-gray-900 dark:text-white block'>
+                            I need daily insurance from the dive center
+                          </span>
+                          {Number(contextData?.center_settings?.daily_insurance_price || 0) > 0 ? (
+                            <span className='px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300'>
+                              +€
+                              {Number(contextData?.center_settings?.daily_insurance_price).toFixed(
+                                2
+                              )}
+                              /day
+                            </span>
+                          ) : (
+                            <span className='px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'>
+                              Included
+                            </span>
+                          )}
+                        </div>
                         <span className='text-[11px] text-gray-500 dark:text-gray-400 block mt-0.5'>
                           Short-term accident & chamber cover arranged at counter on arrival.
                         </span>
@@ -3283,7 +3412,7 @@ const BookingWizard = () => {
                   </span>
                 </div>
                 <div className='flex justify-between text-gray-600 dark:text-gray-400'>
-                  <span>Lead Ballast:</span>
+                  <span>Lead Weights:</span>
                   <span
                     className={`font-semibold text-right ${
                       currentStep > 1
@@ -3292,7 +3421,18 @@ const BookingWizard = () => {
                     }`}
                   >
                     {currentStep > 1
-                      ? `${leadKg} kg (${weightSystem === 'BELT' ? 'Belt' : 'Pockets'})`
+                      ? hasOwnLeadWeights
+                        ? '0 kg (Own Lead)'
+                        : `${leadKg} kg (${
+                            weightSystems.includes('INTEGRATED') &&
+                            (weightSystems.includes('BELT') || weightSystems.includes('OWN_BELT'))
+                              ? 'Split Pockets & Belt'
+                              : weightSystems.includes('OWN_BELT')
+                                ? 'Own Belt'
+                                : weightSystems.includes('BELT')
+                                  ? 'Belt'
+                                  : 'Pockets'
+                          })`
                       : 'Configure in Step 2'}
                   </span>
                 </div>

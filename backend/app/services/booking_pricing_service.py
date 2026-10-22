@@ -108,6 +108,24 @@ def compute_participant_octo_pricing(
                 }
             )
 
+        ins_price = (
+            float(getattr(center_settings, "daily_insurance_price", 0.0) or 0.0)
+            if center_settings
+            else 0.0
+        )
+        if eq.get("insurance_type") == "CENTER" and ins_price > 0:
+            aux_rental_items.append(
+                {
+                    "id": "daily_insurance",
+                    "title": "Diving Center Daily Dive Accident Insurance",
+                    "category": "INSURANCE",
+                    "quantity": 1,
+                    "amount": ins_price,
+                    "price": int(round(ins_price * 100)),
+                    "formatted": f"€{ins_price:.2f}",
+                }
+            )
+
         total_rental = sum(item["amount"] for item in aux_rental_items)
         total_due = base_retail + total_rental
         package_cap = {
@@ -279,6 +297,24 @@ def compute_participant_octo_pricing(
                     "amount": p,
                     "price": int(round(p * 100)),
                     "formatted": f"€{p:.2f}",
+                }
+            )
+
+        ins_price = (
+            float(getattr(center_settings, "daily_insurance_price", 0.0) or 0.0)
+            if center_settings
+            else 0.0
+        )
+        if eq.get("insurance_type") == "CENTER" and ins_price > 0:
+            aux_rental_items.append(
+                {
+                    "id": "daily_insurance",
+                    "title": "Diving Center Daily Dive Accident Insurance",
+                    "category": "INSURANCE",
+                    "quantity": 1,
+                    "amount": ins_price,
+                    "price": int(round(ins_price * 100)),
+                    "formatted": f"€{ins_price:.2f}",
                 }
             )
 

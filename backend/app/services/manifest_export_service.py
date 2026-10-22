@@ -560,7 +560,7 @@ class ManifestExportService:
             ],
             [
                 Paragraph(
-                    f"<b>Lead Ballast Weight:</b> {diver.get('estimated_lead_kg', 0)} kg ({eq.get('weight_system', 'INTEGRATED')})",
+                    f"<b>Lead Weights:</b> {diver.get('estimated_lead_kg', 0)} kg ({eq.get('weight_system', 'INTEGRATED')})",
                     normal_style,
                 ),
                 Paragraph(
@@ -968,7 +968,7 @@ class ManifestExportService:
                 Paragraph("<b>BCD</b>", th_style),
                 Paragraph("<b>Thermal Suit</b>", th_style),
                 Paragraph("<b>Fins & Boots</b>", th_style),
-                Paragraph("<b>Ballast Lead</b>", th_style),
+                Paragraph("<b>Lead Weights</b>", th_style),
                 Paragraph("<b>Safety / Lights</b>", th_style),
                 Paragraph("<b>Verified</b>", th_style),
             ]
@@ -1346,11 +1346,11 @@ class ManifestExportService:
 
         story.append(Spacer(1, 8))
 
-        # 2. Lead Ballast & Weight Belts
+        # 2. Lead Weights & Weight Belts
         lead_bd = summary.get("lead_breakdown") or {}
         story.append(
             Paragraph(
-                f"2. Lead Ballast & Rigging ({lead_bd.get('total_lead_kg', 0)} kg / {lead_bd.get('total_lead_lbs', 0)} lbs)",
+                f"2. Lead Weights & Rigging ({lead_bd.get('total_lead_kg', 0)} kg / {lead_bd.get('total_lead_lbs', 0)} lbs)",
                 h2_style,
             )
         )
@@ -1780,7 +1780,7 @@ class ManifestExportService:
                 Paragraph("Tier / Package", header_cell),
                 Paragraph("Cylinder & Gas", header_cell),
                 Paragraph("Valve", header_cell),
-                Paragraph("Ballast", header_cell),
+                Paragraph("Weights", header_cell),
                 Paragraph("Suit & BCD", header_cell),
                 Paragraph("Fins / Boots", header_cell),
             ]

@@ -528,13 +528,13 @@ const DiverGearConfigForm = ({
         </div>
       </div>
 
-      {/* 3. Ballast, Lead & Physics Calculator */}
+      {/* 3. Lead Weights & Buoyancy Calculator */}
       <div className='p-3.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-3'>
         <div className='flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-700'>
           <div className='flex items-center gap-2'>
             <Anchor className='text-indigo-600 h-4 w-4' />
             <h4 className='font-bold text-gray-900 dark:text-white text-xs uppercase tracking-wider'>
-              Ballast Weight & Weight System
+              Lead Weights & Weight System
             </h4>
           </div>
           {showBallastCalculator && (
@@ -544,7 +544,7 @@ const DiverGearConfigForm = ({
               className='text-blue-600 dark:text-blue-400 hover:underline font-bold text-[11px] flex items-center gap-1'
             >
               <Calculator size={13} />
-              {showEstimator ? 'Hide Calculator' : 'Physics Ballast Calculator'}
+              {showEstimator ? 'Hide Calculator' : 'Buoyancy & Weight Calculator'}
             </button>
           )}
         </div>
@@ -599,7 +599,7 @@ const DiverGearConfigForm = ({
         <div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
           <div>
             <label className='block font-semibold mb-1 text-[11px] text-gray-700 dark:text-gray-300'>
-              Lead Ballast ({unitSystem === 'METRIC' ? 'kg' : 'lbs'}) *
+              Lead Weights ({unitSystem === 'METRIC' ? 'kg' : 'lbs'}) *
             </label>
             <input
               type='number'
@@ -622,6 +622,8 @@ const DiverGearConfigForm = ({
             >
               <option value='INTEGRATED'>Integrated BCD Pockets</option>
               <option value='BELT'>Weight Belt (Nylon Webbing)</option>
+              <option value='BOTH'>Both (Split Pockets & Belt)</option>
+              <option value='OWN_BELT'>Bringing Own Weight Belt</option>
             </select>
           </div>
 

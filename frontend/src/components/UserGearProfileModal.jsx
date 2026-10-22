@@ -1089,17 +1089,17 @@ const UserGearProfileModal = ({
             </div>
           </div>
 
-          {/* Item 6: Weights & Ballast */}
+          {/* Item 6: Weights & Systems */}
           <div className='p-3.5 bg-gray-50 dark:bg-gray-750 rounded-xl border border-gray-200 dark:border-gray-700 space-y-3'>
             <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2'>
               <span className='font-bold text-xs text-gray-900 dark:text-white uppercase tracking-wider'>
-                Lead Ballast Source
+                Lead Weights Source
               </span>
               <div className='flex items-center gap-3 text-xs'>
                 <label className='flex items-center gap-1.5 cursor-pointer font-medium text-gray-700 dark:text-gray-300'>
                   <input
                     type='radio'
-                    name='leadBallastSource'
+                    name='leadWeightsSource'
                     checked={hasOwnLeadWeights}
                     onChange={() => setHasOwnLeadWeights(true)}
                     className='text-blue-600'
@@ -1109,7 +1109,7 @@ const UserGearProfileModal = ({
                 <label className='flex items-center gap-1.5 cursor-pointer font-medium text-gray-700 dark:text-gray-300'>
                   <input
                     type='radio'
-                    name='leadBallastSource'
+                    name='leadWeightsSource'
                     checked={!hasOwnLeadWeights}
                     onChange={() => setHasOwnLeadWeights(false)}
                     className='text-blue-600'
