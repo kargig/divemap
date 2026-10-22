@@ -24,6 +24,7 @@ import {
   Cylinder,
   Timer,
   Shield,
+  User,
   UserPlus,
   UserCheck,
   Clock,
@@ -59,6 +60,8 @@ import {
 } from '../api';
 import Avatar from '../components/Avatar';
 import OrganizationLogo from '../components/OrganizationLogo';
+import DiverCapabilityRibbon from '../components/profile/DiverCapabilityRibbon';
+import DiverCommunityGrid from '../components/profile/DiverCommunityGrid';
 import SEO from '../components/SEO';
 import { getSocialMediaIcon } from '../components/SocialMediaIcons';
 import DepthIcon from '../components/ui/DepthIcon';
@@ -173,8 +176,25 @@ const ActivityHeatmap = ({ data }) => {
 };
 
 const UserProfile = () => {
-  const { username } = useParams();
+  const { username, tab } = useParams();
   const navigate = useNavigate();
+  const validTabs = useMemo(
+    () => ['overview', 'activity', 'certifications', 'collections', 'travel'],
+    []
+  );
+
+  const activeTab = useMemo(() => {
+    if (!tab || tab === 'overview') return 'overview';
+    if (tab === 'travel') return 'collections';
+    return validTabs.includes(tab) ? tab : 'overview';
+  }, [tab, validTabs]);
+
+  const handleTabChange = newTab => {
+    if (newTab === activeTab) return;
+    const targetUrl = newTab === 'overview' ? `/users/${username}` : `/users/${username}/${newTab}`;
+    navigate(targetUrl);
+  };
+
   const { user: currentUser } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -620,7 +640,6 @@ const UserProfile = () => {
                         >
                           <div className='group-hover:scale-110 transition-transform mr-1.5'>
                             {getSocialMediaIcon(link.platform, {
-                              color: '000000',
                               className: 'w-4 h-4',
                             })}
                           </div>
@@ -631,11 +650,6 @@ const UserProfile = () => {
                       ))}
                     </div>
                   )}
-                </div>
-
-                {/* Certification Overview on the Right for Desktop */}
-                <div className='hidden lg:block shrink-0'>
-                  <CertificationStats stats={profile.certification_stats} isEmbedded={true} />
                 </div>
 
                 {currentUser && currentUser.username !== username && (
@@ -675,635 +689,509 @@ const UserProfile = () => {
           </div>
         </div>
 
-        {/* Mobile Certification Overview - Only visible on small screens */}
-        {profile.certification_stats && (
-          <div className='lg:hidden mb-6'>
-            <CertificationStats stats={profile.certification_stats} />
-          </div>
-        )}
+        {/* Diver Capability Ribbon - Disambiguates Depth, Deco, Gas, Rig, Thermal */}
+        <DiverCapabilityRibbon profile={profile} />
 
-        <div className='flex flex-col lg:grid lg:grid-cols-3 gap-6 sm:gap-8'>
-          {/* Sidebar - Order 1 on mobile, Order 2 on desktop */}
-          <div className='space-y-4 sm:space-y-6 order-1 lg:order-2'>
-            {/* Quick Stats */}
-            <div className='bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 border border-gray-100 dark:border-slate-700'>
-              <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4 flex items-center gap-2'>
-                <Gauge className='h-5 w-5 text-gray-400' />
-                Community Impact
-              </h3>
-              <div className='space-y-3'>
-                <div className='flex justify-between items-center'>
-                  <div className='flex items-center gap-2'>
-                    <Notebook size={16} className='text-gray-400' />
-                    <span className='text-gray-600 dark:text-slate-300'>Total Dives:</span>
-                  </div>
-                  <span className='font-semibold flex-1 text-right text-gray-900 dark:text-slate-100'>
-                    {totalDives}
-                  </span>
-                </div>
-                {profile.stats.total_points > 0 && (
-                  <div className='flex justify-between items-center'>
-                    <div className='flex items-center gap-2'>
-                      <Trophy size={16} className='text-yellow-500' />
-                      <span className='text-gray-600 dark:text-slate-300'>Total Points:</span>
-                    </div>
-                    <span className='font-bold text-blue-600 dark:text-blue-400 flex-1 text-right'>
-                      {profile.stats.total_points.toLocaleString()}
-                    </span>
-                  </div>
-                )}
-                {profile.stats.leaderboard_rank && (
-                  <div className='flex justify-between items-center'>
-                    <div className='flex items-center gap-2'>
-                      <Medal size={16} className='text-amber-600 dark:text-amber-400' />
-                      <span className='text-gray-600 dark:text-slate-300'>Leaderboard Rank:</span>
-                    </div>
-                    <div className='flex-1 text-right'>
-                      <Link
-                        to='/leaderboard'
-                        className='font-semibold text-blue-600 dark:text-sky-400 hover:underline'
-                      >
-                        #{profile.stats.leaderboard_rank}
-                      </Link>
-                    </div>
-                  </div>
-                )}
-                <div className='flex justify-between items-center'>
-                  <div className='flex items-center gap-2'>
-                    <Activity size={16} className='text-gray-400' />
-                    <span className='text-gray-600 dark:text-slate-300'>Dives Created:</span>
-                  </div>
-                  <div className='flex-1 text-right'>
-                    {profile.stats.dives_created > 0 ? (
-                      <Link
-                        to={`/dives?username=${profile.username}`}
-                        className='text-blue-600 dark:text-sky-400 hover:underline font-semibold'
-                      >
-                        {profile.stats.dives_created}
-                      </Link>
-                    ) : (
-                      <span className='font-semibold text-gray-900 dark:text-slate-100'>
-                        {profile.stats.dives_created}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className='flex justify-between items-center'>
-                  <div className='flex items-center gap-2'>
-                    <Users size={16} className='text-gray-400' />
-                    <span className='text-gray-600 dark:text-slate-300'>Dives as Buddy:</span>
-                  </div>
-                  <div className='flex-1 text-right'>
-                    {profile.stats.buddy_dives_count > 0 ? (
-                      <Link
-                        to={`/dives?buddy_username=${profile.username}`}
-                        className='text-blue-600 dark:text-sky-400 hover:underline font-semibold'
-                      >
-                        {profile.stats.buddy_dives_count}
-                      </Link>
-                    ) : (
-                      <span className='font-semibold text-gray-900 dark:text-slate-100'>
-                        {profile.stats.buddy_dives_count}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className='flex justify-between items-center'>
-                  <div className='flex items-center gap-2'>
-                    <Map size={16} className='text-gray-400' />
-                    <span className='text-gray-600 dark:text-slate-300'>Dive sites visited:</span>
-                  </div>
-                  <span className='font-semibold flex-1 text-right text-gray-900 dark:text-slate-100'>
-                    {profile.stats.unique_dive_sites_logged || 0}
-                  </span>
-                </div>
-                <div className='flex justify-between items-center'>
-                  <div className='flex items-center gap-2'>
-                    <Globe size={16} className='text-gray-400' />
-                    <span className='text-gray-600 dark:text-slate-300'>Countries visited:</span>
-                  </div>
-                  <span className='font-semibold flex-1 text-right text-gray-900 dark:text-slate-100'>
-                    {profile.stats.countries_visited_count || 0}
-                  </span>
-                </div>
-                <div className='flex justify-between items-center'>
-                  <div className='flex items-center gap-2'>
-                    <MapPin size={16} className='text-gray-400' />
-                    <span className='text-gray-600 dark:text-slate-300'>Dive Sites Created:</span>
-                  </div>
-                  <div className='flex-1 text-right'>
-                    {profile.stats.dive_sites_created > 0 ? (
-                      <Link
-                        to={`/dive-sites?created_by_username=${profile.username}`}
-                        className='text-blue-600 dark:text-sky-400 hover:underline font-semibold'
-                      >
-                        {profile.stats.dive_sites_created}
-                      </Link>
-                    ) : (
-                      <span className='font-semibold text-gray-900 dark:text-slate-100'>
-                        {profile.stats.dive_sites_created}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className='flex justify-between items-center'>
-                  <div className='flex items-center gap-2'>
-                    <Star size={16} className='text-gray-400' />
-                    <span className='text-gray-600 dark:text-slate-300'>Dive Site Ratings:</span>
-                  </div>
-                  <span className='font-semibold flex-1 text-right text-gray-900 dark:text-slate-100'>
-                    {profile.stats.site_ratings_count}
-                  </span>
-                </div>
-                <div className='flex justify-between items-center'>
-                  <div className='flex items-center gap-2'>
-                    <MessageSquare size={16} className='text-gray-400' />
-                    <span className='text-gray-600 dark:text-slate-300'>Dive Site Comments:</span>
-                  </div>
-                  <span className='font-semibold flex-1 text-right text-gray-900 dark:text-slate-100'>
-                    {profile.stats.site_comments_count}
-                  </span>
-                </div>
-                <div className='flex justify-between items-center'>
-                  <div className='flex items-center gap-2'>
-                    <Building2 size={16} className='text-gray-400' />
-                    <span className='text-gray-600 dark:text-slate-300'>Diving Centers Owned:</span>
-                  </div>
-                  <span className='font-semibold flex-1 text-right text-gray-900 dark:text-slate-100'>
-                    {profile.stats.diving_centers_owned}
-                  </span>
-                </div>
-                <div className='flex justify-between items-center border-t dark:border-slate-700 pt-2 mt-2'>
-                  <div className='flex items-center gap-2'>
-                    <CalendarIcon size={16} className='text-gray-400' />
-                    <span className='text-gray-600 dark:text-slate-300'>Member Since:</span>
-                  </div>
-                  <span className='font-semibold flex-1 text-right text-gray-900 dark:text-slate-100'>
-                    {formatDate(profile.member_since, { month: 'short', year: 'numeric' })}
-                  </span>
-                </div>
-              </div>
-            </div>
+        {/* Navigation Tabs (Overview, Diving Activity, Certifications, Collections) */}
+        <div
+          className='flex flex-wrap gap-1.5 p-1 bg-gray-100 dark:bg-slate-800 rounded-xl mb-6 border border-gray-200/80 dark:border-slate-700'
+          role='tablist'
+        >
+          <button
+            type='button'
+            role='tab'
+            aria-selected={activeTab === 'overview'}
+            onClick={() => handleTabChange('overview')}
+            className={`flex-1 min-w-[120px] py-2.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+              activeTab === 'overview'
+                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-sky-400 shadow-sm'
+                : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
+            }`}
+          >
+            <User size={15} />
+            <span>Overview</span>
+          </button>
+          <button
+            type='button'
+            role='tab'
+            aria-selected={activeTab === 'activity'}
+            onClick={() => handleTabChange('activity')}
+            className={`flex-1 min-w-[120px] py-2.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+              activeTab === 'activity'
+                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-sky-400 shadow-sm'
+                : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
+            }`}
+          >
+            <CalendarIcon size={15} />
+            <span>Diving Activity</span>
+          </button>
+          <button
+            type='button'
+            role='tab'
+            aria-selected={activeTab === 'certifications'}
+            onClick={() => handleTabChange('certifications')}
+            className={`flex-1 min-w-[120px] py-2.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+              activeTab === 'certifications'
+                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-sky-400 shadow-sm'
+                : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
+            }`}
+          >
+            <Award size={15} />
+            <span>Certifications ({profile.certifications?.length || 0})</span>
+          </button>
+          <button
+            type='button'
+            role='tab'
+            aria-selected={activeTab === 'collections'}
+            onClick={() => handleTabChange('collections')}
+            className={`flex-1 min-w-[120px] py-2.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+              activeTab === 'collections'
+                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-sky-400 shadow-sm'
+                : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
+            }`}
+          >
+            <Bookmark size={15} />
+            <span>Collections ({lists.length || 0})</span>
+          </button>
+        </div>
 
-            {/* Certifications in Sidebar for Desktop */}
-            {profile.certifications && profile.certifications.length > 0 && (
-              <div className='hidden lg:block bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 border border-gray-100 dark:border-slate-700'>
-                <h2 className='text-lg font-bold text-gray-900 dark:text-slate-100 mb-4 uppercase tracking-tight flex items-center gap-2'>
-                  <Award className='h-5 w-5 text-gray-400' />
-                  Certifications
-                </h2>
-                <div className='space-y-4'>
-                  {profile.certifications.map((cert, index) => (
-                    <div
-                      key={index}
-                      className={`p-3 border rounded-lg ${
-                        cert.is_active
-                          ? 'border-green-100 bg-green-50/30'
-                          : 'border-gray-100 bg-gray-50/30'
-                      }`}
-                    >
-                      <div className='flex items-start gap-3'>
-                        <div className='shrink-0'>
-                          <Link
-                            to={`/resources/diving-organizations?org=${encodeURIComponent(cert.diving_organization.acronym || cert.diving_organization.name)}&course=${encodeURIComponent(cert.certification_level)}`}
-                            className='block'
-                            title={`View ${cert.diving_organization.acronym} details`}
-                          >
-                            <OrganizationLogo
-                              org={cert.diving_organization}
-                              size='h-10 w-10'
-                              textSize='text-[10px]'
-                            />
-                          </Link>
-                        </div>
-                        <div className='flex-1 min-w-0'>
-                          <Link
-                            to={`/resources/diving-organizations?org=${encodeURIComponent(cert.diving_organization.acronym || cert.diving_organization.name)}&course=${encodeURIComponent(cert.certification_level)}`}
-                            className='block group'
-                          >
-                            <div className='flex items-center space-x-1.5 mb-1'>
-                              <div
-                                className={`h-2 w-2 rounded-full shrink-0 ${
-                                  cert.is_active
-                                    ? 'bg-green-500 shadow-[0_0_3px_rgba(34,197,94,0.5)]'
-                                    : 'bg-gray-400'
-                                }`}
-                              />
-                              <span className='font-bold text-gray-900 leading-tight text-xs group-hover:text-blue-600 transition-colors'>
-                                {cert.diving_organization.acronym} - {cert.certification_level}
-                              </span>
-                            </div>
-                          </Link>
-                          {renderCertificationFeatures(cert)}
-                        </div>
+        {/* TAB 1: OVERVIEW */}
+        {activeTab === 'overview' && (
+          <div className='grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8'>
+            {/* Left 2 Cols: Diving Logbook Summary + Suit & Gear + Favorite Sites */}
+            <div className='lg:col-span-2 space-y-6'>
+              {profile.diving_stats && (
+                <div className='bg-white dark:bg-slate-800 rounded-xl shadow-md p-4 sm:p-6 border border-gray-100 dark:border-slate-700'>
+                  <h2 className='text-base font-bold uppercase tracking-tight text-gray-900 dark:text-slate-100 mb-4 flex items-center gap-2'>
+                    <Notebook className='h-5 w-5 text-blue-600 dark:text-blue-400' />
+                    Diving Logbook Summary
+                  </h2>
+                  <div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
+                    <div className='bg-blue-50 dark:bg-slate-700/60 p-3.5 rounded-lg text-center border border-blue-100/80 dark:border-slate-600/40 hover:shadow-sm transition-shadow'>
+                      <div className='text-[11px] uppercase font-bold tracking-wider text-gray-500 dark:text-slate-400 mb-1'>
+                        Deepest Dive Logged
+                      </div>
+                      <div className='text-xl font-bold text-gray-900 dark:text-slate-100 flex items-center justify-center gap-1.5'>
+                        <DepthIcon className='inline text-divemap-blue' size={18} />
+                        <span>
+                          {profile.diving_stats.max_depth
+                            ? `${parseFloat(profile.diving_stats.max_depth).toFixed(1)}m`
+                            : '0m'}
+                        </span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
-            {/* No certifications message */}
-            {(!profile.certifications || profile.certifications.length === 0) && (
-              <div className='bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 border border-gray-100 dark:border-slate-700'>
-                <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 mb-2'>
-                  Certifications
-                </h3>
-                <p className='text-gray-600 dark:text-slate-400 text-sm'>
-                  No certifications listed yet.
-                </p>
-              </div>
-            )}
-          </div>
+                    <div className='bg-indigo-50 dark:bg-slate-700/60 p-3.5 rounded-lg text-center border border-indigo-100/80 dark:border-slate-600/40 hover:shadow-sm transition-shadow'>
+                      <div className='text-[11px] uppercase font-bold tracking-wider text-gray-500 dark:text-slate-400 mb-1'>
+                        Longest Dive
+                      </div>
+                      <div className='text-xl font-bold text-gray-900 dark:text-slate-100 flex items-center justify-center gap-1.5'>
+                        <Clock className='h-4 w-4 inline text-indigo-500' />
+                        <span>
+                          {profile.diving_stats.longest_dive_minutes ??
+                            profile.diving_stats.longest_dive_duration ??
+                            0}{' '}
+                          min
+                        </span>
+                      </div>
+                    </div>
 
-          {/* Main Content - Order 2 on mobile, Order 1 on desktop */}
-          <div className='lg:col-span-2 space-y-4 sm:space-y-6 order-2 lg:order-1'>
-            {/* Hero Stats */}
-            {profile.diving_stats && (
-              <div className='bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6 border border-gray-100 dark:border-slate-700'>
-                <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100 mb-6 flex items-center gap-2'>
-                  <Notebook className='h-5 w-5 text-blue-600 dark:text-blue-400' />
-                  Diving Logbook Summary
-                </h2>
-                <Row gutter={[12, 12]}>
-                  <Col xs={12} md={8}>
-                    <Card
-                      variant='borderless'
-                      className='bg-blue-50 dark:bg-slate-700/60 text-center hover:shadow-sm transition-shadow'
-                      styles={{ body: { padding: '12px 8px' } }}
-                    >
-                      <Statistic
-                        title={
-                          <span className='text-[10px] uppercase tracking-wide opacity-70'>
-                            Max Depth
-                          </span>
-                        }
-                        value={profile.diving_stats.max_depth || 0}
-                        suffix={<span className='text-xs font-normal opacity-50'>m</span>}
-                        precision={1}
-                        prefix={<DepthIcon className='inline mr-1 text-divemap-blue' size={16} />}
-                        styles={{ content: { fontSize: '18px', fontWeight: 'bold' } }}
-                      />
-                    </Card>
-                  </Col>
-                  <Col xs={12} md={8}>
-                    <Card
-                      variant='borderless'
-                      className='bg-indigo-50 dark:bg-slate-700/60 text-center hover:shadow-sm transition-shadow'
-                      styles={{ body: { padding: '12px 8px' } }}
-                    >
-                      <Statistic
-                        title={
-                          <span className='text-[10px] uppercase tracking-wide opacity-70'>
-                            Longest Dive
-                          </span>
-                        }
-                        value={profile.diving_stats.longest_dive_minutes || 0}
-                        suffix={<span className='text-xs font-normal opacity-50'>min</span>}
-                        prefix={<Clock className='h-3.5 w-3.5 inline mr-1 text-indigo-500' />}
-                        styles={{ content: { fontSize: '18px', fontWeight: 'bold' } }}
-                      />
-                    </Card>
-                  </Col>
-                  <Col xs={24} md={8}>
-                    <Card
-                      variant='borderless'
-                      className='bg-teal-50 dark:bg-slate-700/60 text-center hover:shadow-sm transition-shadow'
-                      styles={{ body: { padding: '12px 8px' } }}
-                    >
-                      <Statistic
-                        title={
-                          <span className='text-[10px] uppercase tracking-wide opacity-70'>
-                            Total Time
-                          </span>
-                        }
-                        value={profile.diving_stats.total_bottom_time_minutes || 0}
-                        suffix={<span className='text-xs font-normal opacity-50'>min</span>}
-                        prefix={<Clock className='h-3.5 w-3.5 inline mr-1 text-teal-500' />}
-                        styles={{ content: { fontSize: '18px', fontWeight: 'bold' } }}
-                      />
-                      <div className='text-[10px] text-gray-500 dark:text-slate-400 mt-1 opacity-70 uppercase tracking-tighter'>
+                    <div className='bg-teal-50 dark:bg-slate-700/60 p-3.5 rounded-lg text-center border border-teal-100/80 dark:border-slate-600/40 hover:shadow-sm transition-shadow'>
+                      <div className='text-[11px] uppercase font-bold tracking-wider text-gray-500 dark:text-slate-400 mb-1'>
+                        Total Bottom Time
+                      </div>
+                      <div className='text-xl font-bold text-gray-900 dark:text-slate-100 flex items-center justify-center gap-1.5'>
+                        <Clock className='h-4 w-4 inline text-teal-500' />
+                        <span>
+                          {(profile.diving_stats.total_bottom_time_minutes || 0).toLocaleString()}{' '}
+                          min
+                        </span>
+                      </div>
+                      <div className='text-[10px] text-gray-500 dark:text-slate-400 mt-1 uppercase font-semibold'>
                         ≈ {Math.round((profile.diving_stats.total_bottom_time_minutes || 0) / 60)}{' '}
                         hours
                       </div>
-                    </Card>
-                  </Col>
-                </Row>
+                    </div>
+                  </div>
 
-                <Divider className='dark:border-slate-700' />
+                  <Divider className='dark:border-slate-700 my-5' />
 
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8'>
-                  {/* Favorite Sites */}
+                  {/* Suit & Gear Preferences (Concept 1: Stacked Segmented Distribution Bars) */}
                   <div>
-                    <h3 className='text-lg font-medium text-gray-800 dark:text-slate-100 mb-4 flex items-center gap-2'>
-                      <MapPin className='h-4 w-4 text-blue-500' />
-                      Favorite Dive Sites
+                    <h3 className='text-base font-bold text-gray-900 dark:text-slate-100 mb-3 flex items-center gap-2'>
+                      <Shirt className='h-4 w-4 text-blue-500' />
+                      Suit &amp; Gear Preferences
                     </h3>
-                    {profile.diving_stats.favorite_sites?.length > 0 ? (
-                      <div className='space-y-2'>
-                        {profile.diving_stats.favorite_sites.map((site, index) => (
-                          <div
-                            key={site.id}
-                            className='flex items-center justify-between w-full py-2'
-                          >
-                            <Link
-                              to={`/dive-sites/${site.id}`}
-                              className='text-blue-600 dark:text-blue-400 hover:underline font-medium'
-                            >
-                              {index + 1}. {site.name}
-                            </Link>
-                            <Tag color='blue'>{site.visit_count} visits</Tag>
+                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6'>
+                      {/* Suit Segmented Distribution */}
+                      {(() => {
+                        const suits = profile.diving_stats.suit_preferences || {};
+                        const suitTotal = Object.values(suits).reduce((a, b) => a + b, 0);
+                        if (suitTotal === 0) return null;
+                        const labelMap = {
+                          wet_suit: 'Wetsuit',
+                          dry_suit: 'Drysuit',
+                          shortie: 'Shortie',
+                        };
+                        const colorMap = {
+                          dry_suit: '#0284c7', // sky-600
+                          wet_suit: '#3b82f6', // blue-500
+                          shortie: '#06b6d4', // cyan-500
+                        };
+                        const segments = Object.entries(suits)
+                          .map(([suit, count]) => ({
+                            key: suit,
+                            label: labelMap[suit] || suit,
+                            count,
+                            pct: Math.round((count / suitTotal) * 100),
+                            color: colorMap[suit] || '#60a5fa',
+                          }))
+                          .sort((a, b) => b.count - a.count);
+
+                        return (
+                          <div className='p-3.5 rounded-lg bg-gray-50/60 dark:bg-slate-700/30 border border-gray-100 dark:border-slate-700/50 flex flex-col justify-between'>
+                            <div>
+                              <div className='flex items-center justify-between mb-2'>
+                                <span className='text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest'>
+                                  Thermal Exposure
+                                </span>
+                                <span className='text-[11px] text-gray-400 dark:text-slate-400 font-medium'>
+                                  {suitTotal} dives
+                                </span>
+                              </div>
+
+                              {/* Multi-segment Bar */}
+                              <div className='h-2.5 w-full bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden flex shadow-inner'>
+                                {segments.map(s => (
+                                  <div
+                                    key={s.key}
+                                    style={{ width: `${s.pct}%`, backgroundColor: s.color }}
+                                    className='h-full transition-all duration-300'
+                                    title={`${s.label}: ${s.count} dives (${s.pct}%)`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Legend */}
+                            <div className='flex flex-wrap gap-x-4 gap-y-1.5 mt-3 pt-2.5 border-t border-gray-100 dark:border-slate-700/40 text-xs'>
+                              {segments.map(s => (
+                                <div key={s.key} className='flex items-center gap-1.5'>
+                                  <span
+                                    className='w-2 h-2 rounded-full shrink-0'
+                                    style={{ backgroundColor: s.color }}
+                                  />
+                                  <span className='font-medium text-gray-700 dark:text-slate-200'>
+                                    {s.label}
+                                  </span>
+                                  <span className='text-[11px] text-gray-400 dark:text-slate-400 font-semibold'>
+                                    {s.pct}%{' '}
+                                    <span className='opacity-70 font-normal'>({s.count})</span>
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
+                        );
+                      })()}
+
+                      {/* Tank Segmented Distribution */}
+                      {(() => {
+                        const gears = profile.diving_stats.gear_preferences || {};
+                        const gearTotal = Object.values(gears).reduce((a, b) => a + b, 0);
+                        if (gearTotal === 0) return null;
+                        const getColor = name => {
+                          const n = name.toLowerCase();
+                          if (n.includes('stage') || n.includes('+')) return '#a855f7'; // purple-500
+                          if (n.includes('double') || n.includes('twin')) return '#10b981'; // emerald-500
+                          if (n.includes('side')) return '#06b6d4'; // cyan-500
+                          return '#f59e0b'; // amber-500 for singles
+                        };
+                        const segments = Object.entries(gears)
+                          .map(([gear, count]) => ({
+                            key: gear,
+                            label: gear,
+                            count,
+                            pct: Math.round((count / gearTotal) * 100),
+                            color: getColor(gear),
+                          }))
+                          .sort((a, b) => b.count - a.count);
+
+                        return (
+                          <div className='p-3.5 rounded-lg bg-gray-50/60 dark:bg-slate-700/30 border border-gray-100 dark:border-slate-700/50 flex flex-col justify-between'>
+                            <div>
+                              <div className='flex items-center justify-between mb-2'>
+                                <span className='text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest'>
+                                  Cylinder Setup
+                                </span>
+                                <span className='text-[11px] text-gray-400 dark:text-slate-400 font-medium'>
+                                  {gearTotal} dives
+                                </span>
+                              </div>
+
+                              {/* Multi-segment Bar */}
+                              <div className='h-2.5 w-full bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden flex shadow-inner'>
+                                {segments.map(s => (
+                                  <div
+                                    key={s.key}
+                                    style={{ width: `${s.pct}%`, backgroundColor: s.color }}
+                                    className='h-full transition-all duration-300'
+                                    title={`${s.label}: ${s.count} dives (${s.pct}%)`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Legend */}
+                            <div className='flex flex-wrap gap-x-4 gap-y-1.5 mt-3 pt-2.5 border-t border-gray-100 dark:border-slate-700/40 text-xs'>
+                              {segments.map(s => (
+                                <div key={s.key} className='flex items-center gap-1.5'>
+                                  <span
+                                    className='w-2 h-2 rounded-full shrink-0'
+                                    style={{ backgroundColor: s.color }}
+                                  />
+                                  <span className='font-medium text-gray-700 dark:text-slate-200'>
+                                    {s.label}
+                                  </span>
+                                  <span className='text-[11px] text-gray-400 dark:text-slate-400 font-semibold'>
+                                    {s.pct}%{' '}
+                                    <span className='opacity-70 font-normal'>({s.count})</span>
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* Favorite Dive Sites (Below Suit & Gear, Way More Compact) */}
+                  <div className='mt-5 pt-4 border-t border-gray-100 dark:border-slate-700/60'>
+                    <div className='flex items-center justify-between mb-2.5'>
+                      <h4 className='text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5'>
+                        <MapPin className='h-3.5 w-3.5 text-blue-500' />
+                        Favorite Dive Sites
+                      </h4>
+                      {profile.diving_stats.favorite_sites?.length > 0 && (
+                        <span className='text-[11px] text-gray-400 dark:text-slate-500'>
+                          Top {profile.diving_stats.favorite_sites.length} most visited
+                        </span>
+                      )}
+                    </div>
+
+                    {profile.diving_stats.favorite_sites?.length > 0 ? (
+                      <div className='flex flex-wrap gap-2'>
+                        {profile.diving_stats.favorite_sites.map((site, index) => (
+                          <Link
+                            key={site.id}
+                            to={`/dive-sites/${site.id}`}
+                            className='inline-flex items-center gap-2 py-1.5 px-3 rounded-lg bg-gray-50/80 dark:bg-slate-700/50 hover:bg-blue-50 dark:hover:bg-slate-700 border border-gray-100 dark:border-slate-600/40 text-xs font-semibold text-gray-800 dark:text-slate-200 transition-all hover:scale-[1.01] group'
+                          >
+                            <span className='w-4 h-4 rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-sky-300 text-[10px] font-bold flex items-center justify-center shrink-0'>
+                              {index + 1}
+                            </span>
+                            <span className='group-hover:text-blue-600 dark:group-hover:text-sky-400 transition-colors'>
+                              {site.name}
+                            </span>
+                            <span className='px-1.5 py-0.5 rounded text-[10px] bg-blue-100/70 dark:bg-blue-950/50 text-blue-700 dark:text-sky-300 font-bold'>
+                              {site.visit_count}x
+                            </span>
+                          </Link>
                         ))}
                       </div>
                     ) : (
-                      <Empty
-                        image={Empty.PRESENTED_IMAGE_SIMPLE}
-                        description='No sites logged yet'
-                      />
+                      <p className='text-xs text-gray-400 dark:text-slate-500 italic'>
+                        No favorite dive sites logged yet
+                      </p>
                     )}
                   </div>
-
-                  {/* Suit & Gear Preferences */}
-                  <div>
-                    <h3 className='text-lg font-medium text-gray-800 dark:text-slate-100 mb-4 flex items-center gap-2'>
-                      <Shirt className='h-4 w-4 text-blue-500' />
-                      Suit & Gear Preferences
-                    </h3>
-                    <div className='space-y-4 sm:space-y-6'>
-                      {/* Suit Stats */}
-                      {Object.keys(profile.diving_stats.suit_preferences || {}).length > 0 && (
-                        <div className='space-y-3'>
-                          <span className='text-[10px] font-bold text-gray-400 uppercase tracking-widest'>
-                            Suits
-                          </span>
-                          {Object.entries(profile.diving_stats.suit_preferences).map(
-                            ([suit, count]) => {
-                              const total = Object.values(
-                                profile.diving_stats.suit_preferences
-                              ).reduce((a, b) => a + b, 0);
-                              const percent = Math.round((count / total) * 100);
-                              const labelMap = {
-                                wet_suit: 'Wetsuit',
-                                dry_suit: 'Drysuit',
-                                shortie: 'Shortie',
-                              };
-                              return (
-                                <div key={suit}>
-                                  <div className='flex justify-between mb-1 text-sm'>
-                                    <span className='text-gray-600 dark:text-slate-200 font-medium'>
-                                      {labelMap[suit] || suit}
-                                    </span>
-                                    <span className='text-gray-400 dark:text-slate-400'>
-                                      {count} dives
-                                    </span>
-                                  </div>
-                                  <Progress
-                                    percent={percent}
-                                    size='small'
-                                    strokeColor={suit === 'dry_suit' ? '#1890ff' : '#40a9ff'}
-                                  />
-                                </div>
-                              );
-                            }
-                          )}
-                        </div>
-                      )}
-
-                      {/* Gear Stats */}
-                      {Object.keys(profile.diving_stats.gear_preferences || {}).length > 0 && (
-                        <div className='space-y-3'>
-                          <span className='text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase tracking-widest'>
-                            Tanks
-                          </span>
-                          {Object.entries(profile.diving_stats.gear_preferences).map(
-                            ([gear, count]) => {
-                              const total = Object.values(
-                                profile.diving_stats.gear_preferences
-                              ).reduce((a, b) => a + b, 0);
-                              const percent = Math.round((count / total) * 100);
-                              const n = gear.toLowerCase();
-                              const isDoubles =
-                                n.includes('double') ||
-                                n.includes('twin') ||
-                                n.startsWith('d') ||
-                                ['14', '16', '20', '24', '30'].includes(n);
-                              const hasStage = n.includes('stage') || n.includes('+');
-
-                              return (
-                                <div key={gear}>
-                                  <div className='flex justify-between mb-1 text-sm'>
-                                    <div className='flex items-center gap-1.5'>
-                                      <img
-                                        src={isDoubles ? '/doubles.png' : '/single.png'}
-                                        className='h-3.5 w-3.5 object-contain opacity-70'
-                                        alt=''
-                                      />
-                                      <span className='text-gray-600 dark:text-slate-200 font-medium'>
-                                        {gear}
-                                      </span>
-                                    </div>
-                                    <span className='text-gray-400 dark:text-slate-400'>
-                                      {count} dives
-                                    </span>
-                                  </div>
-                                  <Progress
-                                    percent={percent}
-                                    size='small'
-                                    strokeColor={
-                                      hasStage ? '#722ed1' : isDoubles ? '#13c2c2' : '#faad14'
-                                    }
-                                  />
-                                </div>
-                              );
-                            }
-                          )}
-                        </div>
-                      )}
-
-                      {Object.keys(profile.diving_stats.suit_preferences || {}).length === 0 &&
-                        Object.keys(profile.diving_stats.gear_preferences || {}).length === 0 && (
-                          <Empty
-                            image={Empty.PRESENTED_IMAGE_SIMPLE}
-                            description='No data available'
-                          />
-                        )}
-                    </div>
-                  </div>
-                </div>
-
-                <Divider className='dark:border-slate-700' />
-
-                {/* Activity Heatmap */}
-                <div>
-                  <div className='flex justify-between items-center mb-4'>
-                    <h3 className='text-lg font-medium text-gray-800 dark:text-slate-100 flex items-center gap-2 m-0'>
-                      <CalendarIcon className='h-4 w-4 text-blue-500' />
-                      Diving Activity (Last 365 Days)
-                    </h3>
-                    {profile.diving_stats.most_active_month && (
-                      <Tooltip title='All-time personal record'>
-                        <Tag
-                          color='orange'
-                          className='mr-0 border-none px-3 py-1 flex items-center gap-2'
-                        >
-                          <Star className='w-3 h-3' />
-                          <span className='text-xs uppercase font-bold tracking-wider'>
-                            Record:
-                          </span>
-                          <span className='text-xs font-semibold'>
-                            {profile.diving_stats.most_active_month}
-                          </span>
-                        </Tag>
-                      </Tooltip>
-                    )}
-                  </div>
-                  <ActivityHeatmap data={profile.diving_stats.activity_heatmap || {}} />
-                  <div className='flex items-center justify-end gap-2 mt-2 text-xs text-gray-400'>
-                    <span>Less</span>
-                    <div className='w-2.5 h-2.5 rounded-sm bg-gray-100' />
-                    <div className='w-2.5 h-2.5 rounded-sm bg-blue-200' />
-                    <div className='w-2.5 h-2.5 rounded-sm bg-blue-400' />
-                    <div className='w-2.5 h-2.5 rounded-sm bg-blue-600' />
-                    <span>More</span>
-                  </div>
-                  {/* Fancy Analytics Link */}
-                  <Link to={`/users/${username}/analytics`} className='block mt-6 group'>
-                    <div className='relative overflow-hidden rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 p-6 shadow-lg transition-all duration-300 transform group-hover:-translate-y-1 group-hover:shadow-xl border border-blue-500/30'>
-                      <div className='absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all duration-500'></div>
-                      <div className='relative flex items-center justify-between z-10'>
-                        <div className='flex items-center gap-4'>
-                          <div className='p-3 bg-white/20 rounded-lg backdrop-blur-sm'>
-                            <TrendingUp className='w-8 h-8 text-white' />
-                          </div>
-                          <div>
-                            <h3 className='text-xl font-bold text-white mb-1 tracking-wide'>
-                              Advanced Analytics
-                            </h3>
-                            <p className='text-blue-100 text-sm font-medium'>
-                              Explore SAC rates, depth density, and thermal preferences
-                            </p>
-                          </div>
-                        </div>
-                        <div className='flex items-center justify-center w-10 h-10 rounded-full bg-white/10 text-white group-hover:bg-white/20 group-hover:translate-x-1 transition-all duration-300'>
-                          <ArrowUpRight className='w-5 h-5' />
-                        </div>
-                      </div>
-                    </div>
-                  </Link>{' '}
-                </div>
-              </div>
-            )}
-
-            {/* Curated Lists / Collections */}
-            <div className='bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6 border border-gray-100 dark:border-gray-700'>
-              <h2 className='text-xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2'>
-                <Bookmark className='h-5 w-5 text-blue-600 dark:text-blue-400' />
-                Curated Collections
-              </h2>
-              {loadingLists ? (
-                <div className='flex justify-center py-6'>
-                  <Loader2 className='animate-spin text-blue-600 dark:text-blue-400 h-6 w-6' />
-                </div>
-              ) : lists.length === 0 ? (
-                <p className='text-center py-6 text-sm text-gray-500 dark:text-gray-400 italic'>
-                  No public collections displayed yet.
-                </p>
-              ) : (
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                  {lists.map(lst => (
-                    <Link
-                      key={lst.id}
-                      to={`/users/${username}/lists/${lst.id}/${lst.slug}`}
-                      className='block p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-blue-100 dark:hover:border-blue-900 hover:shadow-sm transition-all duration-200 bg-gray-50/30 dark:bg-gray-900/10'
-                    >
-                      <div className='flex justify-between items-start gap-2 mb-1'>
-                        <h3 className='font-bold text-gray-900 dark:text-white text-base hover:text-blue-600 dark:hover:text-blue-400 transition-colors leading-snug'>
-                          {lst.title}
-                        </h3>
-                        {lst.system_type && (
-                          <span className='inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 uppercase tracking-tighter'>
-                            DEFAULT
-                          </span>
-                        )}
-                      </div>
-                      {lst.description && (
-                        <p className='text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-3'>
-                          {lst.description}
-                        </p>
-                      )}
-                      <div className='flex items-center gap-4 text-xs text-gray-400 dark:text-gray-500 font-medium'>
-                        <span className='flex items-center gap-1'>
-                          <FolderHeart className='h-3.5 w-3.5 text-blue-500' />
-                          {lst.items?.length || 0} sites
-                        </span>
-                        <span className='flex items-center gap-1'>
-                          <Eye className='h-3.5 w-3.5 text-gray-400' />
-                          {lst.view_count || 0} views
-                        </span>
-                      </div>
-                    </Link>
-                  ))}
                 </div>
               )}
             </div>
 
-            {/* Mobile Certifications (hidden on lg) */}
-            {profile.certifications && profile.certifications.length > 0 && (
-              <div className='lg:hidden bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 border border-gray-100 dark:border-slate-700 mt-6'>
-                <h2 className='text-lg font-bold text-gray-900 dark:text-slate-100 mb-4 uppercase tracking-tight'>
-                  Certifications
-                </h2>
-                <div className='space-y-3'>
-                  {profile.certifications.map((cert, index) => (
-                    <div
-                      key={index}
-                      className={`p-3 border rounded-lg ${
-                        cert.is_active
-                          ? 'border-green-200 bg-green-50'
-                          : 'border-gray-200 bg-gray-50'
-                      }`}
+            {/* Right 1 Col: Community Impact */}
+            <div className='space-y-6'>
+              <DiverCommunityGrid profile={profile} />
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: DIVING ACTIVITY */}
+        {activeTab === 'activity' && (
+          <div className='space-y-6'>
+            {profile.diving_stats && (
+              <div className='bg-white dark:bg-slate-800 rounded-xl shadow-md p-4 sm:p-6 border border-gray-100 dark:border-slate-700'>
+                <div className='flex justify-between items-center mb-4 pb-2 border-b border-gray-100 dark:border-slate-700/60'>
+                  <h3 className='text-base font-bold text-gray-900 dark:text-slate-100 flex items-center gap-2 m-0 uppercase tracking-tight'>
+                    <CalendarIcon className='h-5 w-5 text-blue-500' />
+                    Diving Activity (Last 365 Days)
+                  </h3>
+                  {profile.diving_stats.most_active_month && (
+                    <Tag
+                      color='orange'
+                      className='mr-0 border-none px-3 py-1 flex items-center gap-2'
                     >
-                      <div className='flex items-start gap-3'>
-                        <div className='shrink-0'>
-                          <Link
-                            to={`/resources/diving-organizations?org=${encodeURIComponent(cert.diving_organization.acronym || cert.diving_organization.name)}&course=${encodeURIComponent(cert.certification_level)}`}
-                            className='block'
-                            title={`View ${cert.diving_organization.acronym} details`}
-                          >
-                            <OrganizationLogo
-                              org={cert.diving_organization}
-                              size='h-10 w-10'
-                              textSize='text-[10px]'
-                            />
-                          </Link>
-                        </div>
-                        <div className='flex-1 min-w-0'>
-                          <Link
-                            to={`/resources/diving-organizations?org=${encodeURIComponent(cert.diving_organization.acronym || cert.diving_organization.name)}&course=${encodeURIComponent(cert.certification_level)}`}
-                            className='block group'
-                          >
-                            <div className='flex items-center space-x-1.5 mb-1'>
-                              <div
-                                className={`h-2 w-2 rounded-full shrink-0 ${
-                                  cert.is_active ? 'bg-green-500' : 'bg-gray-400'
-                                }`}
-                              />
-                              <span className='font-bold text-gray-900 text-xs uppercase group-hover:text-blue-600 transition-colors'>
-                                {cert.diving_organization.acronym} - {cert.certification_level}
-                              </span>
-                            </div>
-                          </Link>
-                          {renderCertificationFeatures(cert)}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                      <Star className='w-3 h-3' />
+                      <span className='text-xs uppercase font-bold tracking-wider'>Record:</span>
+                      <span className='text-xs font-semibold'>
+                        {profile.diving_stats.most_active_month}
+                      </span>
+                    </Tag>
+                  )}
+                </div>
+                <ActivityHeatmap data={profile.diving_stats.activity_heatmap || {}} />
+                <div className='flex items-center justify-end gap-2 mt-3 text-xs text-gray-400'>
+                  <span>Less</span>
+                  <div className='w-2.5 h-2.5 rounded-sm bg-gray-100' />
+                  <div className='w-2.5 h-2.5 rounded-sm bg-blue-200' />
+                  <div className='w-2.5 h-2.5 rounded-sm bg-blue-400' />
+                  <div className='w-2.5 h-2.5 rounded-sm bg-blue-600' />
+                  <span>More</span>
                 </div>
               </div>
             )}
+
+            {/* Fancy Analytics Link */}
+            <Link to={`/users/${username}/analytics`} className='block group'>
+              <div className='relative overflow-hidden rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 p-6 shadow-lg transition-all duration-300 transform group-hover:-translate-y-1 group-hover:shadow-xl border border-blue-500/30'>
+                <div className='absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all duration-500'></div>
+                <div className='relative flex items-center justify-between z-10'>
+                  <div className='flex items-center gap-4'>
+                    <div className='p-3 bg-white/20 rounded-lg backdrop-blur-sm'>
+                      <TrendingUp className='w-8 h-8 text-white' />
+                    </div>
+                    <div>
+                      <h3 className='text-xl font-bold text-white mb-1 tracking-wide'>
+                        Advanced Analytics
+                      </h3>
+                      <p className='text-blue-100 text-sm font-medium'>
+                        Explore SAC rates, depth density, and thermal preferences
+                      </p>
+                    </div>
+                  </div>
+                  <div className='flex items-center justify-center w-10 h-10 rounded-full bg-white/10 text-white group-hover:bg-white/20 group-hover:translate-x-1 transition-all duration-300'>
+                    <ArrowUpRight className='w-5 h-5' />
+                  </div>
+                </div>
+              </div>
+            </Link>
           </div>
-        </div>
+        )}
+
+        {/* TAB 3: CERTIFICATIONS */}
+        {activeTab === 'certifications' && (
+          <div className='bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 border border-gray-100 dark:border-slate-700'>
+            <h2 className='text-lg font-bold text-gray-900 dark:text-slate-100 mb-6 uppercase tracking-tight flex items-center gap-2 border-b border-gray-100 dark:border-slate-700/60 pb-3'>
+              <Award className='h-5 w-5 text-blue-500' />
+              Diving Certifications &amp; Qualifications
+            </h2>
+            {profile.certifications && profile.certifications.length > 0 ? (
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                {profile.certifications.map((cert, index) => (
+                  <div
+                    key={index}
+                    className={`p-4 border rounded-xl transition-all ${
+                      cert.is_active
+                        ? 'border-green-200 dark:border-emerald-800/60 bg-green-50/20 dark:bg-emerald-950/20'
+                        : 'border-gray-200 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-800/30'
+                    }`}
+                  >
+                    <div className='flex items-start gap-3.5'>
+                      <div className='shrink-0'>
+                        <Link
+                          to={`/resources/diving-organizations?org=${encodeURIComponent(cert.diving_organization.acronym || cert.diving_organization.name)}&course=${encodeURIComponent(cert.certification_level)}`}
+                          className='block'
+                          title={`View ${cert.diving_organization.acronym} details`}
+                        >
+                          <OrganizationLogo
+                            org={cert.diving_organization}
+                            size='h-12 w-12'
+                            textSize='text-xs'
+                          />
+                        </Link>
+                      </div>
+                      <div className='flex-1 min-w-0'>
+                        <div className='flex items-center space-x-2 mb-1.5'>
+                          <div
+                            className={`h-2.5 w-2.5 rounded-full shrink-0 ${
+                              cert.is_active
+                                ? 'bg-green-500 shadow-[0_0_4px_rgba(34,197,94,0.6)]'
+                                : 'bg-gray-400'
+                            }`}
+                          />
+                          <span className='font-bold text-gray-900 dark:text-slate-100 text-sm'>
+                            {cert.diving_organization.acronym} - {cert.certification_level}
+                          </span>
+                        </div>
+                        {renderCertificationFeatures(cert)}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className='text-gray-500 dark:text-slate-400 text-sm'>
+                No certifications listed yet.
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* TAB 4: COLLECTIONS */}
+        {activeTab === 'collections' && (
+          <div className='bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 border border-gray-100 dark:border-slate-700'>
+            <h2 className='text-lg font-bold text-gray-900 dark:text-slate-100 mb-6 uppercase tracking-tight flex items-center gap-2 border-b border-gray-100 dark:border-slate-700/60 pb-3'>
+              <Bookmark className='h-5 w-5 text-blue-500' />
+              Curated Collections ({lists.length})
+            </h2>
+            {loadingLists ? (
+              <div className='flex justify-center py-8'>
+                <Loader2 className='animate-spin text-blue-600 dark:text-blue-400 h-6 w-6' />
+              </div>
+            ) : lists.length === 0 ? (
+              <p className='text-center py-8 text-sm text-gray-500 dark:text-gray-400 italic'>
+                No public collections displayed yet.
+              </p>
+            ) : (
+              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+                {lists.map(lst => (
+                  <Link
+                    key={lst.id}
+                    to={`/users/${username}/lists/${lst.id}/${lst.slug}`}
+                    className='block p-4 rounded-xl border border-gray-100 dark:border-slate-700 hover:border-blue-200 dark:hover:border-blue-800 hover:shadow-md transition-all bg-gray-50/40 dark:bg-slate-700/30 group'
+                  >
+                    <div className='flex justify-between items-start gap-2 mb-2'>
+                      <h3 className='font-bold text-gray-900 dark:text-slate-100 text-base group-hover:text-blue-600 dark:group-hover:text-sky-400 transition-colors leading-snug'>
+                        {lst.title}
+                      </h3>
+                      {lst.system_type && (
+                        <span className='inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-sky-300 uppercase tracking-tighter'>
+                          DEFAULT
+                        </span>
+                      )}
+                    </div>
+                    {lst.description && (
+                      <p className='text-sm text-gray-500 dark:text-slate-400 line-clamp-2 mb-3'>
+                        {lst.description}
+                      </p>
+                    )}
+                    <div className='flex items-center gap-4 text-xs text-gray-400 dark:text-slate-400 font-medium mt-auto'>
+                      <span className='flex items-center gap-1 text-blue-600 dark:text-sky-400 font-semibold'>
+                        <FolderHeart className='h-3.5 w-3.5' />
+                        {lst.items?.length || 0} sites
+                      </span>
+                      <span className='flex items-center gap-1'>
+                        <Eye className='h-3.5 w-3.5' />
+                        {lst.view_count || 0} views
+                      </span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </>
   );

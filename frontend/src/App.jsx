@@ -301,14 +301,7 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path='/profile'
-              element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              }
-            />
+            <Route path='/profile' element={<Navigate to='/profile/account' replace />} />
             <Route
               path='/profile/bookings'
               element={
@@ -346,6 +339,14 @@ function AppContent() {
               element={
                 <ProtectedRoute>
                   <MyRatings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/profile/:tab'
+              element={
+                <ProtectedRoute>
+                  <Profile />
                 </ProtectedRoute>
               }
             />
@@ -392,10 +393,11 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
-            <Route path='/users/:username' element={<UserProfile />} />
             <Route path='/users/:username/analytics' element={<UserAnalytics />} />
-            <Route path='/users/:username/lists/:id' element={<UserListDetail />} />
             <Route path='/users/:username/lists/:id/:slug' element={<UserListDetail />} />
+            <Route path='/users/:username/lists/:id' element={<UserListDetail />} />
+            <Route path='/users/:username' element={<UserProfile />} />
+            <Route path='/users/:username/:tab' element={<UserProfile />} />
             {/* Backward compatibility routes */}
             <Route
               path='/profile/notifications'
