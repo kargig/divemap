@@ -303,3 +303,5 @@ export const getChartConfig = (screenSize = 'desktop') => {
 export const getChartColors = () => {
   return CHART_COLORS;
 };
+
+export { getDiverCapabilitySummary } from './diverCapabilityHelpers';

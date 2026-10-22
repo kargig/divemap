@@ -24,11 +24,13 @@ const applyThemeToDOM = resolved => {
   if (resolved === 'dark') {
     root.classList.add('dark');
     root.setAttribute('data-prefers-color-scheme', 'dark');
+    root.style.colorScheme = 'dark';
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', '#0f172a');
   } else {
     root.classList.remove('dark');
     root.setAttribute('data-prefers-color-scheme', 'light');
+    root.style.colorScheme = 'light';
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', '#0072B2');
   }

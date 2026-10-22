@@ -37,6 +37,33 @@
 }
 
 @layer base {
+  /* Global Dark Mode Support for Native Form Controls */
+  html.dark {
+    color-scheme: dark;
+  }
+
+  html.dark select,
+  html.dark
+    input:not([type='checkbox']):not([type='radio']):not([type='submit']):not([type='button']):not(
+      [type='reset']
+    ):not([type='image']),
+  html.dark textarea {
+    background-color: #334155;
+    color: #f8fafc;
+    border-color: #475569;
+  }
+
+  html.dark select option {
+    background-color: #1e293b;
+    color: #f8fafc;
+  }
+
+  html.dark input::placeholder,
+  html.dark textarea::placeholder {
+    color: #94a3b8;
+    opacity: 1;
+  }
+
   /* 
    * ANT DESIGN OVERRIDES 
    * AntD injects aggressive global CSS resets (like Normalize.css) that assume it is the 
