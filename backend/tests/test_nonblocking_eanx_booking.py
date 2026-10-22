@@ -12,6 +12,8 @@ from app.auth import create_access_token
 def setup_encryption_key(monkeypatch):
     test_key = Fernet.generate_key().decode()
     monkeypatch.setenv("BOOKING_MEDICAL_MASTER_KEYS", test_key)
+
+
 from app.models import (
     DivingCenter,
     DivingCenterBookingSettings,
@@ -27,7 +29,9 @@ from app.models import (
 
 
 @pytest.fixture
-def booking_setup(db_session: Session, test_diving_center: DivingCenter, test_user: User):
+def booking_setup(
+    db_session: Session, test_diving_center: DivingCenter, test_user: User
+):
     settings = DivingCenterBookingSettings(
         diving_center_id=test_diving_center.id,
         is_booking_enabled=True,
@@ -134,7 +138,9 @@ def booking_setup(db_session: Session, test_diving_center: DivingCenter, test_us
     }
 
 
-def test_uncertified_diver_eanx_paperwork_sets_pending(client: TestClient, db_session, booking_setup):
+def test_uncertified_diver_eanx_paperwork_sets_pending(
+    client: TestClient, db_session, booking_setup
+):
     user = booking_setup["user"]
     booking = booking_setup["booking"]
     unit_item = booking_setup["unit_item"]
@@ -177,7 +183,9 @@ def test_uncertified_diver_eanx_paperwork_sets_pending(client: TestClient, db_se
     assert item_v["gasMixStatus"] == "PENDING_APPROVAL"
 
 
-def test_certified_diver_eanx_paperwork_sets_approved(client: TestClient, db_session, booking_setup):
+def test_certified_diver_eanx_paperwork_sets_approved(
+    client: TestClient, db_session, booking_setup
+):
     user = booking_setup["user"]
     booking = booking_setup["booking"]
     unit_item = booking_setup["unit_item"]

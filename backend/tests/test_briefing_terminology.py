@@ -19,7 +19,9 @@ def test_briefing_extract_species_from_text():
     assert any("Octopus" in s for s in species_names)
 
 
-def test_briefing_extracts_from_site_marine_life(db_session, test_diving_center, test_user):
+def test_briefing_extracts_from_site_marine_life(
+    db_session, test_diving_center, test_user
+):
     site = DiveSite(
         name="Zenobia Wreck Marine Reserve",
         latitude=34.91,

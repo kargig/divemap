@@ -1178,12 +1178,13 @@ def update_participant(
         if req.selected_gas_mix_id.lower() == "air":
             item.gas_mix_status = "APPROVED"
         else:
-            item.gas_mix_status = "APPROVED"
-            verifs = dict(item.checkin_verifications or {})
-            verifs["nitrox_cert_verified"] = True
-            verifs["nitrox_cert_verified_at"] = datetime.now(UTC).isoformat()
-            verifs["nitrox_cert_verified_by"] = current_user.username
-            item.checkin_verifications = verifs
+            is_eligible = check_nitrox_eligibility(
+                item.certification_level,
+                req.selected_gas_mix_id,
+                db,
+                user_id=item.user_id,
+            )
+            item.gas_mix_status = "APPROVED" if is_eligible else "PENDING_APPROVAL"
     if req.equipment_sizing is not None:
         item.equipment_sizing = req.equipment_sizing
 

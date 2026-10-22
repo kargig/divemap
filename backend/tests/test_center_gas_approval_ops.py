@@ -154,7 +154,10 @@ def test_manager_approve_eanx(client: TestClient, db_session, center_ops_gas_set
     assert data["gas_mix_status"] == "APPROVED"
     assert data["selected_gas_mix_id"] == "ean32"
     assert data["checkin_verifications"]["nitrox_cert_verified"] is True
-    assert data["checkin_verifications"]["nitrox_notes"] == "Checked SSI Nitrox digital card"
+    assert (
+        data["checkin_verifications"]["nitrox_notes"]
+        == "Checked SSI Nitrox digital card"
+    )
 
     db_session.refresh(participant)
     assert participant.gas_mix_status == "APPROVED"
@@ -178,14 +181,19 @@ def test_manager_revert_to_air(client: TestClient, db_session, center_ops_gas_se
     data = res.json()
     assert data["gas_mix_status"] == "REVERTED_AIR"
     assert data["selected_gas_mix_id"] == "air"
-    assert data["checkin_verifications"]["gas_revert_reason"] == "Diver does not have nitrox cert"
+    assert (
+        data["checkin_verifications"]["gas_revert_reason"]
+        == "Diver does not have nitrox cert"
+    )
 
     db_session.refresh(participant)
     assert participant.selected_gas_mix_id == "air"
     assert participant.gas_mix_status == "REVERTED_AIR"
 
 
-def test_manager_verify_checkin_item(client: TestClient, db_session, center_ops_gas_setup):
+def test_manager_verify_checkin_item(
+    client: TestClient, db_session, center_ops_gas_setup
+):
     user = center_ops_gas_setup["user"]
     center = center_ops_gas_setup["center"]
     slot = center_ops_gas_setup["slot"]
@@ -207,7 +215,9 @@ def test_manager_verify_checkin_item(client: TestClient, db_session, center_ops_
     assert participant.checkin_verifications["doctor_note_verified"] is True
 
 
-def test_manifest_includes_gas_status_and_verifications(client: TestClient, center_ops_gas_setup):
+def test_manifest_includes_gas_status_and_verifications(
+    client: TestClient, center_ops_gas_setup
+):
     user = center_ops_gas_setup["user"]
     center = center_ops_gas_setup["center"]
     slot = center_ops_gas_setup["slot"]

@@ -12,7 +12,9 @@ from app.models import (
 )
 
 
-def test_octo_booking_unit_item_gas_status_and_checkin(db_session, test_user, test_diving_center):
+def test_octo_booking_unit_item_gas_status_and_checkin(
+    db_session, test_user, test_diving_center
+):
     settings = DivingCenterBookingSettings(
         diving_center_id=test_diving_center.id,
         is_booking_enabled=True,

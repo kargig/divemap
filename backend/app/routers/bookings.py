@@ -473,6 +473,12 @@ def get_checkout_context(
     waiver_svc = WaiverService()
     dmsc_schema = waiver_svc.get_questionnaire_schema("dmsc_2020_medical")
 
+    center_booking_settings = (
+        db.query(DivingCenterBookingSettings)
+        .filter(DivingCenterBookingSettings.diving_center_id == center.id)
+        .first()
+    )
+
     return {
         "slot": {
             "id": slot.id,
@@ -589,28 +595,22 @@ def get_checkout_context(
         "diver_capabilities": diver_capabilities,
         "dmsc_schema": dmsc_schema,
         "center_settings": {
-            "default_valve_fitting": getattr(
-                (
-                    c_set := db.query(DivingCenterBookingSettings)
-                    .filter(DivingCenterBookingSettings.diving_center_id == center.id)
-                    .first()
-                ),
-                "default_valve_fitting",
-                "DIN",
-            )
-            or "DIN",
-            "daily_insurance_price": float(c_set.daily_insurance_price)
-            if c_set and c_set.daily_insurance_price is not None
-            else 0.0,
+            "default_valve_fitting": (
+                center_booking_settings.default_valve_fitting
+                if center_booking_settings
+                and center_booking_settings.default_valve_fitting
+                else "DIN"
+            ),
+            "daily_insurance_price": (
+                float(center_booking_settings.daily_insurance_price)
+                if center_booking_settings
+                and center_booking_settings.daily_insurance_price is not None
+                else 0.0
+            ),
         },
         "rental_pricing": (
-            db.query(DivingCenterBookingSettings)
-            .filter(DivingCenterBookingSettings.diving_center_id == center.id)
-            .first()
-            .rental_equipment_pricing
-            if db.query(DivingCenterBookingSettings)
-            .filter(DivingCenterBookingSettings.diving_center_id == center.id)
-            .first()
+            center_booking_settings.rental_equipment_pricing
+            if center_booking_settings
             else None
         ),
     }
@@ -829,7 +829,6 @@ def _apply_diver_paperwork_for_unit_item(
         unit_item.gas_mix_status = "APPROVED"
 
     unit_item.selected_tank_id = req.selectedTankId or "12"
-    unit_item.selected_gas_mix_id = req.selectedGasMixId or "air"
     if req.equipmentSizing:
         unit_item.equipment_sizing = req.equipmentSizing
         if req.equipmentSizing.get("secondary_nitrox_cert"):

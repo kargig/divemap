@@ -92,18 +92,13 @@ generate-llm-content:
 	@docker-compose exec -T backend python generate_static_content.py --force
 	@echo "✅ LLM content generated in backend/llm_content/"
 
-# Run backend linting and format check with Ruff
+# Run backend linting and format check with Ruff on modified files in app and tests
 lint-backend:
-	@echo "🧹 Checking backend linting with Ruff..."
-	@cd backend && (if [ -f divemap_venv/bin/ruff ]; then ./divemap_venv/bin/ruff check app; else ruff check app; fi)
-	@echo "🧹 Checking backend formatting with Ruff..."
-	@cd backend && (if [ -f divemap_venv/bin/ruff ]; then ./divemap_venv/bin/ruff format --check app || echo "ℹ️ Formatting differences detected. Run 'make lint-backend-fix' to format."; else ruff format --check app || echo "ℹ️ Formatting differences detected."; fi)
-	@echo "✅ Backend linting complete."
+	@./backend/run-backend-lint.sh
 
-# Fix backend linting issues and format code with Ruff
+# Fix backend linting issues and format code with Ruff on modified files in app and tests
 lint-backend-fix:
-	@echo "🛠️ Fixing backend lint errors and formatting with Ruff..."
-	@cd backend && (if [ -f divemap_venv/bin/ruff ]; then ./divemap_venv/bin/ruff check --fix app && ./divemap_venv/bin/ruff format app; else ruff check --fix app && ruff format app; fi)
+	@./backend/run-backend-lint.sh --fix
 
 # Sync backend virtualenv with uv
 backend-sync:
