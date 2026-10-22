@@ -47,6 +47,18 @@ def upgrade():
     )
     op.add_column('octo_booking_unit_items', sa.Column('checkin_verifications', sa.JSON(), nullable=True))
 
+    conn = op.get_bind()
+    # Backfill pre-existing non-air bookings to PENDING_APPROVAL so unverified EANx does not fail open
+    conn.execute(
+        sa.text(
+            """
+            UPDATE octo_booking_unit_items
+            SET gas_mix_status = 'PENDING_APPROVAL'
+            WHERE LOWER(COALESCE(selected_gas_mix_id, 'air')) NOT IN ('air', '')
+            """
+        )
+    )
+
     # 2. Add diving center booking settings default valve & daily insurance price
     op.add_column(
         'diving_center_booking_settings',

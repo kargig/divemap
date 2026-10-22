@@ -309,19 +309,22 @@ const BriefingReviewModal = ({ isOpen, onClose, centerId, tripId, onBriefingDisp
                         type='text'
                         value={item.species || ''}
                         onChange={e => handleUpdateMarineLife(idx, 'species', e.target.value)}
-                        className='col-span-6 px-2.5 py-1.5 border rounded-lg bg-white dark:bg-gray-800 text-xs font-semibold'
+                        className='col-span-5 px-2.5 py-1.5 border rounded-lg bg-white dark:bg-gray-800 text-xs font-semibold'
                         placeholder='Species name'
                       />
                       <input
                         type='text'
-                        value={
-                          item.notes
-                            ? `${item.depth ? `${item.depth} — ` : ''}${item.notes}`
-                            : item.depth || ''
-                        }
+                        value={item.depth || ''}
+                        onChange={e => handleUpdateMarineLife(idx, 'depth', e.target.value)}
+                        className='col-span-3 px-2 py-1.5 border rounded-lg bg-white dark:bg-gray-800 text-xs font-mono text-gray-700 dark:text-gray-300'
+                        placeholder='Depth (e.g. 10-25m)'
+                      />
+                      <input
+                        type='text'
+                        value={item.notes || ''}
                         onChange={e => handleUpdateMarineLife(idx, 'notes', e.target.value)}
-                        className='col-span-6 px-2.5 py-1.5 border rounded-lg bg-white dark:bg-gray-800 text-xs text-gray-700 dark:text-gray-300'
-                        placeholder='Depth & habitat notes (e.g. 10-25m — Crevices)'
+                        className='col-span-4 px-2.5 py-1.5 border rounded-lg bg-white dark:bg-gray-800 text-xs text-gray-700 dark:text-gray-300'
+                        placeholder='Habitat / behavior notes'
                       />
                     </div>
                   ))}

@@ -1060,8 +1060,16 @@ class ManifestExportService:
 
             # Lead
             lead_kg = p.get("estimated_lead_kg") or 0.0
-            wsys = eq.get("weight_system", "INTEGRATED")
-            w_type = "Belt" if wsys == "BELT" else "Pockets"
+            wsys = str(eq.get("weight_system", "INTEGRATED")).upper()
+            wsystems = [str(s).upper() for s in (eq.get("weight_systems") or [])]
+            if "BOTH" in wsys or ("INTEGRATED" in wsystems and "BELT" in wsystems):
+                w_type = "Pockets + Belt"
+            elif wsys == "OWN_BELT" or "OWN_BELT" in wsystems:
+                w_type = "Own Belt"
+            elif wsys in ("BELT", "NEEDS_BELT") or "BELT" in wsystems:
+                w_type = "Belt"
+            else:
+                w_type = "Pockets"
             lead_cell = Paragraph(
                 f"[ &nbsp; ] <b>{lead_kg} kg</b> ({w_type})", cell_normal
             )

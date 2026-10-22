@@ -40,7 +40,7 @@ from app.services.booking_medical_encryption_service import (
 from app.services.booking_pricing_service import compute_participant_octo_pricing
 from app.services.briefing_service import BriefingService
 from app.services.medical_audit_service import log_medical_access
-from app.services.nitrox_service import check_nitrox_eligibility
+from app.services.nitrox_service import check_nitrox_eligibility, gases_permit_nitrox
 from app.services.waiver_service import WaiverService
 
 logger = logging.getLogger(__name__)
@@ -422,10 +422,7 @@ def get_checkout_context(
             gases = link.gases if link else None
             max_d = link.max_depth if link else None
             allows_nitrox = False
-            if gases and any(
-                k in gases.lower()
-                for k in ["nitrox", "safeair", "o2", "trimix", "triox"]
-            ):
+            if gases and gases_permit_nitrox(gases):
                 allows_nitrox = True
             elif c.certification_level and any(
                 k in c.certification_level.lower()

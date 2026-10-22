@@ -888,12 +888,7 @@ const BookingWizard = () => {
       return true;
     }
 
-    // 3. User entered a secondary Nitrox certification number
-    if (secondaryNitroxCert.trim()) {
-      return true;
-    }
-
-    // 4. Specification check from availableLevels database specifications
+    // 3. Specification check from availableLevels database specifications
     if (certLevel) {
       const activeLevelObj = availableLevels.find(
         lvl => lvl.name?.toLowerCase() === certLevel.toLowerCase()
@@ -903,9 +898,11 @@ const BookingWizard = () => {
         if (
           gasesStr.includes('nitrox') ||
           gasesStr.includes('safeair') ||
-          gasesStr.includes('o2') ||
           gasesStr.includes('trimix') ||
-          gasesStr.includes('triox')
+          gasesStr.includes('triox') ||
+          gasesStr.includes('100% o2') ||
+          gasesStr.includes('40% o2') ||
+          gasesStr.includes('deco')
         ) {
           return true;
         }
@@ -2066,6 +2063,15 @@ const BookingWizard = () => {
                           You can record your separate Nitrox card details above, or present your
                           physical/digital card to the dive center manager at check-in.
                         </span>
+                        {secondaryNitroxCert.trim() && (
+                          <div className='flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 pt-1'>
+                            <Check size={13} className='text-emerald-600' />
+                            <span>
+                              Separate Nitrox credential recorded. The dive center team will verify
+                              it on check-in.
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}

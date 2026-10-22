@@ -856,7 +856,19 @@ const DiverDetailsModal = ({
                 <span className='text-gray-400 block text-[10px]'>Lead Weights:</span>
                 <strong className='text-gray-800 dark:text-gray-200 font-mono'>
                   {currentDiver.estimated_lead_kg || 0} kg (
-                  {eq.weight_system === 'BELT' ? 'Weight Belt' : 'Integrated Pockets'})
+                  {eq.weight_system === 'BOTH' ||
+                  (Array.isArray(eq.weight_systems) &&
+                    eq.weight_systems.includes('INTEGRATED') &&
+                    eq.weight_systems.includes('BELT'))
+                    ? 'Pockets + Belt'
+                    : eq.weight_system === 'OWN_BELT' ||
+                        (Array.isArray(eq.weight_systems) && eq.weight_systems.includes('OWN_BELT'))
+                      ? 'Own Belt'
+                      : eq.weight_system === 'BELT' ||
+                          (Array.isArray(eq.weight_systems) && eq.weight_systems.includes('BELT'))
+                        ? 'Weight Belt'
+                        : 'Integrated Pockets'}
+                  )
                 </strong>
               </div>
               <div>

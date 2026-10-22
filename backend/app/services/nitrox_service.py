@@ -22,6 +22,31 @@ NITROX_KEYWORDS = [
 ]
 
 
+def gases_permit_nitrox(gases_str: str | None) -> bool:
+    """Returns True if the gases specification explicitly grants Nitrox or qualifying mixed gas.
+
+    Rejects bare 'Air', 'Compressed Air (21% O2)', or generic mentions of oxygen.
+    """
+    if not gases_str:
+        return False
+    lg = gases_str.lower()
+    if any(
+        k in lg for k in ["nitrox", "safeair", "trimix", "triox", "helitrox", "heliox"]
+    ):
+        return True
+    if "o2" in lg or "oxygen" in lg:
+        # Reject standard air notations such as "Air (21% O2)"
+        if "21%" in lg and not any(
+            k in lg for k in ["40%", "50%", "100%", "deco", "stage"]
+        ):
+            return False
+        if any(
+            k in lg for k in ["40%", "50%", "100%", "deco", "pure o2", "stage", "/ o2"]
+        ):
+            return True
+    return False
+
+
 def check_nitrox_eligibility(
     cert_level: str | None,
     gas_mix_id: str | None,
@@ -46,10 +71,8 @@ def check_nitrox_eligibility(
             .filter(CertificationLevel.name.ilike(cert_level.strip()))
             .first()
         )
-        if level and level.gases:
-            lg = level.gases.lower()
-            if any(k in lg for k in ["nitrox", "safeair", "o2", "trimix", "triox"]):
-                return True
+        if level and gases_permit_nitrox(level.gases):
+            return True
 
         cl = cert_level.lower()
         if any(k in cl for k in NITROX_KEYWORDS):
@@ -66,10 +89,10 @@ def check_nitrox_eligibility(
             .all()
         )
         for uc in user_certs:
-            if uc.certification_level_link and uc.certification_level_link.gases:
-                lg = uc.certification_level_link.gases.lower()
-                if any(k in lg for k in ["nitrox", "safeair", "o2", "trimix", "triox"]):
-                    return True
+            if uc.certification_level_link and gases_permit_nitrox(
+                uc.certification_level_link.gases
+            ):
+                return True
             if uc.certification_level:
                 cl_user = uc.certification_level.lower()
                 if any(k in cl_user for k in NITROX_KEYWORDS):

@@ -12,7 +12,7 @@ import {
   Lock,
   MoreHorizontal,
 } from 'lucide-react';
-import React from 'react';
+import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 
 import api from '../../api';
@@ -107,14 +107,19 @@ const rowActions = (p, { onViewDetails, onEditDiver, onDeleteDiver }) => [
 
 const BoardButton = ({ p, isMedicalHold, onToggleCheckin, onViewDetails, compact = false }) => {
   const gearPending = !p.gear_checked;
-  const blocked = !p.onboard_checkin_status && (isMedicalHold || gearPending);
+  const isGasHold =
+    Boolean(p.selected_gas_mix_id) &&
+    p.selected_gas_mix_id.toLowerCase() !== 'air' &&
+    p.gas_mix_status !== 'APPROVED' &&
+    p.gas_mix_status !== 'REVERTED_AIR';
+  const blocked = !p.onboard_checkin_status && (isMedicalHold || gearPending || isGasHold);
 
   const title = blocked
-    ? isMedicalHold && gearPending
-      ? 'Clear medical and complete gear check before boarding'
-      : gearPending
-        ? 'Complete gear check before boarding'
-        : 'Medical clearance required before boarding'
+    ? isMedicalHold
+      ? 'Medical clearance required before boarding'
+      : isGasHold
+        ? 'Approve EAN32 or Revert to Air before boarding'
+        : 'Complete gear check before boarding'
     : p.onboard_checkin_status
       ? 'Revoke boarding'
       : 'Confirm diver boarded';
@@ -123,9 +128,11 @@ const BoardButton = ({ p, isMedicalHold, onToggleCheckin, onViewDetails, compact
     ? 'Boarded'
     : isMedicalHold
       ? 'Medical hold'
-      : gearPending
-        ? 'Gear hold'
-        : 'Board';
+      : isGasHold
+        ? 'Gas hold'
+        : gearPending
+          ? 'Gear hold'
+          : 'Board';
 
   return (
     <button
@@ -135,7 +142,7 @@ const BoardButton = ({ p, isMedicalHold, onToggleCheckin, onViewDetails, compact
           onViewDetails(p);
           return;
         }
-        if (gearPending && !p.onboard_checkin_status) return;
+        if ((gearPending || isGasHold) && !p.onboard_checkin_status) return;
         onToggleCheckin(p.id);
       }}
       disabled={blocked}
@@ -173,35 +180,47 @@ const BoatManifestTable = ({
   onDeleteDiver,
   onViewDetails,
 }) => {
+  const [actionLoadingKey, setActionLoadingKey] = useState(null);
+
   const handleApproveGas = async p => {
-    if (!centerId || !tripId) return;
+    if (!centerId || !tripId || actionLoadingKey) return;
+    const actionKey = `${p.id}_gas`;
     try {
+      setActionLoadingKey(actionKey);
       await api.post(
         `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/participants/${p.id}/approve-gas`
       );
       toast.success(`EAN32 approved for ${p.diver_full_name}`);
       if (onRefresh) onRefresh();
-    } catch (_err) {
-      toast.error('Failed to approve EAN32');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to approve EAN32');
+    } finally {
+      setActionLoadingKey(null);
     }
   };
 
   const handleRevertAir = async p => {
-    if (!centerId || !tripId) return;
+    if (!centerId || !tripId || actionLoadingKey) return;
+    const actionKey = `${p.id}_gas`;
     try {
+      setActionLoadingKey(actionKey);
       await api.post(
         `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/participants/${p.id}/revert-air`
       );
       toast.success(`Reverted to Air for ${p.diver_full_name}`);
       if (onRefresh) onRefresh();
-    } catch (_err) {
-      toast.error('Failed to revert gas to Air');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to revert gas to Air');
+    } finally {
+      setActionLoadingKey(null);
     }
   };
 
   const handleToggleCheckinItem = async (p, item, verified) => {
-    if (!centerId || !tripId) return;
+    if (!centerId || !tripId || actionLoadingKey) return;
+    const actionKey = `${p.id}_${item}`;
     try {
+      setActionLoadingKey(actionKey);
       await api.post(
         `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/participants/${p.id}/verify-checkin-item`,
         {
@@ -211,8 +230,10 @@ const BoatManifestTable = ({
       );
       toast.success(`Updated check-in verification for ${p.diver_full_name}`);
       if (onRefresh) onRefresh();
-    } catch (_err) {
-      toast.error('Failed to update verification');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to update verification');
+    } finally {
+      setActionLoadingKey(null);
     }
   };
 
@@ -353,8 +374,9 @@ const BoatManifestTable = ({
                         (p.gas_mix_status === 'APPROVED' ? (
                           <button
                             type='button'
+                            disabled={Boolean(actionLoadingKey)}
                             onClick={() => handleRevertAir(p)}
-                            className='text-[10px] text-gray-400 hover:text-red-600 dark:hover:text-red-400 underline decoration-dotted'
+                            className='text-[10px] text-gray-400 hover:text-red-600 dark:hover:text-red-400 underline decoration-dotted disabled:opacity-50'
                             title='Click to revert gas mix to Air (21% O2)'
                           >
                             Revert to Air
@@ -362,8 +384,9 @@ const BoatManifestTable = ({
                         ) : p.gas_mix_status === 'REVERTED_AIR' ? (
                           <button
                             type='button'
+                            disabled={Boolean(actionLoadingKey)}
                             onClick={() => handleApproveGas(p)}
-                            className='text-[10px] text-blue-600 hover:underline'
+                            className='text-[10px] text-blue-600 hover:underline disabled:opacity-50'
                             title='Click to re-approve EAN32'
                           >
                             Re-approve EAN32
@@ -372,16 +395,18 @@ const BoatManifestTable = ({
                           <div className='inline-flex items-center gap-1'>
                             <button
                               type='button'
+                              disabled={Boolean(actionLoadingKey)}
                               onClick={() => handleApproveGas(p)}
-                              className='px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200 hover:bg-emerald-200 hover:text-emerald-900 transition-colors'
+                              className='px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200 hover:bg-emerald-200 hover:text-emerald-900 transition-colors disabled:opacity-50'
                               title='Approve EAN32 after inspecting card or analyzer'
                             >
                               Approve EAN32
                             </button>
                             <button
                               type='button'
+                              disabled={Boolean(actionLoadingKey)}
                               onClick={() => handleRevertAir(p)}
-                              className='px-1.5 py-0.5 rounded text-[10px] text-gray-500 hover:text-red-600 dark:hover:text-red-400'
+                              className='px-1.5 py-0.5 rounded text-[10px] text-gray-500 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-50'
                               title='Revert to Air (21% O2)'
                             >
                               Air
@@ -407,8 +432,9 @@ const BoatManifestTable = ({
                       {p.checkin_verifications?.c_card_verified ? (
                         <button
                           type='button'
+                          disabled={Boolean(actionLoadingKey)}
                           onClick={() => handleToggleCheckinItem(p, 'c_card', false)}
-                          className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
+                          className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 disabled:opacity-50'
                           title='Certification card verified. Click to undo.'
                         >
                           <Check size={10} /> Cert Card
@@ -416,8 +442,9 @@ const BoatManifestTable = ({
                       ) : (
                         <button
                           type='button'
+                          disabled={Boolean(actionLoadingKey)}
                           onClick={() => handleToggleCheckinItem(p, 'c_card', true)}
-                          className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-gray-500 dark:text-gray-400 hover:text-blue-600 border border-dashed border-gray-300 dark:border-gray-600'
+                          className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-gray-500 dark:text-gray-400 hover:text-blue-600 border border-dashed border-gray-300 dark:border-gray-600 disabled:opacity-50'
                           title='Click to mark certification card inspected'
                         >
                           Check Cert
@@ -667,16 +694,18 @@ const BoatManifestTable = ({
                   (p.gas_mix_status === 'APPROVED' ? (
                     <button
                       type='button'
+                      disabled={Boolean(actionLoadingKey)}
                       onClick={() => handleRevertAir(p)}
-                      className='text-[10px] text-gray-400 hover:text-red-600 underline'
+                      className='text-[10px] text-gray-400 hover:text-red-600 underline disabled:opacity-50'
                     >
                       Revert Air
                     </button>
                   ) : p.gas_mix_status === 'REVERTED_AIR' ? (
                     <button
                       type='button'
+                      disabled={Boolean(actionLoadingKey)}
                       onClick={() => handleApproveGas(p)}
-                      className='text-[10px] text-blue-600 hover:underline'
+                      className='text-[10px] text-blue-600 hover:underline disabled:opacity-50'
                     >
                       Re-approve EAN32
                     </button>
@@ -684,15 +713,17 @@ const BoatManifestTable = ({
                     <div className='inline-flex items-center gap-1'>
                       <button
                         type='button'
+                        disabled={Boolean(actionLoadingKey)}
                         onClick={() => handleApproveGas(p)}
-                        className='px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200'
+                        className='px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200 disabled:opacity-50'
                       >
                         Approve EAN32
                       </button>
                       <button
                         type='button'
+                        disabled={Boolean(actionLoadingKey)}
                         onClick={() => handleRevertAir(p)}
-                        className='px-1.5 py-0.5 rounded text-[10px] text-gray-500 hover:text-red-600'
+                        className='px-1.5 py-0.5 rounded text-[10px] text-gray-500 hover:text-red-600 disabled:opacity-50'
                       >
                         Air
                       </button>
@@ -702,16 +733,18 @@ const BoatManifestTable = ({
                 {p.checkin_verifications?.c_card_verified ? (
                   <button
                     type='button'
+                    disabled={Boolean(actionLoadingKey)}
                     onClick={() => handleToggleCheckinItem(p, 'c_card', false)}
-                    className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
+                    className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 disabled:opacity-50'
                   >
                     <Check size={10} /> Cert Card
                   </button>
                 ) : (
                   <button
                     type='button'
+                    disabled={Boolean(actionLoadingKey)}
                     onClick={() => handleToggleCheckinItem(p, 'c_card', true)}
-                    className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-gray-500 border border-dashed border-gray-300 dark:border-gray-600'
+                    className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-gray-500 border border-dashed border-gray-300 dark:border-gray-600 disabled:opacity-50'
                   >
                     Check Cert
                   </button>

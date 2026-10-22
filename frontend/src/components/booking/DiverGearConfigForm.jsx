@@ -323,6 +323,7 @@ const DiverGearConfigForm = ({
         rental_snorkel: rentalSnorkel,
         hood_size: hoodSize === 'None' ? null : hoodSize,
         weight_system: weightSystem,
+        weight_systems: weightSystem === 'BOTH' ? ['INTEGRATED', 'BELT'] : [weightSystem],
         estimated_lead_kg: finalLeadKg,
         lead_kg: finalLeadKg,
         wetsuit_gender: wetsuitGender,

@@ -450,10 +450,16 @@ def get_slot_manifest_data(
             din_count += 1
 
         # Weight distribution analysis
-        wsys = eq.get("weight_system", "INTEGRATED")
-        if wsys == "NEEDS_BELT" or wsys == "BELT":
+        wsys = str(eq.get("weight_system", "INTEGRATED")).upper()
+        wsystems = [str(s).upper() for s in (eq.get("weight_systems") or [])]
+        is_belt_needed = (
+            wsys in ("NEEDS_BELT", "BELT", "BOTH")
+            or "BELT" in wsystems
+            or "NEEDS_BELT" in wsystems
+        )
+        if is_belt_needed:
             belts_needed += 1
-        elif wsys == "OWN_BELT":
+        elif wsys == "OWN_BELT" or "OWN_BELT" in wsystems:
             pass  # diver has their own belt
         else:
             integrated_divers += 1
@@ -939,15 +945,13 @@ def add_walkin_participant(
             status_code=400, detail="Trip is fully booked. No seats available."
         )
 
-    # Check Nitrox Eligibility
+    # Determine Nitrox status (non-blocking: sets PENDING_APPROVAL if unverified)
+    gas_mix_status = "APPROVED"
     if req.selected_gas_mix_id and req.selected_gas_mix_id.lower() != "air":
-        if not check_nitrox_eligibility(
+        is_eligible = check_nitrox_eligibility(
             req.certification_level, req.selected_gas_mix_id, db
-        ):
-            raise HTTPException(
-                status_code=400,
-                detail=f"Gas mix '{req.selected_gas_mix_id.upper()}' requires an Enriched Air Diver (Nitrox) or qualifying technical certification. Diver holds '{req.certification_level or 'Unspecified'}', which is not certified for Nitrox.",
-            )
+        )
+        gas_mix_status = "APPROVED" if is_eligible else "PENDING_APPROVAL"
 
     # Prefer matching unit type from product; require a real OctoUnit for pricing
     unit = db.query(OctoUnit).filter(OctoUnit.product_id == slot.product_id).first()
@@ -999,6 +1003,16 @@ def add_walkin_participant(
     db.add(booking)
     db.flush()
 
+    # Boarding gate check if staff immediately flagged as boarded
+    can_board = req.onboard_checkin_status or False
+    if (
+        can_board
+        and req.selected_gas_mix_id
+        and req.selected_gas_mix_id.lower() != "air"
+    ):
+        if gas_mix_status != "APPROVED":
+            can_board = False
+
     # Create Unit Item
     unit_item = OctoBookingUnitItem(
         id=str(uuid.uuid4()),
@@ -1016,10 +1030,11 @@ def add_walkin_participant(
         certification_number=req.certification_number,
         selected_tank_id=req.selected_tank_id or "12",
         selected_gas_mix_id=req.selected_gas_mix_id or "air",
+        gas_mix_status=gas_mix_status,
         equipment_sizing=req.equipment_sizing or {},
         waivers_complete=True,
         signed_at=datetime.now(UTC),
-        onboard_checkin_status=req.onboard_checkin_status or False,
+        onboard_checkin_status=can_board,
     )
     db.add(unit_item)
     db.flush()
@@ -1175,12 +1190,16 @@ def update_participant(
         item.selected_tank_id = req.selected_tank_id
     if req.selected_gas_mix_id is not None:
         item.selected_gas_mix_id = req.selected_gas_mix_id
-        if req.selected_gas_mix_id.lower() == "air":
+
+    # Re-evaluate gas eligibility if certification or gas selection changed
+    if req.certification_level is not None or req.selected_gas_mix_id is not None:
+        current_gas = (item.selected_gas_mix_id or "air").lower()
+        if current_gas == "air":
             item.gas_mix_status = "APPROVED"
         else:
             is_eligible = check_nitrox_eligibility(
                 item.certification_level,
-                req.selected_gas_mix_id,
+                item.selected_gas_mix_id,
                 db,
                 user_id=item.user_id,
             )
@@ -1208,13 +1227,7 @@ def approve_participant_gas(
             status_code=403,
             detail="Access denied. Only registered managers of this diving center can approve gas mixes.",
         )
-    item = (
-        db.query(OctoBookingUnitItem)
-        .filter(OctoBookingUnitItem.id == participant_id)
-        .first()
-    )
-    if not item or not item.booking or item.booking.diving_center_id != center_id:
-        raise HTTPException(status_code=404, detail="Participant record not found")
+    item = assert_participant_on_center_trip(db, participant_id, trip_id, center_id)
 
     item.gas_mix_status = "APPROVED"
     verifs = dict(item.checkin_verifications or {})
@@ -1250,13 +1263,7 @@ def revert_participant_gas_to_air(
             status_code=403,
             detail="Access denied. Only registered managers of this diving center can modify gas mixes.",
         )
-    item = (
-        db.query(OctoBookingUnitItem)
-        .filter(OctoBookingUnitItem.id == participant_id)
-        .first()
-    )
-    if not item or not item.booking or item.booking.diving_center_id != center_id:
-        raise HTTPException(status_code=404, detail="Participant record not found")
+    item = assert_participant_on_center_trip(db, participant_id, trip_id, center_id)
 
     item.selected_gas_mix_id = "air"
     item.gas_mix_status = "REVERTED_AIR"
@@ -1275,6 +1282,14 @@ def revert_participant_gas_to_air(
     }
 
 
+ALLOWED_CHECKIN_ITEMS = {
+    "doctor_note",
+    "nitrox_cert",
+    "c_card",
+    "secondary_nitrox_cert",
+}
+
+
 @router.post("/trips/{trip_id}/participants/{participant_id}/verify-checkin-item")
 def verify_participant_checkin_item(
     center_id: int,
@@ -1290,20 +1305,24 @@ def verify_participant_checkin_item(
             status_code=403,
             detail="Access denied. Only registered managers can verify check-in items.",
         )
-    item = (
-        db.query(OctoBookingUnitItem)
-        .filter(OctoBookingUnitItem.id == participant_id)
-        .first()
-    )
-    if not item or not item.booking or item.booking.diving_center_id != center_id:
-        raise HTTPException(status_code=404, detail="Participant record not found")
+    item = assert_participant_on_center_trip(db, participant_id, trip_id, center_id)
 
-    key = req.item if req.item.endswith("_verified") else f"{req.item}_verified"
+    raw_item = req.item[:-9] if req.item.endswith("_verified") else req.item
+    if raw_item not in ALLOWED_CHECKIN_ITEMS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid check-in item '{req.item}'. Allowed items: {sorted(ALLOWED_CHECKIN_ITEMS)}",
+        )
+
+    key = f"{raw_item}_verified"
     verifs = dict(item.checkin_verifications or {})
     verifs[key] = req.verified
     if req.verified:
         verifs[f"{key}_at"] = datetime.now(UTC).isoformat()
         verifs[f"{key}_by"] = current_user.username
+    else:
+        verifs.pop(f"{key}_at", None)
+        verifs.pop(f"{key}_by", None)
     item.checkin_verifications = verifs
 
     db.commit()
@@ -2190,6 +2209,14 @@ def toggle_participant_checkin(
                 status_code=400,
                 detail=f"Safety Gate: Diver '{item.diver_full_name}' cannot board without a verified medical check (Status: {med.status if med else 'Missing Questionnaire'}).",
             )
+
+        # 3. Gas Mix Clearance Gate
+        if item.selected_gas_mix_id and item.selected_gas_mix_id.lower() != "air":
+            if item.gas_mix_status not in ("APPROVED", "REVERTED_AIR"):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Safety Gate: Diver '{item.diver_full_name}' requested '{item.selected_gas_mix_id.upper()}' which is pending verification. Please Approve EAN32 or Revert to Air before boarding.",
+                )
 
     item.onboard_checkin_status = not item.onboard_checkin_status
     db.commit()
