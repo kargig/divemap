@@ -75,11 +75,12 @@ export function getDiverCapabilitySummary(profile) {
         (stats.buddy_dives_count || 0);
   let yearsActive = '';
   if (profile.member_since) {
-    const years = Math.max(
-      1,
-      new Date().getFullYear() - new Date(profile.member_since).getFullYear()
-    );
-    yearsActive = ` · ${years}+ yrs`;
+    const memberDate = new Date(profile.member_since);
+    const memberYear = memberDate.getFullYear();
+    if (!Number.isNaN(memberYear)) {
+      const years = Math.max(1, new Date().getFullYear() - memberYear);
+      yearsActive = ` · ${years}+ yrs`;
+    }
   }
   const experienceStr = `${totalDives} Dives${yearsActive}`;
 

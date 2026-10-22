@@ -1298,7 +1298,7 @@ const Profile = () => {
                       {user.social_links.map(link => (
                         <div
                           key={link.platform}
-                          className='group relative flex items-center bg-gray-50 hover:bg-white border border-gray-200 rounded-full pl-1.5 pr-2 py-1.5 transition-all shadow-sm hover:shadow-md'
+                          className='group relative flex items-center bg-gray-50 dark:bg-slate-700/60 hover:bg-white dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-full pl-1.5 pr-2 py-1.5 transition-all shadow-sm hover:shadow-md'
                         >
                           <a
                             href={link.url}
@@ -1307,17 +1307,16 @@ const Profile = () => {
                             className='flex items-center space-x-2'
                             title={link.url}
                           >
-                            <div className='bg-white p-1.5 rounded-full shadow-sm border border-gray-100 group-hover:scale-110 transition-transform'>
+                            <div className='bg-white dark:bg-slate-800 p-1.5 rounded-full shadow-sm border border-gray-100 dark:border-slate-600 group-hover:scale-110 transition-transform'>
                               {getSocialMediaIcon(link.platform, {
-                                color: '000000',
                                 className: 'w-4 h-4',
                               })}
                             </div>
-                            <span className='font-bold text-xs text-gray-700 capitalize pr-1'>
+                            <span className='font-bold text-xs text-gray-700 dark:text-slate-200 capitalize pr-1'>
                               {link.platform}
                             </span>
                           </a>
-                          <div className='flex items-center border-l border-gray-200 ml-2 pl-2 space-x-1'>
+                          <div className='flex items-center border-l border-gray-200 dark:border-slate-600 ml-2 pl-2 space-x-1'>
                             <button
                               onClick={() => startEditSocialLink(link)}
                               className='p-1 text-gray-400 hover:text-blue-600 transition-colors'

@@ -640,7 +640,6 @@ const UserProfile = () => {
                         >
                           <div className='group-hover:scale-110 transition-transform mr-1.5'>
                             {getSocialMediaIcon(link.platform, {
-                              color: '000000',
                               className: 'w-4 h-4',
                             })}
                           </div>
@@ -788,7 +787,12 @@ const UserProfile = () => {
                       </div>
                       <div className='text-xl font-bold text-gray-900 dark:text-slate-100 flex items-center justify-center gap-1.5'>
                         <Clock className='h-4 w-4 inline text-indigo-500' />
-                        <span>{profile.diving_stats.longest_dive_minutes || 0} min</span>
+                        <span>
+                          {profile.diving_stats.longest_dive_minutes ??
+                            profile.diving_stats.longest_dive_duration ??
+                            0}{' '}
+                          min
+                        </span>
                       </div>
                     </div>
 

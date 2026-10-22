@@ -7,24 +7,33 @@ import PropTypes from 'prop-types';
  * - Primary: Simple Icons CDN (https://cdn.simpleicons.org/{brand}/{color})
  * - Alternative: SVGRepo, IconScout, and other reliable CDNs
  *
- * Icon Sources:
- * - IconScout: https://iconscout.com/free-icons/social-media
- * - SVGRepo: https://www.svgrepo.com
- * - Simple Icons: https://simpleicons.org
+ * Defaults to official vibrant brand colors, with light/dark contrast
+ * support for monochrome brands (X, TikTok, Threads).
  */
+
+const getBrandIconUrl = (slug, color) => {
+  if (color) {
+    return `https://cdn.simpleicons.org/${slug}/${color}`;
+  }
+  // For monochrome brands, adapt to light/dark system settings automatically
+  if (['x', 'twitter', 'tiktok', 'threads'].includes(slug)) {
+    return `https://cdn.simpleicons.org/${slug}/000000/ffffff`;
+  }
+  // For colored brands, use the official vibrant brand color
+  return `https://cdn.simpleicons.org/${slug}`;
+};
 
 /**
  * Twitter/X Icon Component
  */
-export const TwitterIcon = ({ className = 'w-5 h-5', color = 'ffffff' }) => {
+export const TwitterIcon = ({ className = 'w-5 h-5', color }) => {
   return (
     <img
-      src={`https://cdn.simpleicons.org/x/${color}`}
+      src={getBrandIconUrl('x', color)}
       alt='Twitter/X'
       className={className}
       style={{ width: '1.25rem', height: '1.25rem', objectFit: 'contain' }}
       onError={e => {
-        // Fallback to SVGRepo
         e.target.src = 'https://www.svgrepo.com/show/303150/twitter-3-logo.svg';
       }}
     />
@@ -39,15 +48,14 @@ TwitterIcon.propTypes = {
 /**
  * Facebook Icon Component
  */
-export const FacebookIcon = ({ className = 'w-5 h-5', color = 'ffffff' }) => {
+export const FacebookIcon = ({ className = 'w-5 h-5', color }) => {
   return (
     <img
-      src={`https://cdn.simpleicons.org/facebook/${color}`}
+      src={getBrandIconUrl('facebook', color)}
       alt='Facebook'
       className={className}
       style={{ width: '1.25rem', height: '1.25rem', objectFit: 'contain' }}
       onError={e => {
-        // Fallback to SVGRepo
         e.target.src = 'https://www.svgrepo.com/show/303114/facebook-3-logo.svg';
       }}
     />
@@ -62,15 +70,14 @@ FacebookIcon.propTypes = {
 /**
  * WhatsApp Icon Component
  */
-export const WhatsAppIcon = ({ className = 'w-5 h-5', color = 'ffffff' }) => {
+export const WhatsAppIcon = ({ className = 'w-5 h-5', color }) => {
   return (
     <img
-      src={`https://cdn.simpleicons.org/whatsapp/${color}`}
+      src={getBrandIconUrl('whatsapp', color)}
       alt='WhatsApp'
       className={className}
       style={{ width: '1.25rem', height: '1.25rem', objectFit: 'contain' }}
       onError={e => {
-        // Fallback to SVGRepo
         e.target.src = 'https://www.svgrepo.com/show/303157/whatsapp-icon-logo.svg';
       }}
     />
@@ -85,15 +92,14 @@ WhatsAppIcon.propTypes = {
 /**
  * Viber Icon Component
  */
-export const ViberIcon = ({ className = 'w-5 h-5', color = 'ffffff' }) => {
+export const ViberIcon = ({ className = 'w-5 h-5', color }) => {
   return (
     <img
-      src={`https://cdn.simpleicons.org/viber/${color}`}
+      src={getBrandIconUrl('viber', color)}
       alt='Viber'
       className={className}
       style={{ width: '1.25rem', height: '1.25rem', objectFit: 'contain' }}
       onError={e => {
-        // Fallback to alternative CDN
         e.target.src = 'https://www.svgrepo.com/show/373450/viber.svg';
       }}
     />
@@ -108,15 +114,14 @@ ViberIcon.propTypes = {
 /**
  * Reddit Icon Component
  */
-export const RedditIcon = ({ className = 'w-5 h-5', color = 'ffffff' }) => {
+export const RedditIcon = ({ className = 'w-5 h-5', color }) => {
   return (
     <img
-      src={`https://cdn.simpleicons.org/reddit/${color}`}
+      src={getBrandIconUrl('reddit', color)}
       alt='Reddit'
       className={className}
       style={{ width: '1.25rem', height: '1.25rem', objectFit: 'contain' }}
       onError={e => {
-        // Fallback to SVGRepo
         e.target.src = 'https://www.svgrepo.com/show/303338/reddit-5-logo.svg';
       }}
     />
@@ -131,10 +136,10 @@ RedditIcon.propTypes = {
 /**
  * Instagram Icon Component
  */
-export const InstagramIcon = ({ className = 'w-5 h-5', color = 'ffffff' }) => {
+export const InstagramIcon = ({ className = 'w-5 h-5', color }) => {
   return (
     <img
-      src={`https://cdn.simpleicons.org/instagram/${color}`}
+      src={getBrandIconUrl('instagram', color)}
       alt='Instagram'
       className={className}
       style={{ width: '1.25rem', height: '1.25rem', objectFit: 'contain' }}
@@ -153,10 +158,10 @@ InstagramIcon.propTypes = {
 /**
  * TikTok Icon Component
  */
-export const TikTokIcon = ({ className = 'w-5 h-5', color = 'ffffff' }) => {
+export const TikTokIcon = ({ className = 'w-5 h-5', color }) => {
   return (
     <img
-      src={`https://cdn.simpleicons.org/tiktok/${color}`}
+      src={getBrandIconUrl('tiktok', color)}
       alt='TikTok'
       className={className}
       style={{ width: '1.25rem', height: '1.25rem', objectFit: 'contain' }}
@@ -175,10 +180,10 @@ TikTokIcon.propTypes = {
 /**
  * LinkedIn Icon Component
  */
-export const LinkedInIcon = ({ className = 'w-5 h-5', color = 'ffffff' }) => {
+export const LinkedInIcon = ({ className = 'w-5 h-5', color }) => {
   return (
     <img
-      src={`https://cdn.simpleicons.org/linkedin/${color}`}
+      src={getBrandIconUrl('linkedin', color)}
       alt='LinkedIn'
       className={className}
       style={{ width: '1.25rem', height: '1.25rem', objectFit: 'contain' }}
@@ -197,10 +202,10 @@ LinkedInIcon.propTypes = {
 /**
  * YouTube Icon Component
  */
-export const YouTubeIcon = ({ className = 'w-5 h-5', color = 'ffffff' }) => {
+export const YouTubeIcon = ({ className = 'w-5 h-5', color }) => {
   return (
     <img
-      src={`https://cdn.simpleicons.org/youtube/${color}`}
+      src={getBrandIconUrl('youtube', color)}
       alt='YouTube'
       className={className}
       style={{ width: '1.25rem', height: '1.25rem', objectFit: 'contain' }}
@@ -219,10 +224,10 @@ YouTubeIcon.propTypes = {
 /**
  * Telegram Icon Component
  */
-export const TelegramIcon = ({ className = 'w-5 h-5', color = 'ffffff' }) => {
+export const TelegramIcon = ({ className = 'w-5 h-5', color }) => {
   return (
     <img
-      src={`https://cdn.simpleicons.org/telegram/${color}`}
+      src={getBrandIconUrl('telegram', color)}
       alt='Telegram'
       className={className}
       style={{ width: '1.25rem', height: '1.25rem', objectFit: 'contain' }}
@@ -241,15 +246,14 @@ TelegramIcon.propTypes = {
 /**
  * BlueSky Icon Component
  */
-export const BlueSkyIcon = ({ className = 'w-5 h-5', color = 'ffffff' }) => {
+export const BlueSkyIcon = ({ className = 'w-5 h-5', color }) => {
   return (
     <img
-      src={`https://cdn.simpleicons.org/bluesky/${color}`}
+      src={getBrandIconUrl('bluesky', color)}
       alt='BlueSky'
       className={className}
       style={{ width: '1.25rem', height: '1.25rem', objectFit: 'contain' }}
       onError={e => {
-        // Simple fallback
         e.target.style.display = 'none';
       }}
     />
@@ -264,10 +268,10 @@ BlueSkyIcon.propTypes = {
 /**
  * Mastodon Icon Component
  */
-export const MastodonIcon = ({ className = 'w-5 h-5', color = 'ffffff' }) => {
+export const MastodonIcon = ({ className = 'w-5 h-5', color }) => {
   return (
     <img
-      src={`https://cdn.simpleicons.org/mastodon/${color}`}
+      src={getBrandIconUrl('mastodon', color)}
       alt='Mastodon'
       className={className}
       style={{ width: '1.25rem', height: '1.25rem', objectFit: 'contain' }}
@@ -286,10 +290,10 @@ MastodonIcon.propTypes = {
 /**
  * Discord Icon Component
  */
-export const DiscordIcon = ({ className = 'w-5 h-5', color = 'ffffff' }) => {
+export const DiscordIcon = ({ className = 'w-5 h-5', color }) => {
   return (
     <img
-      src={`https://cdn.simpleicons.org/discord/${color}`}
+      src={getBrandIconUrl('discord', color)}
       alt='Discord'
       className={className}
       style={{ width: '1.25rem', height: '1.25rem', objectFit: 'contain' }}
@@ -308,15 +312,14 @@ DiscordIcon.propTypes = {
 /**
  * Threads Icon Component
  */
-export const ThreadsIcon = ({ className = 'w-5 h-5', color = 'ffffff' }) => {
+export const ThreadsIcon = ({ className = 'w-5 h-5', color }) => {
   return (
     <img
-      src={`https://cdn.simpleicons.org/threads/${color}`}
+      src={getBrandIconUrl('threads', color)}
       alt='Threads'
       className={className}
       style={{ width: '1.25rem', height: '1.25rem', objectFit: 'contain' }}
       onError={e => {
-        // Simple fallback
         e.target.style.display = 'none';
       }}
     />
@@ -331,10 +334,10 @@ ThreadsIcon.propTypes = {
 /**
  * Signal Icon Component
  */
-export const SignalIcon = ({ className = 'w-5 h-5', color = 'ffffff' }) => {
+export const SignalIcon = ({ className = 'w-5 h-5', color }) => {
   return (
     <img
-      src={`https://cdn.simpleicons.org/signal/${color}`}
+      src={getBrandIconUrl('signal', color)}
       alt='Signal'
       className={className}
       style={{ width: '1.25rem', height: '1.25rem', objectFit: 'contain' }}
@@ -357,7 +360,10 @@ SignalIcon.propTypes = {
  * @returns {JSX.Element} Icon component
  */
 export const getSocialMediaIcon = (platform, props = {}) => {
-  const iconProps = { className: props.className || 'w-5 h-5', color: props.color || 'ffffff' };
+  const iconProps = {
+    className: props.className || 'w-5 h-5',
+    ...(props.color ? { color: props.color } : {}),
+  };
 
   switch (platform.toLowerCase()) {
     case 'twitter':
