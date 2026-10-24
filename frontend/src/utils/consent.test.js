@@ -16,6 +16,7 @@ describe('Cookie Consent Utility', () => {
       expect(status).toEqual({
         hasResponded: false,
         analytics: false,
+        preferences: false,
         necessary: true,
       });
     });
@@ -29,6 +30,7 @@ describe('Cookie Consent Utility', () => {
       expect(status).toEqual({
         hasResponded: true,
         analytics: true,
+        preferences: false,
         necessary: true,
       });
     });
@@ -39,6 +41,7 @@ describe('Cookie Consent Utility', () => {
       expect(status).toEqual({
         hasResponded: false,
         analytics: false,
+        preferences: false,
         necessary: true,
       });
     });

@@ -184,38 +184,70 @@ export default defineConfig(({ mode }) => {
       allowedHosts: ['dev.divemap.gr', 'dev.divemap.blue', 'localhost'], // Fix DNS rebinding block
       hmr: {
         clientPort: 80,
+        path: '/@vite/hmr',
       },
       watch: {
         usePolling: true, // Needed for some Docker environments
       },
     },
+    optimizeDeps: {
+      entries: ['src/**/*.{js,jsx}', 'index.html'],
+      include: [
+        'canvas-confetti',
+        'yet-another-react-lightbox',
+        'yet-another-react-lightbox/plugins/captions',
+        'yet-another-react-lightbox/plugins/counter',
+        'yet-another-react-lightbox/plugins/download',
+        'yet-another-react-lightbox/plugins/fullscreen',
+        'yet-another-react-lightbox/plugins/inline',
+        'yet-another-react-lightbox/plugins/slideshow',
+        'yet-another-react-lightbox/plugins/thumbnails',
+        '@hookform/resolvers/zod',
+        'lodash/debounce',
+        'lodash/escape',
+        'react-dom/client',
+        'react-dom/server',
+        'react-image-crop',
+        'react-simplemde-editor',
+        'easymde',
+        'html2canvas',
+        'jspdf',
+        'recharts',
+        'leaflet',
+        'leaflet-draw',
+        'leaflet.markercluster',
+        'react-leaflet',
+        '@tanstack/react-table',
+        '@dnd-kit/core',
+        '@dnd-kit/sortable',
+        '@dnd-kit/utilities',
+        '@emoji-mart/react',
+        'react-slider',
+        'react-textarea-autosize',
+        'fuse.js',
+        'dompurify',
+      ],
+    },
   build: {
     outDir: 'dist',
     // Increase chunk size limit slightly to avoid unnecessary warnings
     chunkSizeWarningLimit: 1000,
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        // Group small icon and utility files into a single stable chunk
-        // to reduce the number of network requests (the "micro-chunk" problem).
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            // Group all icons and small common utilities together
-            if (
-              id.includes('lucide-react') ||
-              id.includes('@ant-design/icons') ||
-              id.includes('lodash') ||
-              id.includes('date-fns')
-            ) {
-              return 'assets-vendor';
-            }
-          }
-        }
-      }
-    }
+        codeSplitting: {
+          groups: [
+            {
+              name: 'assets-vendor',
+              test: /[\/]node_modules[\/](lucide-react|@ant-design\/icons|lodash|date-fns)[\/]/,
+            },
+          ],
+        },
+      },
+    },
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(import.meta.dirname, './src'),
     },
     dedupe: ['react', 'react-dom'],
   },

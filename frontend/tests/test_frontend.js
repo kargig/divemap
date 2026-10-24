@@ -5,9 +5,9 @@
  * Validates that all pages load without JavaScript errors and tests functionality
  */
 
-const puppeteer = require('puppeteer');
+const { launchChromium } = require('./launchChromium');
 
-const BASE_URL = 'http://localhost';
+const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost';
 const PAGES_TO_TEST = [
   '/',
   '/dive-sites',
@@ -55,7 +55,7 @@ async function testPage(browser, url) {
   const page = await browser.newPage();
 
   // Set viewport for responsive testing
-  await page.setViewport({ width: 1280, height: 720 });
+  await page.setViewportSize({ width: 1280, height: 720 });
 
   // Listen for console errors
   const errors = [];
@@ -94,7 +94,7 @@ async function testPage(browser, url) {
 
     // Navigate to the page
     await page.goto(`${BASE_URL}${url}`, {
-      waitUntil: 'networkidle0',
+      waitUntil: 'networkidle',
       timeout: 15000
     });
 
@@ -522,7 +522,7 @@ async function testResponsiveDesign(page, url) {
   ];
 
   for (const viewport of viewports) {
-    await page.setViewport(viewport);
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await new Promise(resolve => setTimeout(resolve, 500));
 
     // Check for horizontal scrolling (bad for mobile)
@@ -548,7 +548,7 @@ async function testResponsiveDesign(page, url) {
   }
 
   // Reset to default viewport
-  await page.setViewport({ width: 1280, height: 720 });
+  await page.setViewportSize({ width: 1280, height: 720 });
 }
 
 async function testErrorHandling(page) {
@@ -582,10 +582,7 @@ async function testErrorHandling(page) {
 async function runTests() {
   console.log('🚀 Starting Enhanced Frontend Tests...\n');
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-  });
+  const browser = await launchChromium();
 
   const results = [];
 

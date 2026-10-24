@@ -1,21 +1,18 @@
-const puppeteer = require('puppeteer');
+const { launchChromium } = require('./launchChromium');
 
-const BASE_URL = 'http://localhost';
+const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost';
 
 async function runTests() {
   console.log('🚀 Starting Chat Widget Tests...\n');
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-  });
+  const browser = await launchChromium();
 
   try {
     const page = await browser.newPage();
-    await page.setViewport({ width: 1280, height: 720 });
+    await page.setViewportSize({ width: 1280, height: 720 });
 
     console.log(`Navigating to ${BASE_URL}...`);
-    await page.goto(BASE_URL, { waitUntil: 'networkidle0' });
+    await page.goto(BASE_URL, { waitUntil: 'networkidle' });
 
     // 1. Check if FAB exists
     console.log('Looking for Chat FAB...');
@@ -30,7 +27,7 @@ async function runTests() {
 
     // 3. Check if Window opens
     console.log('Waiting for Chat Window...');
-    const windowContainer = await page.waitForSelector('[data-testid="chat-window-container"]', { visible: true, timeout: 5000 });
+    const windowContainer = await page.waitForSelector('[data-testid="chat-window-container"]', { state: 'visible', timeout: 5000 });
     if (windowContainer) {
       console.log('✅ Chat Window opened');
     }
@@ -39,7 +36,7 @@ async function runTests() {
     console.log('Typing message...');
     const input = await page.$('[data-testid="chat-input"]');
     if (!input) throw new Error('Chat input not found');
-    await input.type('Hello, are there any dive sites in Athens?');
+    await input.fill('Hello, are there any dive sites in Athens?');
 
     // 5. Click Send
     console.log('Clicking Send...');

@@ -11,9 +11,9 @@
  * - ESLint configuration validation
  */
 
-const puppeteer = require('puppeteer');
+const { launchChromium } = require('./launchChromium');
 
-const BASE_URL = 'http://localhost';
+const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost';
 
 // Test data that matches the backend data types
 const TEST_DIVE_SITE = {
@@ -45,11 +45,11 @@ async function testMapViewFunctionality(browser) {
   console.log('🧭 Testing Map View Functionality...');
   
   const page = await browser.newPage();
-  await page.setViewport({ width: 1280, height: 720 });
+  await page.setViewportSize({ width: 1280, height: 720 });
   
   try {
     // Navigate to dive sites page
-    await page.goto(`${BASE_URL}/dive-sites`, { waitUntil: 'networkidle0' });
+    await page.goto(`${BASE_URL}/dive-sites`, { waitUntil: 'networkidle' });
     console.log('  ✅ Navigated to dive sites page');
     
     // Wait for the page to load
@@ -120,11 +120,11 @@ async function testPropTypesValidation(browser) {
   console.log('🔍 Testing PropTypes Validation...');
   
   const page = await browser.newPage();
-  await page.setViewport({ width: 1280, height: 720 });
+  await page.setViewportSize({ width: 1280, height: 720 });
   
   try {
     // Navigate to dive sites page
-    await page.goto(`${BASE_URL}/dive-sites`, { waitUntil: 'networkidle0' });
+    await page.goto(`${BASE_URL}/dive-sites`, { waitUntil: 'networkidle' });
     console.log('  ✅ Navigated to dive sites page');
     
     // Listen for console warnings about PropTypes
@@ -171,11 +171,11 @@ async function testESLintConfiguration(browser) {
   console.log('⚙️  Testing ESLint Configuration...');
   
   const page = await browser.newPage();
-  await page.setViewport({ width: 1280, height: 720 });
+  await page.setViewportSize({ width: 1280, height: 720 });
   
   try {
     // Navigate to dive sites page
-    await page.goto(`${BASE_URL}/dive-sites`, { waitUntil: 'networkidle0' });
+    await page.goto(`${BASE_URL}/dive-sites`, { waitUntil: 'networkidle' });
     console.log('  ✅ Navigated to dive sites page');
     
     // Listen for console errors that might indicate ESLint issues
@@ -247,11 +247,11 @@ async function testConditionalRendering(browser) {
   console.log('🎭 Testing Conditional Rendering...');
   
   const page = await browser.newPage();
-  await page.setViewport({ width: 1280, height: 720 });
+  await page.setViewportSize({ width: 1280, height: 720 });
   
   try {
     // Navigate to dive sites page
-    await page.goto(`${BASE_URL}/dive-sites`, { waitUntil: 'networkidle0' });
+    await page.goto(`${BASE_URL}/dive-sites`, { waitUntil: 'networkidle' });
     console.log('  ✅ Navigated to dive sites page');
     
     // Test that list view is shown by default
@@ -310,10 +310,7 @@ async function runAllTests() {
   
   let browser;
   try {
-    browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
+    browser = await launchChromium();
     
     // Run all test suites
     await testMapViewFunctionality(browser);

@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import { HelmetProvider } from 'react-helmet-async';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { describe, it, expect, vi } from 'vitest';
@@ -17,6 +18,7 @@ vi.mock('../api', () => ({
       category_breakdown: {},
     })
   ),
+  deleteAdminChatFeedback: vi.fn(() => Promise.resolve()),
 }));
 
 const queryClient = new QueryClient();
@@ -24,11 +26,13 @@ const queryClient = new QueryClient();
 describe('AdminChatFeedback', () => {
   it('renders the dashboard with stats', async () => {
     render(
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <AdminChatFeedback />
-        </BrowserRouter>
-      </QueryClientProvider>
+      <HelmetProvider>
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <AdminChatFeedback />
+          </BrowserRouter>
+        </QueryClientProvider>
+      </HelmetProvider>
     );
 
     expect(screen.getByText('Chatbot Feedback Dashboard')).toBeInTheDocument();

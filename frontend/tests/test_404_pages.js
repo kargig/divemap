@@ -1,6 +1,6 @@
-const puppeteer = require('puppeteer');
+const { launchChromium } = require('./launchChromium');
 
-const BASE_URL = 'http://localhost';
+const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost';
 const NON_EXISTENT_ID = 999999;
 
 const PAGES_TO_TEST = [
@@ -13,23 +13,20 @@ const PAGES_TO_TEST = [
 async function runTests() {
   console.log('🚀 Starting 404 Page Verification Tests...\n');
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-  });
+  const browser = await launchChromium();
 
   let failedTests = 0;
 
   try {
     const page = await browser.newPage();
-    await page.setViewport({ width: 1280, height: 720 });
+    await page.setViewportSize({ width: 1280, height: 720 });
 
     for (const url of PAGES_TO_TEST) {
       console.log(`Testing URL: ${BASE_URL}${url}`);
       
       try {
         await page.goto(`${BASE_URL}${url}`, {
-          waitUntil: 'networkidle0',
+          waitUntil: 'networkidle',
           timeout: 10000
         });
 

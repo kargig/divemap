@@ -5,9 +5,9 @@
  * Validates that infinite scrolling works correctly on major discovery pages.
  */
 
-const puppeteer = require('puppeteer');
+const { launchChromium } = require('./launchChromium');
 
-const BASE_URL = 'http://localhost';
+const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost';
 const PAGES_TO_TEST = [
   '/dive-sites',
   '/diving-centers',
@@ -21,7 +21,7 @@ async function testInfiniteScroll(browser, path) {
   const page = await browser.newPage();
 
   // Set a mobile-like viewport to ensure we trigger scrolling easily
-  await page.setViewport({ width: 375, height: 812, isMobile: true, hasTouch: true });
+  await page.setViewportSize({ width: 375, height: 812 });
 
   const errors = [];
   page.on('console', msg => {
@@ -38,7 +38,7 @@ async function testInfiniteScroll(browser, path) {
     console.log(`\n--- Testing Infinite Scroll: ${url} ---`);
 
     // 1. Navigate to the page
-    await page.goto(url, { waitUntil: 'networkidle0', timeout: 30000 });
+    await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
 
     // 2. Count initial items
     const initialItemCount = await page.evaluate(() => {
@@ -119,10 +119,7 @@ async function testInfiniteScroll(browser, path) {
 
 async function main() {
   console.log('Starting Infinite Scroll validation...');
-  const browser = await puppeteer.launch({
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    headless: 'new'
-  });
+  const browser = await launchChromium();
 
   const results = [];
   for (const path of PAGES_TO_TEST) {

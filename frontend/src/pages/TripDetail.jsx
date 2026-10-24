@@ -356,11 +356,11 @@ const TripDetail = () => {
 
   const isOwner = Boolean(
     user &&
-      divingCenter &&
-      ((user.id && (user.id === divingCenter.created_by || user.id === divingCenter.owner_id)) ||
-        (divingCenter.owner_username &&
-          divingCenter.owner_username === user.username &&
-          divingCenter.ownership_status === 'approved'))
+    divingCenter &&
+    ((user.id && (user.id === divingCenter.created_by || user.id === divingCenter.owner_id)) ||
+      (divingCenter.owner_username &&
+        divingCenter.owner_username === user.username &&
+        divingCenter.ownership_status === 'approved'))
   );
   const isAdmin = Boolean(user?.is_admin);
   const isManager = Boolean(divingCenter?.is_manager);
@@ -368,9 +368,9 @@ const TripDetail = () => {
 
   const isFullyBooked = Boolean(
     trip?.is_bookable &&
-      trip?.seats_available !== undefined &&
-      trip?.seats_available !== null &&
-      trip?.seats_available <= 0
+    trip?.seats_available !== undefined &&
+    trip?.seats_available !== null &&
+    trip?.seats_available <= 0
   );
 
   const getMetaDescription = () => {

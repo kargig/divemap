@@ -45,9 +45,9 @@ const TripCard = ({
 
   const isFullyBooked = Boolean(
     trip.is_bookable &&
-      trip.seats_available !== undefined &&
-      trip.seats_available !== null &&
-      trip.seats_available <= 0
+    trip.seats_available !== undefined &&
+    trip.seats_available !== null &&
+    trip.seats_available <= 0
   );
 
   const divingCenterObj = trip.diving_center || {

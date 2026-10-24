@@ -5,10 +5,10 @@
  * Tests frontend functionality, accessibility, and integration
  */
 
-const puppeteer = require('puppeteer');
+const { launchChromium } = require('./launchChromium');
 
-const BASE_URL = 'http://localhost';
-const BACKEND_URL = 'http://localhost:8000';
+const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost';
+const BACKEND_URL = process.env.TEST_BACKEND_URL || 'http://localhost:8000';
 
 // Test scenarios
 const TEST_SCENARIOS = {
@@ -181,7 +181,7 @@ async function testResponsiveDesign(page) {
   let responsiveIssues = 0;
 
   for (const viewport of viewports) {
-    await page.setViewport(viewport);
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await new Promise(resolve => setTimeout(resolve, 500));
 
     // Check for horizontal scrolling
@@ -221,7 +221,7 @@ async function testResponsiveDesign(page) {
   }
 
   // Reset to default viewport
-  await page.setViewport({ width: 1280, height: 720 });
+  await page.setViewportSize({ width: 1280, height: 720 });
 
   return responsiveIssues === 0;
 }
@@ -425,10 +425,7 @@ async function testUserInteractions(page) {
 async function runValidationTests() {
   console.log('🚀 Starting Comprehensive Frontend Validation...\n');
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-  });
+  const browser = await launchChromium();
 
   const page = await browser.newPage();
 
