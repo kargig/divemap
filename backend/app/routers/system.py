@@ -6,7 +6,7 @@ from datetime import UTC, datetime, timedelta
 import psutil
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy import Integer, and_, desc, func, text
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.auth import get_current_admin_user
 from app.database import get_db
@@ -21,6 +21,7 @@ from app.models import (
     DiveSite,
     DivingCenter,
     DivingOrganization,
+    EntityAuditLog,
     Newsletter,
     Notification,
     ParsedDiveTrip,
@@ -34,6 +35,7 @@ from app.models import (
 from app.monitoring import get_turnstile_stats
 from app.schemas import (
     AuthAuditLogResponse,
+    EntityAuditLogResponse,
     GrowthResponse,
     NotificationAnalyticsResponse,
     PlatformStatsResponse,
@@ -1873,6 +1875,79 @@ async def get_audit_logs(
         result.append(log_data)
 
     # Set pagination headers
+    response.headers["X-Total-Count"] = str(total_count)
+    response.headers["X-Total-Pages"] = str(total_pages)
+    response.headers["X-Current-Page"] = str(page)
+    response.headers["X-Page-Size"] = str(page_size)
+
+    return result
+
+
+@router.get("/entity-audit-logs", response_model=list[EntityAuditLogResponse])
+async def get_entity_audit_logs(
+    response: Response,
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(25, ge=1, le=100, description="Items per page"),
+    entity_type: str | None = Query(None, description="Filter by entity type"),
+    entity_id: str | None = Query(None, description="Filter by entity ID"),
+    action: str | None = Query(None, description="Filter by action"),
+    auth_method: str | None = Query(None, description="Filter by auth method"),
+    user_id: int | None = Query(None, description="Filter by user ID"),
+    username: str | None = Query(None, description="Filter by username"),
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Get entity lifecycle audit logs with pagination and filtering (Admin only).
+    """
+    query = db.query(EntityAuditLog).outerjoin(User, EntityAuditLog.user_id == User.id)
+
+    if entity_type:
+        query = query.filter(EntityAuditLog.entity_type == entity_type)
+    if entity_id:
+        query = query.filter(EntityAuditLog.entity_id == entity_id)
+    if action:
+        query = query.filter(EntityAuditLog.action == action)
+    if auth_method:
+        query = query.filter(EntityAuditLog.auth_method == auth_method)
+    if user_id:
+        query = query.filter(EntityAuditLog.user_id == user_id)
+    if username:
+        query = query.filter(User.username.ilike(f"%{username}%"))
+
+    total_count = query.count()
+    total_pages = (total_count + page_size - 1) // page_size
+    offset = (page - 1) * page_size
+
+    logs = (
+        query.options(joinedload(EntityAuditLog.user))
+        .order_by(EntityAuditLog.created_at.desc(), EntityAuditLog.id.desc())
+        .offset(offset)
+        .limit(page_size)
+        .all()
+    )
+
+    result = []
+    for log in logs:
+        log_dict = {
+            "id": log.id,
+            "entity_type": log.entity_type,
+            "entity_id": log.entity_id,
+            "action": log.action,
+            "user_id": log.user_id,
+            "user_role": log.user_role,
+            "username": log.user.username if log.user else None,
+            "auth_method": log.auth_method,
+            "pat_id": log.pat_id,
+            "pat_name": log.pat_name,
+            "ip_address": log.ip_address,
+            "user_agent": log.user_agent,
+            "client_type": log.client_type,
+            "changes": log.changes,
+            "created_at": log.created_at,
+        }
+        result.append(EntityAuditLogResponse.model_validate(log_dict))
+
     response.headers["X-Total-Count"] = str(total_count)
     response.headers["X-Total-Pages"] = str(total_pages)
     response.headers["X-Current-Page"] = str(page)

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
@@ -26,6 +26,7 @@ from app.schemas import (
     TagUpdate,
     TagWithCountResponse,
 )
+from app.services.entity_audit_service import log_entity_mutation
 
 router = APIRouter()
 
@@ -69,6 +70,7 @@ def get_all_tags_with_counts(db: Session = Depends(get_db)):
 @router.post("/", response_model=TagResponse)
 def create_tag(
     tag: TagCreate,
+    request: Request = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(is_admin_or_moderator),
 ):
@@ -85,6 +87,16 @@ def create_tag(
         name=tag.name, description=tag.description, created_by=current_user.id
     )
     db.add(db_tag)
+    db.flush()
+    log_entity_mutation(
+        db,
+        "available_tag",
+        db_tag.id,
+        "create",
+        current_user,
+        request=request,
+        after_state={"name": db_tag.name, "description": db_tag.description},
+    )
     db.commit()
     db.refresh(db_tag)
     return db_tag
@@ -94,6 +106,7 @@ def create_tag(
 def update_tag(
     tag_id: int,
     tag_update: TagUpdate,
+    request: Request = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(is_admin_or_moderator),
 ):
@@ -103,6 +116,8 @@ def update_tag(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Tag not found"
         )
+
+    before_state = {"name": db_tag.name, "description": db_tag.description}
 
     if tag_update.name is not None:
         # Check if new name conflicts with existing tag
@@ -121,6 +136,17 @@ def update_tag(
     if tag_update.description is not None:
         db_tag.description = tag_update.description
 
+    log_entity_mutation(
+        db,
+        "available_tag",
+        db_tag.id,
+        "update",
+        current_user,
+        request=request,
+        before_state=before_state,
+        after_state={"name": db_tag.name, "description": db_tag.description},
+    )
+
     db.commit()
     db.refresh(db_tag)
     return db_tag
@@ -129,6 +155,7 @@ def update_tag(
 @router.delete("/{tag_id}")
 def delete_tag(
     tag_id: int,
+    request: Request = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(is_admin_or_moderator),
 ):
@@ -138,6 +165,16 @@ def delete_tag(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Tag not found"
         )
+
+    log_entity_mutation(
+        db,
+        "available_tag",
+        db_tag.id,
+        "delete",
+        current_user,
+        request=request,
+        before_state={"name": db_tag.name, "description": db_tag.description},
+    )
 
     db.delete(db_tag)
     db.commit()

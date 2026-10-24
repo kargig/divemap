@@ -4,7 +4,7 @@ import re
 from datetime import UTC, datetime, timedelta
 
 import jwt
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, Header, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt.exceptions import InvalidTokenError
 from passlib.context import CryptContext
@@ -117,8 +117,8 @@ def verify_token(token: str) -> TokenData | None:
         return None
 
 
-def verify_pat(token: str, db: Session) -> User | None:
-    """Verify a Personal Access Token (PAT) using efficient prefix lookup."""
+def verify_pat_record(token: str, db: Session) -> PersonalAccessToken | None:
+    """Verify a Personal Access Token (PAT) and return the token model instance."""
     if not token.startswith("dm_pat_"):
         return None
 
@@ -156,16 +156,23 @@ def verify_pat(token: str, db: Session) -> User | None:
                 # Update last used timestamp
                 pat.last_used_at = now
                 db.commit()
-                return pat.user
+                return pat
 
     except Exception as e:
-        logger.error(f"Error in verify_pat: {e}", exc_info=True)
+        logger.error(f"Error in verify_pat_record: {e}", exc_info=True)
         return None
 
     return None
 
 
+def verify_pat(token: str, db: Session) -> User | None:
+    """Verify a Personal Access Token (PAT) using efficient prefix lookup."""
+    pat = verify_pat_record(token, db)
+    return pat.user if pat else None
+
+
 async def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db),
 ) -> User:
@@ -179,9 +186,13 @@ async def get_current_user(
 
     # Try PAT first if it has the prefix
     if token.startswith("dm_pat_"):
-        user = verify_pat(token, db)
-        if user:
-            return user
+        pat = verify_pat_record(token, db)
+        if pat:
+            if hasattr(request, "state"):
+                request.state.auth_method = "pat"
+                request.state.pat_id = pat.id
+                request.state.pat_name = pat.name
+            return pat.user
         raise credentials_exception
 
     # Otherwise try JWT
@@ -192,6 +203,11 @@ async def get_current_user(
     user = db.query(User).filter(User.username == token_data.username).first()
     if user is None:
         raise credentials_exception
+
+    if hasattr(request, "state"):
+        request.state.auth_method = "jwt"
+        request.state.pat_id = None
+        request.state.pat_name = None
 
     return user
 
@@ -247,21 +263,37 @@ async def get_optional_bearer_token(
 
 
 async def get_current_user_optional(
+    request: Request,
     token: str | None = Depends(get_optional_bearer_token),
     db: Session = Depends(get_db),
 ) -> User | None:
     if not token:
+        if hasattr(request, "state"):
+            request.state.auth_method = "guest"
+            request.state.pat_id = None
+            request.state.pat_name = None
         return None
     try:
         # Try PAT first if it has the prefix
         if token.startswith("dm_pat_"):
-            return verify_pat(token, db)
+            pat = verify_pat_record(token, db)
+            if pat:
+                if hasattr(request, "state"):
+                    request.state.auth_method = "pat"
+                    request.state.pat_id = pat.id
+                    request.state.pat_name = pat.name
+                return pat.user
+            return None
 
         # Otherwise try JWT
         token_data = verify_token(token)
         if token_data is None:
             return None
         user = db.query(User).filter(User.username == token_data.username).first()
+        if user and hasattr(request, "state"):
+            request.state.auth_method = "jwt"
+            request.state.pat_id = None
+            request.state.pat_name = None
         return user
     except Exception:
         return None

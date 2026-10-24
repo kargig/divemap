@@ -15,10 +15,12 @@ full access to all dives regardless of ownership.
 from datetime import UTC, datetime
 
 import orjson
-from fastapi import Depends, HTTPException, Query, status
+from fastapi import Depends, HTTPException, Query, Request, status
 from fastapi.responses import Response
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
+
+from app.services.entity_audit_service import log_entity_mutation, snapshot_orm_fields
 
 
 class ORJSONResponse(Response):
@@ -607,6 +609,7 @@ def get_all_dives_admin(
 def update_dive_admin(
     dive_id: int,
     dive_update: DiveUpdate,
+    request: Request = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user),
 ):
@@ -627,6 +630,18 @@ def update_dive_admin(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Dive not found"
         )
+
+    update_payload = dive_update.model_dump(exclude_unset=True)
+    orm_field_names = [
+        k
+        for k in update_payload
+        if k not in ("tags", "buddies", "difficulty_code") and hasattr(dive, k)
+    ]
+    before_state = snapshot_orm_fields(dive, orm_field_names)
+    if dive_update.tags is not None:
+        before_state["tags"] = [
+            t.tag_id for t in db.query(DiveTag).filter(DiveTag.dive_id == dive_id).all()
+        ]
 
     # Validate dive site if provided
     if dive_update.dive_site_id:
@@ -722,6 +737,22 @@ def update_dive_admin(
         for current_tag in current_tags:
             if current_tag.tag_id not in dive_update.tags:
                 db.delete(current_tag)
+
+    after_state = snapshot_orm_fields(dive, orm_field_names)
+    if dive_update.tags is not None:
+        after_state["tags"] = list(dive_update.tags)
+
+    log_entity_mutation(
+        db,
+        "dive",
+        dive.id,
+        "update",
+        current_user,
+        request=request,
+        before_state=before_state,
+        after_state=after_state,
+        metadata={"admin_override": True},
+    )
 
     dive.updated_at = datetime.now(UTC)
     db.commit()
@@ -830,6 +861,7 @@ def update_dive_admin(
 @router.delete("/admin/dives/{dive_id}")
 def delete_dive_admin(
     dive_id: int,
+    request: Request = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user),
 ):
@@ -850,6 +882,25 @@ def delete_dive_admin(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Dive not found"
         )
+
+    before_state = {
+        "name": dive.name,
+        "dive_site_id": dive.dive_site_id,
+        "diving_center_id": dive.diving_center_id,
+        "max_depth": float(dive.max_depth) if dive.max_depth is not None else None,
+        "duration": dive.duration,
+        "user_id": dive.user_id,
+    }
+    log_entity_mutation(
+        db,
+        "dive",
+        dive.id,
+        "delete",
+        current_user,
+        request=request,
+        before_state=before_state,
+        metadata={"admin_override": True},
+    )
 
     db.delete(dive)
     db.commit()

@@ -136,13 +136,17 @@ class RouteDeletionService:
 
         return False, "Insufficient permissions"
 
-    def soft_delete_route(self, route_id: int, user: User) -> bool:
+    def soft_delete_route(
+        self, route_id: int, user: User, *, commit: bool = True
+    ) -> bool:
         """
         Soft delete (hide) a route - can be done even if other users' dives use it.
 
         Args:
             route_id: ID of route to hide
             user: User performing deletion
+            commit: When False, leave the change uncommitted for the caller
+                (e.g. to log an audit row in the same transaction).
 
         Returns:
             True if successful, False otherwise
@@ -164,12 +168,18 @@ class RouteDeletionService:
 
         # Perform soft delete (no migration needed - dives keep their references)
         route.soft_delete(user.id)
-        self.db.commit()
+        if commit:
+            self.db.commit()
 
         return True
 
     def hard_delete_route(
-        self, route_id: int, user: User, migrate_to_route_id: int | None = None
+        self,
+        route_id: int,
+        user: User,
+        migrate_to_route_id: int | None = None,
+        *,
+        commit: bool = True,
     ) -> bool:
         """
         Hard delete (permanently remove) a route with optional migration of associated dives.
@@ -179,6 +189,7 @@ class RouteDeletionService:
             route_id: ID of route to delete
             user: User performing deletion
             migrate_to_route_id: Optional route ID to migrate dives to
+            commit: When False, leave the change uncommitted for the caller
 
         Returns:
             True if successful, False otherwise
@@ -209,7 +220,8 @@ class RouteDeletionService:
 
         # Perform soft delete (we still use soft delete for audit trail)
         route.soft_delete(user.id)
-        self.db.commit()
+        if commit:
+            self.db.commit()
 
         return True
 
@@ -236,13 +248,16 @@ class RouteDeletionService:
             {"selected_route_id": None}
         )
 
-    def restore_route(self, route_id: int, user: User) -> bool:
+    def restore_route(
+        self, route_id: int, user: User, *, commit: bool = True
+    ) -> bool:
         """
         Restore a soft-deleted route.
 
         Args:
             route_id: ID of route to restore
             user: User attempting restoration
+            commit: When False, leave the change uncommitted for the caller
 
         Returns:
             True if successful, False otherwise
@@ -258,7 +273,8 @@ class RouteDeletionService:
 
         # Restore the route
         route.restore()
-        self.db.commit()
+        if commit:
+            self.db.commit()
 
         return True
 

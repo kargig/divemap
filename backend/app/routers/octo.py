@@ -3,7 +3,7 @@ import uuid
 from datetime import UTC, datetime, time, timedelta
 from typing import Any
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session, joinedload
 
@@ -29,6 +29,7 @@ from app.services.booking_access_service import (
     require_booking_principal,
 )
 from app.services.booking_pricing_service import compute_participant_octo_pricing
+from app.services.entity_audit_service import log_entity_mutation
 
 logger = logging.getLogger(__name__)
 
@@ -360,6 +361,7 @@ def query_availability(query: OctoAvailabilityRequest, db: Session = Depends(get
 )
 def create_booking_hold(
     req: OctoBookingRequest,
+    request: Request = None,
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_current_user_optional),
 ):
@@ -500,6 +502,20 @@ def create_booking_hold(
     db.add(booking)
     db.flush()
 
+    log_entity_mutation(
+        db,
+        "octo_booking",
+        booking.uuid,
+        "create",
+        current_user,
+        request=request,
+        metadata={
+            "status": booking.status,
+            "total_amount": float(booking.total_amount),
+            "currency": booking.currency,
+        },
+    )
+
     access_token_raw = mint_booking_access_token(booking, expiration)
 
     response_items = []
@@ -621,6 +637,7 @@ def get_booking_details(
 @router.post("/bookings/{booking_uuid}/confirm", response_model=OctoBookingResponse)
 def confirm_booking(
     booking_uuid: str,
+    request: Request,
     req: OctoConfirmBookingRequest | None = None,
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_current_user_optional),
@@ -677,10 +694,28 @@ def confirm_booking(
     if not booking.user_id and current_user:
         booking.user_id = current_user.id
 
+    before_status = booking.status
     booking.status = "CONFIRMED"
     booking.utc_hold_expiration = None
     extend_access_token_for_voucher_window(booking)
     bump_linked_trip_current_bookings(booking, len(booking.unit_items or []))
+
+    log_entity_mutation(
+        db,
+        "octo_booking",
+        booking.uuid,
+        "confirm",
+        current_user,
+        request=request,
+        before_state={"status": before_status},
+        after_state={
+            "status": booking.status,
+            "total_amount": float(booking.total_amount)
+            if booking.total_amount is not None
+            else None,
+            "currency": booking.currency,
+        },
+    )
 
     db.commit()
     db.refresh(booking)
@@ -717,6 +752,7 @@ def confirm_booking(
 @router.post("/bookings/{booking_uuid}/cancel", response_model=OctoBookingResponse)
 def cancel_booking(
     booking_uuid: str,
+    request: Request,
     req: OctoCancelBookingRequest | None = None,
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_current_user_optional),
@@ -766,6 +802,20 @@ def cancel_booking(
         if slot and prev_status in ("ON_HOLD", "CONFIRMED", "EXPIRED"):
             reconcile_slot_seats(db, slot, commit=False, already_locked=True)
 
+        log_entity_mutation(
+            db,
+            "octo_booking",
+            booking.uuid,
+            "cancel",
+            current_user,
+            request=request,
+            before_state={"status": prev_status},
+            after_state={"status": "CANCELLED"},
+            metadata={
+                "reason": (req.reason if req and req.reason else None),
+            },
+        )
+
         db.commit()
         db.refresh(booking)
 
@@ -801,6 +851,7 @@ def cancel_booking(
 @router.post("/bookings/{booking_uuid}/extend", response_model=OctoBookingResponse)
 def extend_booking_hold(
     booking_uuid: str,
+    request: Request,
     req: OctoExtendBookingRequest | None = None,
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_current_user_optional),
@@ -820,10 +871,26 @@ def extend_booking_hold(
     )
 
     extra_minutes = req.expirationMinutes if req and req.expirationMinutes else 20
+    old_exp = booking.utc_hold_expiration
     new_exp = datetime.now(UTC) + timedelta(minutes=extra_minutes)
     booking.utc_hold_expiration = new_exp
     if booking.access_token_hash:
         booking.access_token_expires_at = new_exp
+    log_entity_mutation(
+        db,
+        "octo_booking",
+        booking.uuid,
+        "extend",
+        current_user,
+        request=request,
+        before_state={
+            "utc_hold_expiration": old_exp.isoformat() if old_exp else None,
+        },
+        after_state={
+            "utc_hold_expiration": new_exp.isoformat(),
+        },
+        metadata={"extra_minutes": extra_minutes},
+    )
     db.commit()
     db.refresh(booking)
 

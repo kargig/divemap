@@ -79,6 +79,7 @@ from app.schemas import (
     SiteRatingCreate,
     SiteRatingResponse,
 )
+from app.services.entity_audit_service import log_entity_mutation
 from app.services.image_processing import image_processing
 from app.services.open_meteo_service import fetch_wind_data_single_point
 from app.services.osm_coastline_service import detect_shore_direction
@@ -2578,6 +2579,16 @@ async def create_dive_site(
 
     db_dive_site = DiveSite(**dive_site_data)
     db.add(db_dive_site)
+    db.flush()
+    log_entity_mutation(
+        db,
+        "dive_site",
+        db_dive_site.id,
+        "create",
+        current_user,
+        request=request,
+        after_state=dive_site_data,
+    )
     db.commit()
     db.refresh(db_dive_site)
 
@@ -3637,7 +3648,18 @@ async def approve_dive_site(
             status_code=400, detail="Dive site is not in pending status"
         )
 
+    before_status = dive_site.status
     dive_site.status = "approved"
+    log_entity_mutation(
+        db,
+        "dive_site",
+        dive_site.id,
+        "approve",
+        current_user,
+        request=request,
+        before_state={"status": before_status},
+        after_state={"status": "approved", "name": dive_site.name},
+    )
     db.commit()
     db.refresh(dive_site)
 
@@ -3675,7 +3697,18 @@ async def reject_dive_site(
             status_code=400, detail="Dive site is not in pending status"
         )
 
+    before_status = dive_site.status
     dive_site.status = "rejected"
+    log_entity_mutation(
+        db,
+        "dive_site",
+        dive_site.id,
+        "reject",
+        current_user,
+        request=request,
+        before_state={"status": before_status},
+        after_state={"status": "rejected", "name": dive_site.name},
+    )
     db.commit()
 
     return {"status": "success", "message": "Dive site rejected"}
@@ -3839,8 +3872,25 @@ async def update_dive_site(
             f"Scheduled background location and shore direction detection for dive site {dive_site_id}"
         )
 
+    before_state = {
+        field: getattr(dive_site, field)
+        for field in update_data.keys()
+        if hasattr(dive_site, field)
+    }
+
     for field, value in update_data.items():
         setattr(dive_site, field, value)
+
+    log_entity_mutation(
+        db,
+        "dive_site",
+        dive_site.id,
+        "update",
+        current_user,
+        request=request,
+        before_state=before_state,
+        after_state=update_data,
+    )
 
     db.commit()
     db.refresh(dive_site)
@@ -3950,6 +4000,15 @@ async def restore_dive_site(
 
     try:
         dive_site.deleted_at = None
+        log_entity_mutation(
+            db,
+            "dive_site",
+            dive_site.id,
+            "restore",
+            current_user,
+            request=request,
+            after_state={"name": dive_site.name},
+        )
         db.commit()
         return {"message": "Dive site restored successfully"}
     except Exception as e:
@@ -3984,7 +4043,27 @@ async def delete_dive_site(
         )
 
     try:
-        if current_user.is_admin and force:
+        before_state = {
+            "name": dive_site.name,
+            "latitude": float(dive_site.latitude)
+            if dive_site.latitude is not None
+            else None,
+            "longitude": float(dive_site.longitude)
+            if dive_site.longitude is not None
+            else None,
+        }
+        is_hard_delete = bool(current_user.is_admin and force)
+        log_entity_mutation(
+            db,
+            "dive_site",
+            dive_site.id,
+            "hard_delete" if is_hard_delete else "soft_delete",
+            current_user,
+            request=request,
+            before_state=before_state,
+        )
+
+        if is_hard_delete:
             # Hard delete
             db.delete(dive_site)
             message = "Dive site permanently deleted"
@@ -4140,6 +4219,19 @@ async def create_dive_site_comment(
         comment_text=comment.comment_text,
     )
     db.add(db_comment)
+    db.flush()
+    log_entity_mutation(
+        db,
+        "site_comment",
+        db_comment.id,
+        "create",
+        current_user,
+        request=request,
+        after_state={
+            "comment_text": comment.comment_text,
+            "dive_site_id": dive_site_id,
+        },
+    )
     db.commit()
     db.refresh(db_comment)
 

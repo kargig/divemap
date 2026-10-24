@@ -56,6 +56,7 @@ FastAPI application handling business logic, API, and database.
   - `open_meteo_service.py`: Weather data integration.
   - `wind_recommendation_service.py`: Diving-specific wind impact logic.
   - `route_analytics_service.py`: Analysis of GPS dive routes.
+  - `entity_audit_service.py`: Centralized entity lifecycle audit logging with diff tracking, secret redaction, and client/auth detection.
   - `share_service.py`: Logic for generating social sharing assets and metadata.
   - `eventbridge_service.py` & `sqs_service.py`: AWS asynchronous event orchestration.
 - `generate_static_content.py`: Generates LLM documentation and static site content for edge workers.

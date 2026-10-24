@@ -361,13 +361,13 @@ const AdminLayout = () => {
         className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out ${isSidebarOpen ? 'md:ml-64' : 'md:ml-20'}`}
       >
         {/* Top Header */}
-        <header className='bg-white shadow-sm border-b border-gray-200 z-10 shrink-0 h-16'>
+        <header className='bg-white dark:bg-slate-800 shadow-sm border-b border-gray-200 dark:border-slate-700 z-10 shrink-0 h-16 transition-colors'>
           <div className='flex items-center justify-between px-4 sm:px-6 h-full'>
             <div className='flex items-center'>
               {/* Mobile Menu Toggle */}
               <button
                 onClick={() => setIsMobileMenuOpen(true)}
-                className='p-2 mr-3 text-gray-500 rounded-md hover:bg-gray-100 md:hidden focus:outline-none focus:ring-2 focus:ring-blue-500'
+                className='p-2 mr-3 text-gray-500 dark:text-gray-400 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700 md:hidden focus:outline-none focus:ring-2 focus:ring-blue-500'
                 aria-label='Open sidebar'
               >
                 <Menu className='h-6 w-6' />
@@ -376,7 +376,7 @@ const AdminLayout = () => {
               {/* Desktop Collapse Toggle */}
               <button
                 onClick={toggleSidebar}
-                className='hidden md:flex p-1.5 mr-4 text-gray-500 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-200'
+                className='hidden md:flex p-1.5 mr-4 text-gray-500 dark:text-gray-400 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-200 dark:border-slate-700'
                 aria-label='Toggle sidebar'
                 title={isSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
               >
@@ -393,7 +393,7 @@ const AdminLayout = () => {
 
             {/* Header Right Actions */}
             <div className='flex items-center space-x-4'>
-              <div className='hidden sm:flex items-center text-sm text-gray-600 bg-gray-100 px-3 py-1.5 rounded-full border border-gray-200'>
+              <div className='hidden sm:flex items-center text-sm text-gray-600 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 px-3 py-1.5 rounded-full border border-gray-200 dark:border-slate-600'>
                 <div className='w-2 h-2 bg-green-500 rounded-full mr-2'></div>
                 Admin Mode
               </div>
@@ -402,7 +402,7 @@ const AdminLayout = () => {
         </header>
 
         {/* Page Content */}
-        <main className='flex-1 overflow-auto bg-gray-50/50 relative'>
+        <main className='flex-1 overflow-auto bg-gray-50/50 dark:bg-slate-900 transition-colors relative'>
           <Outlet />
         </main>
       </div>

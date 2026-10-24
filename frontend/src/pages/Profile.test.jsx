@@ -89,4 +89,25 @@ describe('Profile Account Hub', () => {
     expect(screen.getByText('My Dive Bookings')).toBeInTheDocument();
     expect(screen.getByText('Medical Self-Declaration (DMSC 2020)')).toBeInTheDocument();
   });
+
+  it('renders Card ID and Issue Date inputs when Add Certification is clicked', async () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <HelmetProvider>
+          <MemoryRouter initialEntries={['/profile/credentials']}>
+            <Routes>
+              <Route path='/profile' element={<Profile />} />
+              <Route path='/profile/:tab' element={<Profile />} />
+            </Routes>
+          </MemoryRouter>
+        </HelmetProvider>
+      </QueryClientProvider>
+    );
+
+    const addBtn = await screen.findByRole('button', { name: /Add Certification/i });
+    fireEvent.click(addBtn);
+
+    expect(await screen.findByLabelText(/Card ID \/ Certification Number/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Certification \/ Issue Date/i)).toBeInTheDocument();
+  });
 });
