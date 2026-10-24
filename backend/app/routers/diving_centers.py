@@ -85,6 +85,7 @@ logger = logging.getLogger(__name__)
 
 from fastapi import File, UploadFile
 
+from app.services.entity_audit_service import log_entity_mutation
 from app.services.image_processing import image_processing
 from app.services.r2_storage_service import r2_storage
 
@@ -1390,11 +1391,22 @@ async def get_diving_centers(
 @router.post("/", response_model=DivingCenterResponse)
 async def create_diving_center(
     diving_center: DivingCenterCreate,
+    request: Request = None,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
     db_diving_center = DivingCenter(**diving_center.model_dump())
     db.add(db_diving_center)
+    db.flush()
+    log_entity_mutation(
+        db,
+        "diving_center",
+        db_diving_center.id,
+        "create",
+        current_user,
+        request=request,
+        after_state=diving_center.model_dump(),
+    )
     db.commit()
     db.refresh(db_diving_center)
 
@@ -1677,6 +1689,7 @@ async def get_diving_center(
 async def update_diving_center(
     diving_center_id: int,
     diving_center_update: DivingCenterUpdate,
+    request: Request = None,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
@@ -1705,8 +1718,24 @@ async def update_diving_center(
         )
 
     update_data = diving_center_update.model_dump(exclude_unset=True)
+    before_state = {
+        field: getattr(diving_center, field)
+        for field in update_data.keys()
+        if hasattr(diving_center, field)
+    }
     for field, value in update_data.items():
         setattr(diving_center, field, value)
+
+    log_entity_mutation(
+        db,
+        "diving_center",
+        diving_center.id,
+        "update",
+        current_user,
+        request=request,
+        before_state=before_state,
+        after_state=update_data,
+    )
 
     db.commit()
     db.refresh(diving_center)
@@ -1892,6 +1921,7 @@ async def get_diving_center_managers(
 async def add_diving_center_manager(
     diving_center_id: int,
     manager_create: DivingCenterManagerCreate,
+    request: Request = None,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
@@ -1950,6 +1980,16 @@ async def add_diving_center_manager(
         diving_center_id=diving_center_id, user_id=target_user.id
     )
     db.add(new_manager)
+    db.flush()
+    log_entity_mutation(
+        db,
+        "diving_center_manager",
+        new_manager.id,
+        "create",
+        current_user,
+        request=request,
+        metadata={"diving_center_id": diving_center_id, "user_id": target_user.id},
+    )
     db.commit()
 
     return DivingCenterManagerResponse(
@@ -1965,6 +2005,7 @@ async def add_diving_center_manager(
 async def remove_diving_center_manager(
     diving_center_id: int,
     user_id: int,
+    request: Request = None,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
@@ -2002,6 +2043,16 @@ async def remove_diving_center_manager(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Manager association not found",
         )
+
+    log_entity_mutation(
+        db,
+        "diving_center_manager",
+        assoc.id,
+        "delete",
+        current_user,
+        request=request,
+        metadata={"diving_center_id": diving_center_id, "user_id": user_id},
+    )
 
     db.delete(assoc)
     db.commit()
@@ -2119,6 +2170,7 @@ async def delete_diving_center_media(
 @router.delete("/{diving_center_id}")
 async def delete_diving_center(
     diving_center_id: int,
+    request: Request = None,
     current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db),
 ):
@@ -2129,6 +2181,27 @@ async def delete_diving_center(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Diving center not found"
         )
+
+    before_state = {
+        "name": diving_center.name,
+        "country": diving_center.country,
+        "city": diving_center.city,
+        "latitude": float(diving_center.latitude)
+        if diving_center.latitude is not None
+        else None,
+        "longitude": float(diving_center.longitude)
+        if diving_center.longitude is not None
+        else None,
+    }
+    log_entity_mutation(
+        db,
+        "diving_center",
+        diving_center.id,
+        "hard_delete",
+        current_user,
+        request=request,
+        before_state=before_state,
+    )
 
     db.delete(diving_center)
     db.commit()
@@ -2273,6 +2346,7 @@ async def get_diving_center_comments(
 async def create_diving_center_comment(
     diving_center_id: int,
     comment: CenterCommentCreate,
+    request: Request = None,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
@@ -2298,6 +2372,19 @@ async def create_diving_center_comment(
         comment_text=comment.comment_text,
     )
     db.add(db_comment)
+    db.flush()
+    log_entity_mutation(
+        db,
+        "center_comment",
+        db_comment.id,
+        "create",
+        current_user,
+        request=request,
+        after_state={
+            "comment_text": comment.comment_text,
+            "diving_center_id": diving_center_id,
+        },
+    )
     db.commit()
     db.refresh(db_comment)
 
@@ -2339,6 +2426,7 @@ async def update_diving_center_comment(
     diving_center_id: int,
     comment_id: int,
     comment_update: CenterCommentUpdate,
+    request: Request = None,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
@@ -2371,7 +2459,18 @@ async def update_diving_center_comment(
             detail="Not authorized to edit this comment",
         )
 
+    before_state = {"comment_text": comment.comment_text}
     comment.comment_text = comment_update.comment_text
+    log_entity_mutation(
+        db,
+        "center_comment",
+        comment.id,
+        "update",
+        current_user,
+        request=request,
+        before_state=before_state,
+        after_state={"comment_text": comment.comment_text},
+    )
     db.commit()
     db.refresh(comment)
 
@@ -2410,6 +2509,7 @@ async def update_diving_center_comment(
 async def delete_diving_center_comment(
     diving_center_id: int,
     comment_id: int,
+    request: Request = None,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
@@ -2451,6 +2551,20 @@ async def delete_diving_center_comment(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to delete this comment",
         )
+
+    before_state = {
+        "comment_text": comment.comment_text,
+        "diving_center_id": diving_center_id,
+    }
+    log_entity_mutation(
+        db,
+        "center_comment",
+        comment.id,
+        "delete",
+        current_user,
+        request=request,
+        before_state=before_state,
+    )
 
     db.delete(comment)
     db.commit()
@@ -2811,6 +2925,7 @@ async def remove_diving_center_organization(
 async def claim_diving_center_ownership(
     diving_center_id: int,
     claim: DivingCenterOwnershipClaim,
+    request: Request = None,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
@@ -2841,6 +2956,16 @@ async def claim_diving_center_ownership(
         reason=claim.reason,
     )
     db.add(ownership_request)
+    db.flush()
+    log_entity_mutation(
+        db,
+        "ownership_request",
+        ownership_request.id,
+        "ownership_claimed",
+        current_user,
+        request=request,
+        metadata={"diving_center_id": diving_center_id, "reason": claim.reason},
+    )
 
     # Update diving center ownership status
     diving_center.ownership_status = OwnershipStatus.claimed
@@ -2875,6 +3000,7 @@ async def claim_diving_center_ownership(
 async def approve_diving_center_ownership(
     diving_center_id: int,
     approval: DivingCenterOwnershipApproval,
+    request: Request = None,
     current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db),
 ):
@@ -2912,6 +3038,22 @@ async def approve_diving_center_ownership(
         notes=f"Ownership {'approved' if approval.approved else 'denied'} by admin",
     )
     db.add(new_ownership_request)
+    db.flush()
+    log_entity_mutation(
+        db,
+        "ownership_request",
+        new_ownership_request.id,
+        "ownership_approved" if approval.approved else "ownership_rejected",
+        current_user,
+        request=request,
+        metadata={
+            "diving_center_id": diving_center_id,
+            "user_id": current_owner_id,
+            "status": new_status.value
+            if hasattr(new_status, "value")
+            else str(new_status),
+        },
+    )
 
     db.commit()
     db.refresh(diving_center)
@@ -2928,6 +3070,7 @@ async def approve_diving_center_ownership(
 async def assign_diving_center_owner(
     diving_center_id: int,
     user_id: int,
+    request: Request = None,
     current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db),
 ):
@@ -2944,9 +3087,29 @@ async def assign_diving_center_owner(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    before_state = {
+        "owner_id": diving_center.owner_id,
+        "ownership_status": diving_center.ownership_status.value
+        if diving_center.ownership_status
+        else None,
+    }
     # Assign ownership
     diving_center.owner_id = user_id
     diving_center.ownership_status = OwnershipStatus.approved
+    log_entity_mutation(
+        db,
+        "diving_center",
+        diving_center.id,
+        "ownership_assigned",
+        current_user,
+        request=request,
+        before_state=before_state,
+        after_state={
+            "owner_id": user_id,
+            "ownership_status": OwnershipStatus.approved.value,
+        },
+        metadata={"assigned_username": user.username},
+    )
 
     db.commit()
     db.refresh(diving_center)
@@ -2963,6 +3126,7 @@ async def assign_diving_center_owner(
 async def revoke_diving_center_ownership(
     diving_center_id: int,
     revocation: DivingCenterOwnershipRevocation | str | dict[str, Any] = Body(...),
+    request: Request = None,
     current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db),
 ):
@@ -3017,9 +3181,32 @@ async def revoke_diving_center_ownership(
         )
         db.add(revocation_request)
 
+    before_state = {
+        "owner_id": diving_center.owner_id,
+        "ownership_status": diving_center.ownership_status.value
+        if diving_center.ownership_status
+        else None,
+    }
     # Revoke ownership
     diving_center.ownership_status = OwnershipStatus.unclaimed
     diving_center.owner_id = None
+    log_entity_mutation(
+        db,
+        "diving_center",
+        diving_center.id,
+        "ownership_revoked",
+        current_user,
+        request=request,
+        before_state=before_state,
+        after_state={
+            "owner_id": None,
+            "ownership_status": OwnershipStatus.unclaimed.value,
+        },
+        metadata={
+            "previous_owner": current_owner_username,
+            "reason": reason,
+        },
+    )
 
     db.commit()
     db.refresh(diving_center)

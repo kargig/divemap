@@ -13,7 +13,7 @@ This module contains core CRUD operations for dives:
 
 from datetime import UTC, datetime
 
-from fastapi import BackgroundTasks, Depends, HTTPException, Query, status
+from fastapi import BackgroundTasks, Depends, HTTPException, Query, Request, status
 from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session, joinedload, selectinload
 
@@ -33,6 +33,7 @@ from app.schemas import (
     ReplaceBuddiesRequest,
 )
 from app.services.dive_profile_parser import parse_dive_information_text
+from app.services.entity_audit_service import log_entity_mutation, snapshot_orm_fields
 from app.utils import _get_cached_avatar_url, get_unified_fuzzy_trigger_conditions
 
 from .dives_search import search_dives_with_fuzzy
@@ -56,6 +57,7 @@ from .dives_utils import generate_dive_name
 @router.post("/", response_model=DiveResponse)
 async def create_dive(
     dive: DiveCreate,
+    request: Request = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -161,6 +163,16 @@ async def create_dive(
     )
 
     db.add(db_dive)
+    db.flush()
+    log_entity_mutation(
+        db,
+        "dive",
+        db_dive.id,
+        "create",
+        current_user,
+        request=request,
+        after_state=dive.model_dump(),
+    )
     db.commit()
     db.refresh(db_dive)
 
@@ -1499,6 +1511,7 @@ def get_dive_details(
 def update_dive(
     dive_id: int,
     dive_update: DiveUpdate,
+    request: Request = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -1524,6 +1537,25 @@ def update_dive(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Dive not found"
         )
+
+    update_payload = dive_update.model_dump(exclude_unset=True)
+    orm_field_names = [
+        k
+        for k in update_payload
+        if k not in ("tags", "buddies", "difficulty_code") and hasattr(dive, k)
+    ]
+    before_state = snapshot_orm_fields(dive, orm_field_names)
+    if "difficulty_code" in update_payload:
+        before_state["difficulty_id"] = dive.difficulty_id
+    if dive_update.tags is not None:
+        before_state["tags"] = [
+            t.tag_id for t in db.query(DiveTag).filter(DiveTag.dive_id == dive_id).all()
+        ]
+    if dive_update.buddies is not None:
+        before_state["buddies"] = [
+            b.user_id
+            for b in db.query(DiveBuddy).filter(DiveBuddy.dive_id == dive_id).all()
+        ]
 
     # Validate dive site if provided
     if dive_update.dive_site_id:
@@ -1698,6 +1730,25 @@ def update_dive(
             if current_tag.tag_id not in dive_update.tags:
                 db.delete(current_tag)
 
+    after_state = snapshot_orm_fields(dive, orm_field_names)
+    if "difficulty_code" in update_payload or "difficulty_id" in before_state:
+        after_state["difficulty_id"] = dive.difficulty_id
+    if dive_update.tags is not None:
+        after_state["tags"] = list(dive_update.tags)
+    if dive_update.buddies is not None:
+        after_state["buddies"] = list(dive_update.buddies)
+
+    log_entity_mutation(
+        db,
+        "dive",
+        dive.id,
+        "update",
+        current_user,
+        request=request,
+        before_state=before_state,
+        after_state=after_state,
+    )
+
     dive.updated_at = datetime.now(UTC)
     db.commit()
 
@@ -1862,6 +1913,7 @@ def update_dive(
 @router.delete("/{dive_id}")
 def delete_dive(
     dive_id: int,
+    request: Request = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -1876,11 +1928,27 @@ def delete_dive(
         .filter(Dive.id == dive_id, Dive.user_id == current_user.id)
         .first()
     )
-
     if not dive:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Dive not found"
         )
+
+    before_state = {
+        "name": dive.name,
+        "dive_site_id": dive.dive_site_id,
+        "diving_center_id": dive.diving_center_id,
+        "max_depth": float(dive.max_depth) if dive.max_depth else None,
+        "duration": dive.duration,
+    }
+    log_entity_mutation(
+        db,
+        "dive",
+        dive.id,
+        "delete",
+        current_user,
+        request=request,
+        before_state=before_state,
+    )
 
     db.delete(dive)
     db.commit()

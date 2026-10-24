@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_active_user, get_current_user_optional
@@ -6,9 +6,11 @@ from app.database import get_db
 from app.models import DivingOrganization, User, UserCertification
 from app.schemas import (
     UserCertificationCreate,
+    UserCertificationPublicResponse,
     UserCertificationResponse,
     UserCertificationUpdate,
 )
+from app.services.entity_audit_service import log_entity_mutation
 
 router = APIRouter()
 
@@ -27,14 +29,15 @@ async def get_my_certifications(
 
 
 @router.get(
-    "/users/{user_id}/certifications", response_model=list[UserCertificationResponse]
+    "/users/{user_id}/certifications",
+    response_model=list[UserCertificationPublicResponse],
 )
 async def get_user_certifications(
     user_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_optional),
 ):
-    """Get certifications for a specific user (public endpoint)."""
+    """Get certifications for a specific user (public endpoint; no card_id)."""
     # Check if user exists
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -53,6 +56,7 @@ async def get_user_certifications(
 @router.post("/my-certifications", response_model=UserCertificationResponse)
 async def create_my_certification(
     certification: UserCertificationCreate,
+    request: Request = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
@@ -124,6 +128,16 @@ async def create_my_certification(
         **certification.model_dump(), user_id=current_user.id
     )
     db.add(db_certification)
+    db.flush()
+    log_entity_mutation(
+        db,
+        "user_certification",
+        db_certification.id,
+        "create",
+        current_user,
+        request=request,
+        after_state=certification.model_dump(),
+    )
     db.commit()
     db.refresh(db_certification)
     return db_certification
@@ -135,6 +149,7 @@ async def create_my_certification(
 async def update_my_certification(
     certification_id: int,
     certification: UserCertificationUpdate,
+    request: Request = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
@@ -188,10 +203,27 @@ async def update_my_certification(
         if not certification.certification_level:
             certification.certification_level = level.name
 
-    # Update fields
     update_data = certification.model_dump(exclude_unset=True)
+    before_state = {
+        field: getattr(db_certification, field)
+        for field in update_data.keys()
+        if hasattr(db_certification, field)
+    }
+
+    # Update fields
     for field, value in update_data.items():
         setattr(db_certification, field, value)
+
+    log_entity_mutation(
+        db,
+        "user_certification",
+        db_certification.id,
+        "update",
+        current_user,
+        request=request,
+        before_state=before_state,
+        after_state=update_data,
+    )
 
     db.commit()
     db.refresh(db_certification)
@@ -201,6 +233,7 @@ async def update_my_certification(
 @router.delete("/my-certifications/{certification_id}")
 async def delete_my_certification(
     certification_id: int,
+    request: Request = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
@@ -215,6 +248,22 @@ async def delete_my_certification(
     )
     if not db_certification:
         raise HTTPException(status_code=404, detail="Certification not found")
+
+    before_state = {
+        "diving_organization_id": db_certification.diving_organization_id,
+        "certification_level": db_certification.certification_level,
+        "card_id": db_certification.card_id,
+        "certification_date": db_certification.certification_date,
+    }
+    log_entity_mutation(
+        db,
+        "user_certification",
+        db_certification.id,
+        "delete",
+        current_user,
+        request=request,
+        before_state=before_state,
+    )
 
     db.delete(db_certification)
     db.commit()

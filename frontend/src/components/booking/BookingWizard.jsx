@@ -611,16 +611,18 @@ const BookingWizard = () => {
           );
           setCertAgency(matchedOrg?.acronym || mostAdvancedCert.agency || '');
           if (mostAdvancedCert.level) setCertLevel(mostAdvancedCert.level);
-          if (mostAdvancedCert.number) setCertNumber(mostAdvancedCert.number);
+          const platformCardId = mostAdvancedCert.card_id || mostAdvancedCert.number || '';
+          if (platformCardId) {
+            setCertNumber(platformCardId);
+          } else if (cookiePrefs?.certNumber) {
+            setCertNumber(cookiePrefs.certNumber);
+          } else {
+            setCertNumber('');
+          }
         } else if (cookiePrefs) {
           if (cookiePrefs.certAgency) setCertAgency(cookiePrefs.certAgency);
           if (cookiePrefs.certLevel) setCertLevel(cookiePrefs.certLevel);
           if (cookiePrefs.certNumber) setCertNumber(cookiePrefs.certNumber);
-        }
-
-        // Restore saved scuba diving certification card ID from cookies if user opted to remember
-        if (cookiePrefs?.certNumber) {
-          setCertNumber(cookiePrefs.certNumber);
         }
       } catch (err) {
         console.error('Failed to load checkout context:', err);
@@ -1764,9 +1766,7 @@ const BookingWizard = () => {
                               onClick={() => {
                                 setCertAgency(orgAcronym || '');
                                 setCertLevel(c.level || '');
-                                if (c.number) {
-                                  setCertNumber(c.number);
-                                }
+                                setCertNumber(c.card_id || c.number || '');
                               }}
                               className={`px-2.5 py-1 text-xs rounded-lg font-medium transition-all ${
                                 isSelected

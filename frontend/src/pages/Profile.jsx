@@ -523,10 +523,15 @@ const Profile = () => {
   };
 
   const onCertSubmit = data => {
+    const normalized = {
+      ...data,
+      card_id: data.card_id === '' ? null : data.card_id,
+      certification_date: data.certification_date === '' ? null : data.certification_date,
+    };
     if (editingCertification) {
-      updateCertMutation.mutate({ id: editingCertification.id, data });
+      updateCertMutation.mutate({ id: editingCertification.id, data: normalized });
     } else {
-      addCertMutation.mutate(data);
+      addCertMutation.mutate(normalized);
     }
   };
 
@@ -645,6 +650,8 @@ const Profile = () => {
     setEditingCertification(certification);
     setValueCert('diving_organization_id', certification.diving_organization.id);
     setValueCert('is_active', certification.is_active);
+    setValueCert('card_id', certification.card_id || '');
+    setValueCert('certification_date', certification.certification_date || '');
 
     // We need to wait for availableLevels to be fetched before we can set certification_level_id
     // But since it is fetched via useEffect on diving_organization_id change, we can't do it here easily
@@ -1665,6 +1672,42 @@ const Profile = () => {
                               }}
                             </FormField>
                           </div>
+
+                          <div>
+                            <FormField name='card_id' label='Card ID / Certification Number'>
+                              {({ register, name }) => (
+                                <input
+                                  id={name}
+                                  type='text'
+                                  placeholder='e.g. 12345678 or Digital Card ID (optional)'
+                                  {...register(name)}
+                                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 ${
+                                    certErrors.card_id
+                                      ? 'border-red-500'
+                                      : 'border-gray-300 dark:border-slate-600'
+                                  }`}
+                                />
+                              )}
+                            </FormField>
+                          </div>
+
+                          <div>
+                            <FormField name='certification_date' label='Certification / Issue Date'>
+                              {({ register, name }) => (
+                                <input
+                                  id={name}
+                                  type='date'
+                                  max={new Date().toISOString().split('T')[0]}
+                                  {...register(name)}
+                                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 ${
+                                    certErrors.certification_date
+                                      ? 'border-red-500'
+                                      : 'border-gray-300 dark:border-slate-600'
+                                  }`}
+                                />
+                              )}
+                            </FormField>
+                          </div>
                         </div>
 
                         <div className='mt-2'>
@@ -1790,6 +1833,42 @@ const Profile = () => {
                               }}
                             </FormField>
                           </div>
+
+                          <div>
+                            <FormField name='card_id' label='Card ID / Certification Number'>
+                              {({ register, name }) => (
+                                <input
+                                  id={name}
+                                  type='text'
+                                  placeholder='e.g. 12345678 or Digital Card ID (optional)'
+                                  {...register(name)}
+                                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 ${
+                                    certErrors.card_id
+                                      ? 'border-red-500'
+                                      : 'border-gray-300 dark:border-slate-600'
+                                  }`}
+                                />
+                              )}
+                            </FormField>
+                          </div>
+
+                          <div>
+                            <FormField name='certification_date' label='Certification / Issue Date'>
+                              {({ register, name }) => (
+                                <input
+                                  id={name}
+                                  type='date'
+                                  max={new Date().toISOString().split('T')[0]}
+                                  {...register(name)}
+                                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 ${
+                                    certErrors.certification_date
+                                      ? 'border-red-500'
+                                      : 'border-gray-300 dark:border-slate-600'
+                                  }`}
+                                />
+                              )}
+                            </FormField>
+                          </div>
                         </div>
 
                         <div className='mt-2'>
@@ -1887,6 +1966,27 @@ const Profile = () => {
                                     </span>
                                   </div>
                                 </Link>
+                                {(cert.card_id || cert.certification_date) && (
+                                  <div className='mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500 dark:text-slate-400'>
+                                    {cert.card_id && (
+                                      <span className='font-mono'>
+                                        Card ID:{' '}
+                                        <span className='font-semibold text-gray-700 dark:text-slate-200'>
+                                          {cert.card_id}
+                                        </span>
+                                      </span>
+                                    )}
+                                    {cert.card_id && cert.certification_date && <span>•</span>}
+                                    {cert.certification_date && (
+                                      <span>
+                                        Issued:{' '}
+                                        <span className='font-semibold text-gray-700 dark:text-slate-200'>
+                                          {formatDate(cert.certification_date)}
+                                        </span>
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             </div>
 

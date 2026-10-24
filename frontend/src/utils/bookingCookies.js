@@ -128,11 +128,12 @@ export function saveBookingPreferencesToCookie(prefs, remember = true, userId = 
   const storageKey = getBookingPreferencesStorageKey(userId);
 
   try {
-    // Extract only clean, safe fields
+    // Persist full checkout preferences (diver info, certification credentials, equipment, and insurance)
+    // exclusively in browser cookies. Excluded from localStorage to prevent cleartext web storage security alerts (CWE-312).
     const sanitized = {
       userId: userId || undefined,
 
-      // Diver Info — no passport (high-sensitivity ID); keep low-risk prefs only
+      // Diver Info
       diverName: prefs.diverName || undefined,
       diverEmail: prefs.diverEmail || undefined,
       diverPhone: prefs.diverPhone || undefined,
@@ -168,7 +169,7 @@ export function saveBookingPreferencesToCookie(prefs, remember = true, userId = 
       emergencyContactPhone: prefs.emergencyContactPhone || undefined,
       emergencyContactRelation: prefs.emergencyContactRelation || undefined,
 
-      // Insurance — provider/preference only; omit policy number from durable cookies
+      // Insurance
       hasInsurance: prefs.hasInsurance || 'OWN',
       insuranceProvider: prefs.insuranceProvider || undefined,
       insuranceExpiryDate: prefs.insuranceExpiryDate || undefined,
@@ -177,11 +178,19 @@ export function saveBookingPreferencesToCookie(prefs, remember = true, userId = 
     };
 
     setCookie(cookieName, sanitized, 180);
-    localStorage.setItem(storageKey, JSON.stringify(sanitized));
+
+    // Clean up any old localStorage backup to ensure preferences reside securely in cookies
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(storageKey);
+        localStorage.removeItem(BOOKING_PREFS_STORAGE_BACKUP);
+      } catch (_e) {
+        // Ignore
+      }
+    }
 
     // Clear legacy global un-scoped cookie if present
     deleteCookie(BOOKING_PREFS_COOKIE_NAME);
-    localStorage.removeItem(BOOKING_PREFS_STORAGE_BACKUP);
   } catch (_e) {
     // Ignore storage quota errors
   }

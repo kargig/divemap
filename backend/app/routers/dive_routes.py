@@ -35,6 +35,7 @@ from app.schemas import (
     DiveRouteWithDetails,
     RouteDeletionCheck,
 )
+from app.services.entity_audit_service import log_entity_mutation, snapshot_orm_fields
 from app.services.route_analytics_service import RouteAnalyticsService
 from app.services.route_deletion_service import RouteDeletionService
 from app.services.route_export_service import RouteExportService
@@ -289,6 +290,22 @@ async def create_route(
     )
 
     db.add(db_route)
+    db.flush()
+    log_entity_mutation(
+        db,
+        "dive_route",
+        db_route.id,
+        "create",
+        current_user,
+        request=request,
+        after_state={
+            "name": db_route.name,
+            "dive_site_id": db_route.dive_site_id,
+            "route_type": db_route.route_type.value
+            if hasattr(db_route.route_type, "value")
+            else str(db_route.route_type),
+        },
+    )
     db.commit()
     db.refresh(db_route)
 
@@ -385,6 +402,7 @@ async def update_route(
 
     # Update fields with sanitization
     update_data = route_data.model_dump(exclude_unset=True)
+    before_state = snapshot_orm_fields(route, update_data.keys())
     for field, value in update_data.items():
         if field == "name" and value:
             sanitized_value = sanitize_input(value, MAX_ROUTE_NAME_LENGTH)
@@ -399,6 +417,18 @@ async def update_route(
             setattr(route, field, sanitized_value)
         else:
             setattr(route, field, value)
+
+    after_state = snapshot_orm_fields(route, before_state.keys())
+    log_entity_mutation(
+        db,
+        "dive_route",
+        route.id,
+        "update",
+        current_user,
+        request=request,
+        before_state=before_state,
+        after_state=after_state,
+    )
 
     db.commit()
     db.refresh(route)
@@ -426,12 +456,38 @@ async def hide_route(
             status_code=status.HTTP_403_FORBIDDEN, detail=deletion_check.reason
         )
 
-    # Perform soft delete
-    success = deletion_service.soft_delete_route(route_id, current_user)
+    route = (
+        db.query(DiveRoute)
+        .filter(and_(DiveRoute.id == route_id, DiveRoute.deleted_at.is_(None)))
+        .first()
+    )
+    before_state = None
+    if route:
+        before_state = {
+            "name": route.name,
+            "description": route.description,
+            "route_type": route.route_type.value
+            if hasattr(route.route_type, "value")
+            else str(route.route_type),
+        }
+
+    # Perform soft delete without committing so audit shares the transaction
+    success = deletion_service.soft_delete_route(route_id, current_user, commit=False)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to hide route"
         )
+
+    log_entity_mutation(
+        db,
+        "dive_route",
+        route_id,
+        "soft_delete",
+        current_user,
+        request=request,
+        before_state=before_state,
+    )
+    db.commit()
 
     return {"message": "Route hidden successfully"}
 
@@ -459,14 +515,45 @@ async def delete_route(
             status_code=status.HTTP_403_FORBIDDEN, detail=deletion_check.reason
         )
 
-    # Perform hard delete
+    route = (
+        db.query(DiveRoute)
+        .filter(and_(DiveRoute.id == route_id, DiveRoute.deleted_at.is_(None)))
+        .first()
+    )
+    before_state = None
+    if route:
+        before_state = {
+            "name": route.name,
+            "description": route.description,
+            "route_type": route.route_type.value
+            if hasattr(route.route_type, "value")
+            else str(route.route_type),
+            "route_data": route.route_data,
+        }
+
+    # Perform hard delete without committing so audit shares the transaction
     success = deletion_service.hard_delete_route(
-        route_id, current_user, migration_route_id
+        route_id=route_id,
+        user=current_user,
+        migrate_to_route_id=migration_route_id,
+        commit=False,
     )
     if not success:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to delete route"
         )
+
+    log_entity_mutation(
+        db,
+        "dive_route",
+        route_id,
+        "hard_delete",
+        current_user,
+        request=request,
+        before_state=before_state,
+        metadata={"migration_route_id": migration_route_id},
+    )
+    db.commit()
 
     return {"message": "Route deleted successfully"}
 
@@ -482,15 +569,32 @@ async def restore_route(
     """Restore a soft-deleted route (creator or admin only)"""
     deletion_service = RouteDeletionService(db)
 
-    success = deletion_service.restore_route(route_id, current_user)
+    success = deletion_service.restore_route(
+        route_id=route_id, user=current_user, commit=False
+    )
     if not success:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Failed to restore route or insufficient permissions",
         )
 
-    # Return the restored route
+    db.flush()
     route = db.query(DiveRoute).filter(DiveRoute.id == route_id).first()
+    log_entity_mutation(
+        db,
+        "dive_route",
+        route_id,
+        "restore",
+        current_user,
+        request=request,
+        after_state={
+            "name": route.name if route else None,
+            "description": route.description if route else None,
+        },
+    )
+    db.commit()
+    if route:
+        db.refresh(route)
     return route
 
 

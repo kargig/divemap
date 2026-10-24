@@ -6,6 +6,7 @@ from app.database import get_db
 from app.limiter import skip_rate_limit_for_admin
 from app.models import DiveSite, User
 from app.schemas import DiveSiteResponse
+from app.services.entity_audit_service import log_entity_mutation, snapshot_orm_fields
 
 router = APIRouter(prefix="/dive-sites", tags=["admin_dive_sites"])
 
@@ -134,6 +135,10 @@ async def approve_edit_request(
     if not edit_req or edit_req.status != EditRequestStatus.pending:
         raise HTTPException(status_code=404, detail="Pending request not found")
 
+    proposed_snapshot = dict(edit_req.proposed_data) if edit_req.proposed_data else {}
+    site_before_state = None
+    site_after_state = None
+
     if edit_req.edit_type == EditRequestType.site_data:
         dive_site = (
             db.query(DiveSite).filter(DiveSite.id == edit_req.dive_site_id).first()
@@ -155,8 +160,10 @@ async def approve_edit_request(
             else:
                 proposed["difficulty_id"] = None
 
+        site_before_state = snapshot_orm_fields(dive_site, proposed.keys())
         for key, value in proposed.items():
             setattr(dive_site, key, value)
+        site_after_state = snapshot_orm_fields(dive_site, proposed.keys())
 
     elif edit_req.edit_type == EditRequestType.media_addition:
         media = SiteMedia(
@@ -246,6 +253,54 @@ async def approve_edit_request(
     edit_req.status = EditRequestStatus.approved
     edit_req.reviewed_at = datetime.now(UTC)
     edit_req.reviewed_by_id = current_user.id
+    edit_type_value = (
+        edit_req.edit_type.value
+        if hasattr(edit_req.edit_type, "value")
+        else str(edit_req.edit_type)
+    )
+    log_entity_mutation(
+        db,
+        "dive_site_edit_request",
+        edit_req.id,
+        "approve",
+        current_user,
+        request=request,
+        after_state={"proposed_data": proposed_snapshot},
+        metadata={
+            "dive_site_id": edit_req.dive_site_id,
+            "edit_type": edit_type_value,
+        },
+    )
+    if site_before_state is not None or site_after_state is not None:
+        log_entity_mutation(
+            db,
+            "dive_site",
+            edit_req.dive_site_id,
+            "update",
+            current_user,
+            request=request,
+            before_state=site_before_state,
+            after_state=site_after_state,
+            metadata={
+                "via_edit_request_id": edit_req.id,
+                "edit_type": edit_type_value,
+            },
+        )
+    elif edit_req.dive_site_id:
+        # Non-site_data edits still leave a site-scoped trail for filtering
+        log_entity_mutation(
+            db,
+            "dive_site",
+            edit_req.dive_site_id,
+            "update",
+            current_user,
+            request=request,
+            metadata={
+                "via_edit_request_id": edit_req.id,
+                "edit_type": edit_type_value,
+                "proposed_data": proposed_snapshot,
+            },
+        )
     db.commit()
     return {"message": "Approved"}
 
@@ -253,6 +308,7 @@ async def approve_edit_request(
 @router.post("/edit-requests/{request_id}/reject")
 async def reject_edit_request(
     request_id: int,
+    request: Request = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
@@ -270,5 +326,19 @@ async def reject_edit_request(
     edit_req.status = EditRequestStatus.rejected
     edit_req.reviewed_at = datetime.now(UTC)
     edit_req.reviewed_by_id = current_user.id
+    log_entity_mutation(
+        db,
+        "dive_site_edit_request",
+        edit_req.id,
+        "reject",
+        current_user,
+        request=request,
+        metadata={
+            "dive_site_id": edit_req.dive_site_id,
+            "edit_type": edit_req.edit_type.value
+            if hasattr(edit_req.edit_type, "value")
+            else str(edit_req.edit_type),
+        },
+    )
     db.commit()
     return {"message": "Rejected"}

@@ -309,6 +309,18 @@ export const certificationSchema = z.object({
   certification_level_id: z.union([z.string(), z.number()]).refine(val => val !== '', {
     message: 'Certification level is required',
   }),
+  card_id: z.string().max(100, 'Card ID cannot exceed 100 characters').optional().nullable(),
+  certification_date: z
+    .string()
+    .optional()
+    .nullable()
+    .refine(
+      val => {
+        if (!val || val === '') return true;
+        return /^\d{4}-\d{2}-\d{2}$/.test(val);
+      },
+      { message: 'Invalid date format (YYYY-MM-DD)' }
+    ),
   // Optional legacy field if needed, but UI uses ID now
   certification_level: z.string().optional(),
 });

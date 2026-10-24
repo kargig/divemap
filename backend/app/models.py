@@ -1104,6 +1104,8 @@ class UserCertification(Base):
     certification_level_id = Column(
         Integer, ForeignKey("certification_levels.id"), nullable=True, index=True
     )
+    card_id = Column(String(100), nullable=True)
+    certification_date = Column(Date, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(
@@ -1271,6 +1273,45 @@ class AuthAuditLog(Base):
 
     # Relationships
     user = relationship("User", back_populates="auth_audit_logs")
+
+
+class EntityAuditLog(Base):
+    __tablename__ = "entity_audit_logs"
+
+    id = Column(sa.BigInteger, primary_key=True, autoincrement=True)
+    entity_type = Column(String(32), nullable=False)
+    entity_id = Column(String(64), nullable=False)
+    action = Column(String(32), nullable=False)
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    user_role = Column(String(20), nullable=True)
+    auth_method = Column(String(20), nullable=False, default="jwt")
+    pat_id = Column(
+        Integer,
+        ForeignKey("personal_access_tokens.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    pat_name = Column(String(255), nullable=True)
+    ip_address = Column(String(45), nullable=True)
+    user_agent = Column(Text, nullable=True)
+    client_type = Column(String(30), nullable=False, default="web")
+    changes = Column(sa.JSON, nullable=True)
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id])
+    pat = relationship("PersonalAccessToken", foreign_keys=[pat_id])
+
+    __table_args__ = (
+        sa.Index("idx_entity_lookup", "entity_type", "entity_id", "created_at"),
+        sa.Index("idx_user_lookup", "user_id", "created_at"),
+        sa.Index("idx_pat_lookup", "pat_id"),
+        sa.Index("idx_action_lookup", "action"),
+        sa.Index("idx_created_at", "created_at"),
+    )
 
 
 class DiveRoute(Base):

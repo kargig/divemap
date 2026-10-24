@@ -1,11 +1,12 @@
 import orjson
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_admin_user, get_current_user_optional
 from app.database import get_db
 from app.models import Setting, User
 from app.schemas import SettingResponse, SettingUpdate
+from app.services.entity_audit_service import log_entity_mutation
 
 router = APIRouter()
 
@@ -73,6 +74,7 @@ async def list_settings(
 async def update_setting(
     key: str,
     setting_update: SettingUpdate,
+    request: Request = None,
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db),
 ):
@@ -85,8 +87,20 @@ async def update_setting(
             status_code=status.HTTP_404_NOT_FOUND, detail=f"Setting '{key}' not found"
         )
 
+    before_state = {"key": setting.key, "value": setting.value}
+
     # Serialize value to JSON string
     setting.value = serialize_setting_value(setting_update.value)
+    log_entity_mutation(
+        db,
+        "setting",
+        setting.id,
+        "update",
+        current_user,
+        request=request,
+        before_state=before_state,
+        after_state={"key": setting.key, "value": setting.value},
+    )
     db.commit()
     db.refresh(setting)
 

@@ -438,11 +438,13 @@ def get_checkout_context(
             ):
                 allows_nitrox = True
 
+            card_id = getattr(c, "card_id", None) or ""
             user_certifications.append(
                 {
                     "agency": org_name,
                     "level": c.certification_level,
-                    "number": getattr(c, "certification_number", None) or "",
+                    "card_id": card_id,
+                    "number": card_id,  # backward-compatible alias for booking UI
                     "gases": gases,
                     "max_depth": max_d,
                     "allows_nitrox": allows_nitrox,

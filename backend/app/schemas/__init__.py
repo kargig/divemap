@@ -969,17 +969,44 @@ class UserCertificationBase(BaseModel):
 
 
 class UserCertificationCreate(UserCertificationBase):
-    pass
+    card_id: str | None = Field(
+        None, max_length=100, description="Diver card ID or certification number"
+    )
+    certification_date: date | None = Field(
+        None, description="Date the certification was issued"
+    )
+
+    @field_validator("card_id", "certification_date", mode="before")
+    @classmethod
+    def empty_str_to_none(cls, v: Any) -> Any:
+        if v == "":
+            return None
+        return v
 
 
 class UserCertificationUpdate(BaseModel):
     diving_organization_id: int | None = None
     certification_level: str | None = Field(None, max_length=100)
     certification_level_id: int | None = None
+    card_id: str | None = Field(
+        None, max_length=100, description="Diver card ID or certification number"
+    )
+    certification_date: date | None = Field(
+        None, description="Date the certification was issued"
+    )
     is_active: bool | None = None
 
+    @field_validator("card_id", "certification_date", mode="before")
+    @classmethod
+    def empty_str_to_none(cls, v: Any) -> Any:
+        if v == "":
+            return None
+        return v
 
-class UserCertificationResponse(UserCertificationBase):
+
+class UserCertificationPublicResponse(UserCertificationBase):
+    """Public certification view — omits card_id and issue date."""
+
     id: int
     user_id: int
     diving_organization: DivingOrganizationSummaryResponse
@@ -988,6 +1015,13 @@ class UserCertificationResponse(UserCertificationBase):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class UserCertificationResponse(UserCertificationPublicResponse):
+    """Owner/private certification view — includes card_id and issue date."""
+
+    card_id: str | None = None
+    certification_date: date | None = None
 
 
 # Updated User Response to include certifications
@@ -1086,7 +1120,7 @@ class UserPublicProfileResponse(BaseModel):
     number_of_dives: int
     member_since: datetime
     deleted_at: datetime | None = None
-    certifications: list[UserCertificationResponse] = []
+    certifications: list[UserCertificationPublicResponse] = []
     social_links: list[UserSocialLinkResponse] = []
     stats: UserProfileStats
     certification_stats: CertificationStats | None = None
@@ -2330,6 +2364,33 @@ class AuthAuditLogResponse(BaseModel):
     @field_validator("timestamp", mode="before")
     @classmethod
     def normalize_datetime_to_utc(cls, v, info: ValidationInfo):
+        return normalize_datetime_to_utc(cls, v)
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class EntityAuditLogResponse(BaseModel):
+    """Response schema for entity lifecycle audit logs"""
+
+    id: int
+    entity_type: str
+    entity_id: str | int
+    action: str
+    user_id: int | None = None
+    user_role: str | None = None
+    username: str | None = None
+    auth_method: str
+    pat_id: int | None = None
+    pat_name: str | None = None
+    ip_address: str | None = None
+    user_agent: str | None = None
+    client_type: str
+    changes: dict[str, Any] | None = None
+    created_at: datetime
+
+    @field_validator("created_at", mode="before")
+    @classmethod
+    def normalize_created_at_to_utc(cls, v, info: ValidationInfo):
         return normalize_datetime_to_utc(cls, v)
 
     model_config = ConfigDict(from_attributes=True)

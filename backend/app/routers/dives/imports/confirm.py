@@ -1,10 +1,11 @@
 from datetime import date, datetime, time
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.models import DiveSite
 from app.schemas import DiveCreate
+from app.services.entity_audit_service import log_entity_mutation
 
 from ..dives_shared import (
     AvailableTag,
@@ -22,6 +23,7 @@ from .common import convert_difficulty_to_code, save_dive_profile_data
 @router.post("/import/confirm")
 async def confirm_import_dives(
     dives_data: list[dict],
+    request: Request = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -246,6 +248,20 @@ async def confirm_import_dives(
 
             logging.exception(f"Error importing dive {i + 1} in confirm_import_dives")
             errors.append(f"Dive {i + 1}: Internal processing error")
+
+    if imported_dives:
+        log_entity_mutation(
+            db,
+            "dive",
+            imported_dives[0]["id"],
+            "import",
+            current_user,
+            request=request,
+            metadata={
+                "imported_count": len(imported_dives),
+                "dive_ids": [d["id"] for d in imported_dives],
+            },
+        )
 
     db.commit()
 
