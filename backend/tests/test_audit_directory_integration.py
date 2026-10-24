@@ -162,7 +162,9 @@ def test_diving_center_crud_creates_audit_logs(client, admin_headers, db_session
 
     del_log = (
         db_session.query(EntityAuditLog)
-        .filter_by(entity_type="diving_center", entity_id=center_id, action="hard_delete")
+        .filter_by(
+            entity_type="diving_center", entity_id=center_id, action="hard_delete"
+        )
         .first()
     )
     assert del_log is not None

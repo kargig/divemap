@@ -472,9 +472,7 @@ async def hide_route(
         }
 
     # Perform soft delete without committing so audit shares the transaction
-    success = deletion_service.soft_delete_route(
-        route_id, current_user, commit=False
-    )
+    success = deletion_service.soft_delete_route(route_id, current_user, commit=False)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to hide route"
@@ -535,7 +533,10 @@ async def delete_route(
 
     # Perform hard delete without committing so audit shares the transaction
     success = deletion_service.hard_delete_route(
-        route_id, current_user, migration_route_id, commit=False
+        route_id=route_id,
+        user=current_user,
+        migrate_to_route_id=migration_route_id,
+        commit=False,
     )
     if not success:
         raise HTTPException(
@@ -568,13 +569,16 @@ async def restore_route(
     """Restore a soft-deleted route (creator or admin only)"""
     deletion_service = RouteDeletionService(db)
 
-    success = deletion_service.restore_route(route_id, current_user, commit=False)
+    success = deletion_service.restore_route(
+        route_id=route_id, user=current_user, commit=False
+    )
     if not success:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Failed to restore route or insufficient permissions",
         )
 
+    db.flush()
     route = db.query(DiveRoute).filter(DiveRoute.id == route_id).first()
     log_entity_mutation(
         db,

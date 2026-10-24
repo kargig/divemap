@@ -248,9 +248,7 @@ class RouteDeletionService:
             {"selected_route_id": None}
         )
 
-    def restore_route(
-        self, route_id: int, user: User, *, commit: bool = True
-    ) -> bool:
+    def restore_route(self, route_id: int, user: User, *, commit: bool = True) -> bool:
         """
         Restore a soft-deleted route.
 

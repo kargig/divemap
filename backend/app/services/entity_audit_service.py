@@ -126,11 +126,14 @@ def _extract_ip(request: Request | None) -> str | None:
 
 
 def _extract_user_agent(request: Request | None) -> str | None:
-    """Extract client User-Agent string."""
+    """Extract client User-Agent string, truncated to 500 characters to prevent table bloat."""
     if not request:
         return None
     headers = getattr(request, "headers", {})
-    return headers.get("user-agent")
+    ua = headers.get("user-agent")
+    if ua:
+        return ua[:500]
+    return None
 
 
 def _infer_client_type(request: Request | None, auth_method: str) -> str:
@@ -151,7 +154,15 @@ def _infer_client_type(request: Request | None, auth_method: str) -> str:
     if auth_method == "pat":
         return "api_client"
 
-    api_indicators = ("curl", "python", "postman", "httpie", "axios", "urllib")
+    api_indicators = (
+        "curl",
+        "python-requests",
+        "postman",
+        "httpie",
+        "axios",
+        "aiohttp",
+        "urllib",
+    )
     if any(indicator in user_agent for indicator in api_indicators):
         return "api_client"
 

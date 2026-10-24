@@ -135,9 +135,7 @@ async def approve_edit_request(
     if not edit_req or edit_req.status != EditRequestStatus.pending:
         raise HTTPException(status_code=404, detail="Pending request not found")
 
-    proposed_snapshot = (
-        dict(edit_req.proposed_data) if edit_req.proposed_data else {}
-    )
+    proposed_snapshot = dict(edit_req.proposed_data) if edit_req.proposed_data else {}
     site_before_state = None
     site_after_state = None
 

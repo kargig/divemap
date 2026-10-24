@@ -118,9 +118,7 @@ async def test_get_current_user_with_request_state(db_session, test_user, user_t
 
 
 @pytest.mark.asyncio
-async def test_get_current_user_optional_sets_guest_and_pat(
-    db_session, test_user
-):
+async def test_get_current_user_optional_sets_guest_and_pat(db_session, test_user):
     from app.auth import get_current_user_optional
 
     guest_request = SimpleNamespace(state=SimpleNamespace())
