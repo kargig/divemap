@@ -150,7 +150,7 @@ const DivingCenterDetail = () => {
       staleTime: 10 * 60 * 1000,
     }
   );
-  const isMyDivingCenter = managedCenters.some(mc => mc.id === parseInt(id, 10));
+  const isMyDivingCenter = (managedCenters ?? []).some(mc => mc.id === parseInt(id, 10));
 
   // Query for dive sites (for dropdown)
   const { data: diveSites = [] } = useQuery(
@@ -346,11 +346,11 @@ const DivingCenterDetail = () => {
 
   const isOwner = Boolean(
     user &&
-      center &&
-      ((user.id && (user.id === center.created_by || user.id === center.owner_id)) ||
-        (center.owner_username &&
-          center.owner_username === user.username &&
-          center.ownership_status === 'approved'))
+    center &&
+    ((user.id && (user.id === center.created_by || user.id === center.owner_id)) ||
+      (center.owner_username &&
+        center.owner_username === user.username &&
+        center.ownership_status === 'approved'))
   );
   const isAdmin = Boolean(user?.is_admin);
   const isManager = Boolean(center?.is_manager);

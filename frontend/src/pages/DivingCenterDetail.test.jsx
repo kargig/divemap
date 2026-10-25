@@ -3,7 +3,7 @@ import React from 'react';
 import { HelmetProvider } from 'react-helmet-async';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import * as ApiHooks from 'react-query';
-import { BrowserRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { vi, describe, it, expect, afterEach } from 'vitest';
 
 import * as AuthContext from '../contexts/AuthContext';
@@ -20,18 +20,6 @@ vi.mock('react-query', async () => {
     ...actual,
     useQuery: vi.fn(),
     useMutation: vi.fn(() => ({ mutate: vi.fn(), isLoading: false })),
-  };
-});
-
-// Mock react-router-dom
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
-  return {
-    ...actual,
-    useParams: () => ({ id: '1', slug: 'test-center' }),
-    useNavigate: () => vi.fn(),
-    useLocation: () => ({ search: '', state: {} }),
-    useSearchParams: () => [new URLSearchParams(), vi.fn()],
   };
 });
 
@@ -52,7 +40,7 @@ describe('DivingCenterDetail - Media Tab', () => {
 
     // Mock the useQuery returns for diving center and related data
     ApiHooks.useQuery.mockImplementation(key => {
-      if (key[0] === 'diving-center') {
+      if (Array.isArray(key) && key[0] === 'diving-center') {
         return {
           data: {
             id: 1,
@@ -65,15 +53,17 @@ describe('DivingCenterDetail - Media Tab', () => {
           error: null,
         };
       }
-      return { data: null, isLoading: false };
+      return { data: [], isLoading: false };
     });
 
     return render(
       <HelmetProvider>
         <QueryClientProvider client={queryClient}>
-          <BrowserRouter>
-            <DivingCenterDetail />
-          </BrowserRouter>
+          <MemoryRouter initialEntries={['/diving-centers/1/test-center']}>
+            <Routes>
+              <Route path='/diving-centers/:id/:slug' element={<DivingCenterDetail />} />
+            </Routes>
+          </MemoryRouter>
         </QueryClientProvider>
       </HelmetProvider>
     );
@@ -91,7 +81,7 @@ describe('DivingCenterDetail - Media Tab', () => {
   it('displays the photo gallery when the Media tab is clicked', () => {
     renderComponent();
 
-    // Click the Media tab
+    // Click the Media tab (tab state is URL-driven via useSearchParams)
     const mediaTab = screen.getByRole('button', { name: /Media/i });
     fireEvent.click(mediaTab);
 
@@ -103,13 +93,13 @@ describe('DivingCenterDetail - Media Tab', () => {
     const ownerUser = { id: 10, is_admin: false };
     renderComponent(ownerUser);
 
-    expect(screen.getByRole('button', { name: /Management/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Management/i })).toBeInTheDocument();
   });
 
   it('hides Management tab for regular users', () => {
     const regularUser = { id: 99, is_admin: false };
     renderComponent(regularUser);
 
-    expect(screen.queryByRole('button', { name: /Management/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Management/i })).not.toBeInTheDocument();
   });
 });

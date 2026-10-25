@@ -50,7 +50,7 @@ describe('NotificationBell', () => {
     // Find dropdown content
     // We can search for text inside the dropdown
     expect(screen.getByText('Notifications')).toBeInTheDocument();
-    expect(screen.getByText('5 unread')).toBeInTheDocument();
+    expect(screen.getByText('5 New')).toBeInTheDocument();
 
     // Find the dropdown container by inspecting the parent of a known element or by role if applicable
     // The dropdown has "fixed left-2 right-2..."

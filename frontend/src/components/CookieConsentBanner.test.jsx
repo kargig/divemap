@@ -44,7 +44,7 @@ describe('CookieConsentBanner Component', () => {
     const acceptBtn = screen.getByRole('button', { name: /Accept All/i });
     fireEvent.click(acceptBtn);
 
-    expect(setConsentSpy).toHaveBeenCalledWith({ analytics: true });
+    expect(setConsentSpy).toHaveBeenCalledWith({ analytics: true, preferences: true });
     expect(screen.queryByText(/We value your privacy/i)).not.toBeInTheDocument();
   });
 
@@ -55,7 +55,7 @@ describe('CookieConsentBanner Component', () => {
     const rejectBtn = screen.getByRole('button', { name: /Reject Optional/i });
     fireEvent.click(rejectBtn);
 
-    expect(setConsentSpy).toHaveBeenCalledWith({ analytics: false });
+    expect(setConsentSpy).toHaveBeenCalledWith({ analytics: false, preferences: false });
     expect(screen.queryByText(/We value your privacy/i)).not.toBeInTheDocument();
   });
 
@@ -83,7 +83,7 @@ describe('CookieConsentBanner Component', () => {
     const saveBtn = screen.getByRole('button', { name: /Save Preferences/i });
     fireEvent.click(saveBtn);
 
-    expect(setConsentSpy).toHaveBeenCalledWith({ analytics: true });
+    expect(setConsentSpy).toHaveBeenCalledWith({ analytics: true, preferences: false });
     expect(screen.queryByText(/Cookie Preferences/i)).not.toBeInTheDocument();
   });
 

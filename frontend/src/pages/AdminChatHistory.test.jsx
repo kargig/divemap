@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import { HelmetProvider } from 'react-helmet-async';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { describe, it, expect, vi } from 'vitest';
@@ -26,6 +27,7 @@ vi.mock('../api', () => ({
       messages: [],
     })
   ),
+  deleteAdminChatSession: vi.fn(() => Promise.resolve()),
 }));
 
 const queryClient = new QueryClient();
@@ -33,11 +35,13 @@ const queryClient = new QueryClient();
 describe('AdminChatHistory', () => {
   it('renders the history list', async () => {
     render(
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <AdminChatHistory />
-        </BrowserRouter>
-      </QueryClientProvider>
+      <HelmetProvider>
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <AdminChatHistory />
+          </BrowserRouter>
+        </QueryClientProvider>
+      </HelmetProvider>
     );
 
     expect(screen.getByText('Chat Session History')).toBeInTheDocument();

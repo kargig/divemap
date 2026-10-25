@@ -1,4 +1,4 @@
-const { chromium } = require('playwright');
+const { launchChromium } = require('../tests/launchChromium');
 const fs = require('fs');
 const path = require('path');
 
@@ -180,7 +180,7 @@ const calcP95 = (arr, key) => {
 
 async function runMeasurements(outputName) {
   console.log(`Starting performance measurements for ${outputName}.`);
-  const browser = await chromium.launch();
+  const browser = await launchChromium();
 
   // Get authenticated state (returns null if credentials missing)
   const authState = await authenticate(browser);

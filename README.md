@@ -42,7 +42,7 @@ Divemap is an open-source web platform for scuba divers. Divers can log dives, e
 
 | Component | Technologies |
 |---|---|
-| **Frontend** | React 18, Vite 7, Tailwind CSS, Leaflet, React Query, React Hook Form, Zod, Recharts |
+| **Frontend** | React 18, Vite 8, Tailwind CSS, Leaflet, React Query, React Hook Form, Zod, Recharts |
 | **Backend** | Python 3.13, FastAPI, SQLAlchemy 2, Alembic, Pydantic v2, orjson, PyJWT |
 | **Database** | MySQL 8.0 (Spatial Extensions) |
 | **Edge & Cloud** | Cloudflare (Turnstile bot defense, R2 storage, edge Workers), Fly.io |

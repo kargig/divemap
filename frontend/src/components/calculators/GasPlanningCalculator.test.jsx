@@ -42,7 +42,7 @@ describe('GasPlanningCalculator', () => {
   it('calculates gas consumption correctly (Advanced Mode - Rule of Thirds)', async () => {
     render(<GasPlanningCalculator />);
 
-    const advancedToggle = screen.getByLabelText(/Advanced\/Tech Mode/i);
+    const advancedToggle = screen.getByLabelText(/Rule of Thirds \(Tech\)/i);
     fireEvent.click(advancedToggle);
 
     const depthInput = screen.getByLabelText(/Average Depth/i);
