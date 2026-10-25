@@ -246,9 +246,10 @@ export default defineConfig(({ mode }) => {
     },
   },
   resolve: {
-    alias: {
-      '@': path.resolve(import.meta.dirname, './src'),
-    },
+    alias: [
+      { find: '@', replacement: path.resolve(import.meta.dirname, './src') },
+      { find: /^@ant-design\/icons$/, replacement: '@ant-design/icons/es' },
+    ],
     dedupe: ['react', 'react-dom'],
   },
 
@@ -256,6 +257,12 @@ export default defineConfig(({ mode }) => {
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/setupTests.js',
+    pool: 'vmThreads',
+    server: {
+      deps: {
+        inline: true,
+      },
+    },
   },
   };
 });

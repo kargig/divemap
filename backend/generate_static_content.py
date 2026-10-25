@@ -543,6 +543,20 @@ def generate_content(db: Session, r2_client=None):
     for path in mid_priority_paths:
         sitemap_entries.append(_url_entry(f"{BASE_URL}{path}", now, "weekly", "0.7"))
 
+    # Help Center guides (dedicated subpaths for crawling and indexation)
+    help_subpaths = [
+        "/help/getting-started",
+        "/help/global-map",
+        "/help/directories",
+        "/help/log-and-import",
+        "/help/sites-and-media",
+        "/help/tools-and-planning",
+        "/help/community",
+        "/help/business-portal",
+    ]
+    for path in help_subpaths:
+        sitemap_entries.append(_url_entry(f"{BASE_URL}{path}", now, "weekly", "0.8"))
+
     # Path-based geo hubs (never query-string country/region URLs)
     regions_by_country = distinct_approved_regions_by_country(db)
     for country in distinct_approved_countries(db):
@@ -733,6 +747,8 @@ def generate_content(db: Session, r2_client=None):
         for fname, content in files.items():
             upload_to_r2(r2_client, fname, content)
         print("✅ All content uploaded to R2.")
+
+    return files
 
 
 import argparse

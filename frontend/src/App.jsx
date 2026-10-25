@@ -236,6 +236,7 @@ function AppContent() {
             <Route path='/api-docs' element={<API />} />
             <Route path='/changelog' element={<Changelog />} />
             <Route path='/help' element={<Help />} />
+            <Route path='/help/:section' element={<Help />} />
             <Route path='/privacy' element={<Privacy />} />
             <Route path='/login' element={<Login />} />
             <Route path='/forgot-password' element={<ForgotPassword />} />

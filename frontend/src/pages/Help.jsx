@@ -39,9 +39,15 @@ import {
 } from 'antd';
 import { Collapse, Steps as MobileSteps } from 'antd-mobile';
 import React, { useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 
 import SEO from '../components/SEO';
+import {
+  HELP_SECTIONS,
+  DEFAULT_HELP_SECTION,
+  getSectionBySlug,
+  getSlugByLegacyTab,
+} from '../utils/helpNavigationHelpers';
 
 const { Title, Paragraph, Text } = Typography;
 const { Step } = Steps;
@@ -78,13 +84,31 @@ const LayersOutlined = props => (
 );
 
 const Help = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get('tab') || 'start';
+  const { section } = useParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const screens = useBreakpoint();
 
+  // Backward compatibility: redirect ?tab=legacy to /help/:slug
+  const legacyTab = searchParams.get('tab');
+  useEffect(() => {
+    if (legacyTab) {
+      const mappedSlug = getSlugByLegacyTab(legacyTab) || DEFAULT_HELP_SECTION.slug;
+      navigate(`/help/${mappedSlug}`, { replace: true });
+    }
+  }, [legacyTab, navigate]);
+
+  // Current active section based on URL path slug
+  const currentSection = getSectionBySlug(section) || DEFAULT_HELP_SECTION;
+  const activeTab = currentSection.id;
+
   const handleTabChange = key => {
-    if (key) {
-      setSearchParams({ tab: Array.isArray(key) ? key[0] : key });
+    const rawKey = Array.isArray(key) ? key[0] : key;
+    if (rawKey) {
+      const targetSection = HELP_SECTIONS.find(s => s.id === rawKey);
+      if (targetSection) {
+        navigate(`/help/${targetSection.slug}`);
+      }
     }
   };
 
@@ -338,7 +362,7 @@ const Help = () => {
                 <Link to='/map'>Map</Link> link.
               </Paragraph>
 
-              <Divider orientation='left'>
+              <Divider titlePlacement='left'>
                 <LayersOutlined /> Map Layers
               </Divider>
               <Paragraph>
@@ -359,7 +383,7 @@ const Help = () => {
                 </li>
               </ul>
 
-              <Divider orientation='left'>
+              <Divider titlePlacement='left'>
                 <CloudOutlined /> Weather & Suitability
               </Divider>
               <Paragraph>Plan your dives safely with real-time weather integration.</Paragraph>
@@ -660,7 +684,7 @@ const Help = () => {
               </Paragraph>
 
               <Alert
-                message='Understanding the Data'
+                title='Understanding the Data'
                 type='info'
                 className='mb-4'
                 description={
@@ -999,7 +1023,7 @@ const Help = () => {
                 locations where your adventures happen.
               </Paragraph>
               <Alert
-                message='Contribution'
+                title='Contribution'
                 type='success'
                 showIcon
                 description='Divemap is community-driven. You can contribute by adding new sites or reviewing existing ones.'
@@ -1138,7 +1162,7 @@ const Help = () => {
                 mission-critical planning.
               </Paragraph>
               <Alert
-                message='Safety First'
+                title='Safety First'
                 description='These tools utilize a high-precision physics engine but should always be verified against your dive computer and standard tables.'
                 type='warning'
                 showIcon
@@ -1345,8 +1369,13 @@ const Help = () => {
   return (
     <>
       <SEO
-        title='Help Center & User Guide | Divemap'
-        description='Learn how to use Divemap. Read guides on finding dive sites, logging dives, using the interactive map, and tracking your scuba certifications.'
+        title={currentSection.metaTitle}
+        description={currentSection.metaDescription}
+        canonicalPath={
+          currentSection.slug === DEFAULT_HELP_SECTION.slug
+            ? '/help'
+            : `/help/${currentSection.slug}`
+        }
       />
       <div className='min-h-screen bg-gray-50 dark:bg-slate-900 pt-20 pb-12'>
         <div className='max-w-6xl mx-auto'>

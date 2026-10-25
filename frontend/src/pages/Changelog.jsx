@@ -388,7 +388,7 @@ const Changelog = () => {
   const renderSection = (section, isMobile) => (
     <Card
       type='inner'
-      size={isMobile ? 'small' : 'default'}
+      size={isMobile ? 'small' : 'medium'}
       title={
         <Space>
           {getIcon(section.type)}
@@ -514,7 +514,7 @@ const Changelog = () => {
 
           <div className='text-center mt-12'>
             <Card className='bg-gray-50 dark:bg-slate-800/60 border-none shadow-none'>
-              <Space direction='vertical' size='large'>
+              <Space orientation='vertical' size='large'>
                 <GithubOutlined style={{ fontSize: '32px' }} />
                 <Title level={3}>View Complete Changelog</Title>
                 <Paragraph>
