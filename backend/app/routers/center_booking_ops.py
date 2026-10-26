@@ -588,7 +588,9 @@ def get_slot_manifest_data(
             or not eq.get("has_own_dive_computer", True)
         ):
             computers_count += 1
-        if eq.get("rental_smb", False) or (eq.get("has_own_smb") is False and eq.get("rental_smb") is not False):
+        if (eq.get("rental_smb") or eq.get("smb_option") == "RENT") and eq.get(
+            "smb_option"
+        ) != "NONE":
             smbs_count += 1
         if eq.get("stage_tank") and eq.get("stage_tank") != "None":
             st_label = str(eq.get("stage_tank"))
@@ -2331,6 +2333,15 @@ def export_port_authority_manifest(
         )
 
 
+DEFAULT_PACKAGE_ITEMS = [
+    "regulator",
+    "bcd",
+    "wetsuit",
+    "fins_boots",
+    "mask_snorkel",
+]
+
+
 class RentalPricingUpdateRequest(BaseModel):
     currency: str | None = "EUR"
     full_kit_package: float | None = 30.0
@@ -2338,6 +2349,9 @@ class RentalPricingUpdateRequest(BaseModel):
     items: dict[str, float] | None = None
     default_valve_fitting: str | None = None
     daily_insurance_price: float | None = None
+    package_items: list[str] | None = None
+    tank_surcharges: dict[str, float] | None = None
+    gas_surcharges: dict[str, float] | None = None
 
 
 @router.get("/rental-pricing")
@@ -2379,6 +2393,24 @@ def get_center_rental_pricing(
         }
     else:
         res = dict(settings.rental_equipment_pricing)
+
+    if "package_items" not in res:
+        res["package_items"] = DEFAULT_PACKAGE_ITEMS.copy()
+    if "tank_surcharges" not in res:
+        res["tank_surcharges"] = {
+            "12": 0.0,
+            "15": 0.0,
+            "10": 0.0,
+            "al80": 0.0,
+            "twinset": 0.0,
+        }
+    if "gas_surcharges" not in res:
+        res["gas_surcharges"] = {
+            "air": 0.0,
+            "ean32": 0.0,
+            "ean36": 0.0,
+            "custom": 0.0,
+        }
 
     res["default_valve_fitting"] = (
         getattr(settings, "default_valve_fitting", "DIN") or "DIN"
@@ -2424,6 +2456,11 @@ def update_center_rental_pricing(
         "full_kit_package": req.full_kit_package,
         "pricing_mode": req.pricing_mode or "ITEMIZED_OR_PACKAGE",
         "items": req.items or {},
+        "package_items": req.package_items
+        if req.package_items is not None
+        else DEFAULT_PACKAGE_ITEMS,
+        "tank_surcharges": req.tank_surcharges or {},
+        "gas_surcharges": req.gas_surcharges or {},
     }
     settings.rental_equipment_pricing = pricing
     if req.default_valve_fitting is not None:

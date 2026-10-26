@@ -45,6 +45,7 @@ import {
 import { getConsentStatus, setConsent } from '../../utils/consent';
 import { formatDate } from '../../utils/dateHelpers';
 import { decodeHtmlEntities } from '../../utils/htmlDecode';
+import { slugify } from '../../utils/slugify';
 import SEO from '../SEO';
 import { WhatsAppIcon } from '../SocialMediaIcons';
 
@@ -103,11 +104,15 @@ const BookingWizard = () => {
   const [hasOwnLeadWeights, setHasOwnLeadWeights] = useState(false);
   const [selectedProfileId, setSelectedProfileId] = useState('');
   const [rentalTorch, setRentalTorch] = useState(false);
+  const [torchOption, setTorchOption] = useState('NONE'); // 'NONE' | 'OWN' | 'RENT'
   const [rentalComputer, setRentalComputer] = useState(false);
   const [hoodSize, setHoodSize] = useState('None');
+  const [hoodOption, setHoodOption] = useState('NONE'); // 'NONE' | 'OWN' | 'RENT'
   const [glovesSize, setGlovesSize] = useState('None');
+  const [glovesOption, setGlovesOption] = useState('NONE'); // 'NONE' | 'OWN' | 'RENT'
   const [rentalSmb, setRentalSmb] = useState(false);
-  const [hasOwnSmb, setHasOwnSmb] = useState(true);
+  const [hasOwnSmb, setHasOwnSmb] = useState(false);
+  const [smbOption, setSmbOption] = useState('NONE'); // 'NONE' | 'OWN' | 'RENT'
   const [leadKg, setLeadKg] = useState('5.0');
   const [secondaryNitroxCert, setSecondaryNitroxCert] = useState('');
   const [weightSystem, setWeightSystem] = useState('INTEGRATED');
@@ -424,16 +429,27 @@ const BookingWizard = () => {
     setRentalRegulator(false);
     setRentalMask(false);
     setHasOwnLeadWeights(true);
-    setHoodSize('None');
-    setGlovesSize('None');
     setRentalComputer(false);
     setRentalTorch(false);
+    setTorchOption('NONE');
     setRentalSmb(false);
-    setHasOwnSmb(true);
-    toast.success('Marked all equipment as bringing your own');
+    setHasOwnSmb(false);
+    setSmbOption('NONE');
+    setHoodSize('None');
+    setHoodOption('NONE');
+    setGlovesSize('None');
+    setGlovesOption('NONE');
+    toast.success('Core kit marked as own gear (accessories set to not needed)');
   };
 
   const handleSetAllRent = () => {
+    const pkgItems = contextData?.rental_pricing?.package_items || [
+      'regulator',
+      'bcd',
+      'wetsuit',
+      'fins_boots',
+      'mask_snorkel',
+    ];
     setWetsuitSize(activeProfile?.wetsuit_size || 'M');
     setBcdSize(activeProfile?.bcd_size || 'M');
     setFinSize(activeProfile?.fin_size || 'M');
@@ -441,13 +457,41 @@ const BookingWizard = () => {
     setRentalRegulator(true);
     setRentalMask(true);
     setHasOwnLeadWeights(false);
-    setHoodSize('M');
-    setGlovesSize('M');
-    setRentalComputer(true);
-    setRentalTorch(true);
-    setRentalSmb(true);
-    setHasOwnSmb(false);
-    toast.success('Selected full rental kit from center');
+
+    // Only turn on optional accessories if the center manager has bundled them into the package!
+    setRentalComputer(pkgItems.includes('dive_computer'));
+    if (pkgItems.includes('dive_torch')) {
+      setRentalTorch(true);
+      setTorchOption('RENT');
+    } else {
+      setRentalTorch(false);
+      setTorchOption('NONE');
+    }
+    if (pkgItems.includes('hood')) {
+      setHoodSize('M');
+      setHoodOption('RENT');
+    } else {
+      setHoodSize('None');
+      setHoodOption('NONE');
+    }
+    if (pkgItems.includes('gloves')) {
+      setGlovesSize('M');
+      setGlovesOption('RENT');
+    } else {
+      setGlovesSize('None');
+      setGlovesOption('NONE');
+    }
+    if (pkgItems.includes('smb')) {
+      setRentalSmb(true);
+      setHasOwnSmb(false);
+      setSmbOption('RENT');
+    } else {
+      setRentalSmb(false);
+      setHasOwnSmb(false);
+      setSmbOption('NONE');
+    }
+
+    toast.success('Selected standard full rental kit from center');
   };
 
   // Load Checkout Context
@@ -862,109 +906,229 @@ const BookingWizard = () => {
         totalRentalSurcharge: 0,
         totalDue: basePrice,
         isPackageApplied: false,
+        packageItems: ['regulator', 'bcd', 'wetsuit', 'fins_boots', 'mask_snorkel'],
       };
     }
 
     const items = pricing.items;
-    const fullKitPackage = pricing.full_kit_package || 30.0;
+    const fullKitPackage = pricing.full_kit_package ?? 30.0;
+    const packageItems = pricing.package_items || [
+      'regulator',
+      'bcd',
+      'wetsuit',
+      'fins_boots',
+      'mask_snorkel',
+    ];
     const isFullRentalUnit =
       selectedUnitId === 'demo-unit-2' ||
       selectedUnitId === 'certified-diver-full-rental' ||
       selectedUnit?.title?.toLowerCase().includes('full');
 
-    const rentalItems = [];
+    // Collect all candidate rentals requested by the diver
+    const candidateRentals = [];
 
-    // 1. Auxiliary items
-    if (rentalTorch && items.dive_torch) {
-      rentalItems.push({ label: 'Rental Dive Torch', price: items.dive_torch });
-    }
-    if (hoodSize && hoodSize !== 'None' && items.hood) {
-      rentalItems.push({ label: `Rental Thermal Hood (${hoodSize})`, price: items.hood });
-    }
-    if (glovesSize && glovesSize !== 'None' && items.gloves) {
-      rentalItems.push({ label: `Rental Dive Gloves (${glovesSize})`, price: items.gloves });
-    }
-    if (rentalSmb && items.smb) {
-      rentalItems.push({ label: 'Rental Surface Marker Buoy (SMB)', price: items.smb });
+    // 1. Wetsuit
+    if (wetsuitSize && wetsuitSize !== 'None' && items.wetsuit) {
+      candidateRentals.push({
+        key: 'wetsuit',
+        label: `Rental Wetsuit (${wetsuitSize})`,
+        price: items.wetsuit,
+      });
     }
 
+    // 2. BCD
+    if (bcdSize && bcdSize !== 'None' && items.bcd) {
+      candidateRentals.push({
+        key: 'bcd',
+        label: `Rental BCD (${bcdSize})`,
+        price: items.bcd,
+      });
+    }
+
+    // 3. Fins & Boots
+    if (finSize && finSize !== 'None' && items.fins_boots) {
+      candidateRentals.push({
+        key: 'fins_boots',
+        label: `Rental Fins (${finSize})`,
+        price: items.fins_boots,
+      });
+    } else if (bootSize && bootSize !== 'None') {
+      candidateRentals.push({
+        key: 'fins_boots',
+        label: `Rental Booties (EU ${bootSize})`,
+        price: 5.0,
+      });
+    }
+
+    // 4. Regulator
+    if (rentalRegulator && items.regulator) {
+      candidateRentals.push({
+        key: 'regulator',
+        label: `Rental Regulator Set (${regulatorFitting || 'DIN'})`,
+        price: items.regulator,
+      });
+    }
+
+    // 5. Mask
+    if (rentalMask && (items.mask_snorkel || items.mask)) {
+      candidateRentals.push({
+        key: 'mask_snorkel',
+        label: 'Rental Diving Mask & Snorkel',
+        price: items.mask_snorkel || items.mask || 5.0,
+      });
+    }
+
+    // 6. Dive Computer
+    if (rentalComputer && items.dive_computer) {
+      candidateRentals.push({
+        key: 'dive_computer',
+        label: 'Rental Dive Computer',
+        price: items.dive_computer,
+      });
+    }
+
+    // 7. Torch
+    if (torchOption === 'RENT' && items.dive_torch) {
+      candidateRentals.push({
+        key: 'dive_torch',
+        label: 'Rental Primary Dive Torch',
+        price: items.dive_torch,
+      });
+    }
+
+    // 8. Hood
+    if (hoodOption === 'RENT' && hoodSize && hoodSize !== 'None' && items.hood) {
+      candidateRentals.push({
+        key: 'hood',
+        label: `Rental Thermal Hood (${hoodSize})`,
+        price: items.hood,
+      });
+    }
+
+    // 9. Gloves
+    if (glovesOption === 'RENT' && glovesSize && glovesSize !== 'None' && items.gloves) {
+      candidateRentals.push({
+        key: 'gloves',
+        label: `Rental Dive Gloves (${glovesSize})`,
+        price: items.gloves,
+      });
+    }
+
+    // 10. SMB
+    if (smbOption === 'RENT' && items.smb) {
+      candidateRentals.push({
+        key: 'smb',
+        label: 'Rental Surface Marker Buoy (SMB)',
+        price: items.smb,
+      });
+    }
+
+    // Partition into core (package items) vs auxiliary (unbundled items)
+    const coreItems = [];
+    const auxItems = [];
+
+    candidateRentals.forEach(item => {
+      if (packageItems.includes(item.key)) {
+        if (!isFullRentalUnit) {
+          coreItems.push(item);
+        }
+        // If isFullRentalUnit, covered by base ticket!
+      } else {
+        auxItems.push(item);
+      }
+    });
+
+    // 11. Upgrades & Extras (applies to both Own Gear and Full Rental)
+    const upgradeItems = [];
+
+    // Cylinder capacity upgrade
+    const tankSurcharges = pricing.tank_surcharges || {};
+    const tankFee = Number(tankSurcharges[selectedTankId] || 0);
+    if (tankFee > 0) {
+      const tankLabel = selectedTankId === '15' ? '15L Steel' : `${selectedTankId}L Cylinder`;
+      upgradeItems.push({
+        label: `Cylinder Upgrade: ${tankLabel}`,
+        price: tankFee,
+      });
+    }
+
+    // Breathing gas mix upgrade
+    const gasSurcharges = pricing.gas_surcharges || {};
+    const gasFee = Number(gasSurcharges[selectedGasMixId] || 0);
+    if (gasFee > 0) {
+      const gasLabel =
+        selectedGasMixId.toUpperCase() === 'EAN32'
+          ? 'Enriched Air (EAN32)'
+          : selectedGasMixId.toUpperCase() === 'EAN36'
+            ? 'Enriched Air (EAN36)'
+            : 'Custom Gas Blend';
+      upgradeItems.push({
+        label: `Breathing Gas: ${gasLabel}`,
+        price: gasFee,
+      });
+    }
+
+    // Daily insurance
     const dailyInsFee =
       hasInsurance === 'CENTER'
         ? Number(contextData?.center_settings?.daily_insurance_price || 0)
         : 0;
-
     if (dailyInsFee > 0) {
-      rentalItems.push({ label: 'Center Daily Dive Insurance', price: dailyInsFee });
+      upgradeItems.push({
+        label: 'Center Daily Dive Insurance',
+        price: dailyInsFee,
+      });
     }
 
-    // 2. Core equipment items
-    if (isFullRentalUnit) {
-      if (rentalComputer && items.dive_computer) {
-        rentalItems.push({ label: 'Rental Dive Computer', price: items.dive_computer });
-      }
-      const surcharge = rentalItems.reduce((sum, item) => sum + item.price, 0);
-      return {
-        basePrice,
-        rentalItems,
-        totalRentalSurcharge: surcharge,
-        totalDue: basePrice + surcharge,
-        isPackageApplied: true,
-      };
-    }
-
-    // Own Gear Diver selecting individual rental items à la carte
-    const coreItems = [];
-    if (wetsuitSize !== 'None' && items.wetsuit) {
-      coreItems.push({ label: `Rental Wetsuit (${wetsuitSize})`, price: items.wetsuit });
-    }
-    if (bcdSize !== 'None' && items.bcd) {
-      coreItems.push({ label: `Rental BCD (${bcdSize})`, price: items.bcd });
-    }
-    if (finSize !== 'None' && items.fins_boots) {
-      coreItems.push({ label: `Rental Fins (${finSize})`, price: items.fins_boots });
-    } else if (bootSize !== 'None') {
-      coreItems.push({ label: `Rental Booties (EU ${bootSize})`, price: 5.0 });
-    }
-    if (rentalComputer && items.dive_computer) {
-      coreItems.push({ label: 'Rental Dive Computer', price: items.dive_computer });
-    }
-
+    // Package cap logic for Own Gear divers
     const coreSum = coreItems.reduce((sum, item) => sum + item.price, 0);
     let totalCoreSurcharge = coreSum;
-    let isPackageApplied = false;
+    let isPackageApplied = isFullRentalUnit;
 
-    // Smart package cap
-    if (coreSum >= fullKitPackage && fullKitPackage > 0) {
+    if (!isFullRentalUnit && coreSum >= fullKitPackage && fullKitPackage > 0) {
       totalCoreSurcharge = fullKitPackage;
       isPackageApplied = true;
     }
 
-    const allItems = [...coreItems, ...rentalItems];
+    const allDisplayItems = [...(isFullRentalUnit ? [] : coreItems), ...auxItems, ...upgradeItems];
     const totalSurcharge =
-      totalCoreSurcharge + rentalItems.reduce((sum, item) => sum + item.price, 0);
+      (isFullRentalUnit ? 0 : totalCoreSurcharge) +
+      auxItems.reduce((sum, item) => sum + item.price, 0) +
+      upgradeItems.reduce((sum, item) => sum + item.price, 0);
 
     return {
       basePrice,
-      rentalItems: allItems,
+      rentalItems: allDisplayItems,
       totalRentalSurcharge: totalSurcharge,
       totalDue: basePrice + totalSurcharge,
       isPackageApplied,
       coreSum,
       fullKitPackage,
+      packageItems,
     };
   }, [
     contextData,
     selectedUnit,
     selectedUnitId,
+    selectedTankId,
+    selectedGasMixId,
     wetsuitSize,
     bcdSize,
     finSize,
     bootSize,
+    rentalRegulator,
+    regulatorFitting,
+    rentalMask,
     rentalComputer,
     rentalTorch,
+    torchOption,
     hoodSize,
+    hoodOption,
     glovesSize,
+    glovesOption,
     rentalSmb,
+    hasOwnSmb,
+    smbOption,
     hasInsurance,
   ]);
 
@@ -1189,13 +1353,18 @@ const BookingWizard = () => {
               has_own_mask: !rentalMask,
               has_own_lead_weights: hasOwnLeadWeights,
               selected_profile_id: selectedProfileId || undefined,
-              rental_torch: rentalTorch,
+              rental_torch: torchOption === 'RENT',
+              has_own_torch: torchOption === 'OWN',
+              torch_option: torchOption,
               rental_dive_computer: rentalComputer,
               has_own_dive_computer: !rentalComputer,
-              hood_size: hoodSize === 'None' ? null : hoodSize,
-              gloves_size: glovesSize === 'None' ? null : glovesSize,
-              rental_smb: rentalSmb,
-              has_own_smb: hasOwnSmb,
+              hood_size: hoodOption === 'RENT' && hoodSize !== 'None' ? hoodSize : null,
+              hood_option: hoodOption,
+              gloves_size: glovesOption === 'RENT' && glovesSize !== 'None' ? glovesSize : null,
+              gloves_option: glovesOption,
+              rental_smb: smbOption === 'RENT',
+              has_own_smb: smbOption === 'OWN',
+              smb_option: smbOption,
               regulator_fitting: regulatorFitting,
               weight_system: weightSystem,
               weight_systems: weightSystems,
@@ -1553,6 +1722,24 @@ const BookingWizard = () => {
 
   const hasCertDetails = Boolean(certAgency && certLevel && certNumber.trim());
 
+  const getItemPriceLabel = (key, isRenting, fallbackPrice) => {
+    const rawPrice = contextData?.rental_pricing?.items?.[key] ?? fallbackPrice;
+    if (Number(rawPrice) < 0) {
+      return 'Rental Not Offered';
+    }
+    if (!isRenting) return 'No charge';
+    const isIncludedInPackage = rentalCalculation.packageItems?.includes(key);
+    if (rentalCalculation.isPackageApplied && isIncludedInPackage) {
+      return 'Included in Package';
+    }
+    return isIncludedInPackage ? 'Included in Package' : `+ €${Number(rawPrice).toFixed(2)}/day`;
+  };
+
+  const isItemRentalOffered = key => {
+    const rawPrice = contextData?.rental_pricing?.items?.[key];
+    return rawPrice === undefined || Number(rawPrice) >= 0;
+  };
+
   return (
     <div className='min-h-screen bg-gray-50/50 dark:bg-gray-900/50'>
       <SEO
@@ -1582,7 +1769,23 @@ const BookingWizard = () => {
               </h1>
               <p className='text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2 mt-1'>
                 <MapPin size={15} className='text-blue-600 shrink-0' />
-                <span>Hosted by {contextData.center.name}</span>
+                <span>
+                  Hosted by{' '}
+                  {contextData.center?.id ? (
+                    <Link
+                      to={`/diving-centers/${contextData.center.id}/${slugify(contextData.center.name || '')}`}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      className='font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline inline-flex items-center gap-1 transition-colors'
+                      title={`View ${contextData.center.name} in a new tab`}
+                    >
+                      <span>{contextData.center.name}</span>
+                      <ExternalLink size={12} className='text-blue-500/70 inline shrink-0' />
+                    </Link>
+                  ) : (
+                    <span className='font-semibold'>{contextData.center?.name}</span>
+                  )}
+                </span>
               </p>
             </div>
 
@@ -2106,12 +2309,38 @@ const BookingWizard = () => {
                       <select
                         value={selectedTankId}
                         onChange={e => setSelectedTankId(e.target.value)}
-                        className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white font-medium'
+                        className='w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium'
                       >
-                        <option value='12'>12L Steel (Standard)</option>
-                        <option value='15'>15L Steel</option>
-                        <option value='al80'>AL80 (11L) Alu</option>
-                        <option value='10'>10L Steel</option>
+                        {[
+                          { id: '12', label: '12L Steel (Standard) — Included', isBaseline: true },
+                          { id: '15', name: '15L Steel' },
+                          { id: 'al80', name: 'AL80 (11L) Alu' },
+                          { id: '10', name: '10L Steel' },
+                          { id: 'twinset', name: 'Twinset (2x12L)' },
+                        ]
+                          .filter(
+                            t =>
+                              t.isBaseline ||
+                              Number(contextData?.rental_pricing?.tank_surcharges?.[t.id] ?? 0) >= 0
+                          )
+                          .map(t => {
+                            if (t.isBaseline) {
+                              return (
+                                <option key={t.id} value={t.id}>
+                                  {t.label}
+                                </option>
+                              );
+                            }
+                            const fee = Number(
+                              contextData?.rental_pricing?.tank_surcharges?.[t.id] || 0
+                            );
+                            return (
+                              <option key={t.id} value={t.id}>
+                                {t.name}
+                                {fee > 0 ? ` (+€${fee.toFixed(2)})` : ''}
+                              </option>
+                            );
+                          })}
                       </select>
                     </div>
 
@@ -2122,10 +2351,37 @@ const BookingWizard = () => {
                       <select
                         value={selectedGasMixId}
                         onChange={e => setSelectedGasMixId(e.target.value)}
-                        className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white font-medium'
+                        className='w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium'
                       >
-                        <option value='air'>Air (21% O2) — Standard</option>
-                        <option value='ean32'>EAN32 (32% O2 Nitrox) — Requires Cert Check</option>
+                        {[
+                          { id: 'air', label: 'Air (21% O2) — Standard', isBaseline: true },
+                          { id: 'ean32', name: 'EAN32 (32% O2 Nitrox)' },
+                          { id: 'ean36', name: 'EAN36 (36% O2 Nitrox)' },
+                          { id: 'custom', name: 'Custom Blend / O2 Deco' },
+                        ]
+                          .filter(
+                            g =>
+                              g.isBaseline ||
+                              Number(contextData?.rental_pricing?.gas_surcharges?.[g.id] ?? 0) >= 0
+                          )
+                          .map(g => {
+                            if (g.isBaseline) {
+                              return (
+                                <option key={g.id} value={g.id}>
+                                  {g.label}
+                                </option>
+                              );
+                            }
+                            const fee = Number(
+                              contextData?.rental_pricing?.gas_surcharges?.[g.id] || 0
+                            );
+                            return (
+                              <option key={g.id} value={g.id}>
+                                {g.name}
+                                {fee > 0 ? ` (+€${fee.toFixed(2)})` : ''} — Requires Cert Check
+                              </option>
+                            );
+                          })}
                       </select>
                     </div>
                   </div>
@@ -2255,7 +2511,7 @@ const BookingWizard = () => {
                                 : 'text-gray-400'
                             }`}
                           >
-                            {wetsuitSize !== 'None' ? 'Included' : 'No charge'}
+                            {getItemPriceLabel('wetsuit', wetsuitSize !== 'None', 10.0)}
                           </span>
                           <div className='inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shrink-0'>
                             <button
@@ -2271,6 +2527,12 @@ const BookingWizard = () => {
                             </button>
                             <button
                               type='button'
+                              disabled={!isItemRentalOffered('wetsuit')}
+                              title={
+                                !isItemRentalOffered('wetsuit')
+                                  ? 'Rental not offered by this dive center'
+                                  : ''
+                              }
                               onClick={() =>
                                 setWetsuitSize(
                                   wetsuitSize !== 'None'
@@ -2279,9 +2541,11 @@ const BookingWizard = () => {
                                 )
                               }
                               className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
-                                wetsuitSize !== 'None'
-                                  ? 'bg-blue-600 text-white shadow-2xs'
-                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                                !isItemRentalOffered('wetsuit')
+                                  ? 'opacity-40 cursor-not-allowed text-gray-400'
+                                  : wetsuitSize !== 'None'
+                                    ? 'bg-blue-600 text-white shadow-2xs'
+                                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
                               }`}
                             >
                               Rent
@@ -2405,7 +2669,7 @@ const BookingWizard = () => {
                                 : 'text-gray-400'
                             }`}
                           >
-                            {bcdSize !== 'None' ? 'Included' : 'No charge'}
+                            {getItemPriceLabel('bcd', bcdSize !== 'None', 10.0)}
                           </span>
                           <div className='inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shrink-0'>
                             <button
@@ -2421,15 +2685,23 @@ const BookingWizard = () => {
                             </button>
                             <button
                               type='button'
+                              disabled={!isItemRentalOffered('bcd')}
+                              title={
+                                !isItemRentalOffered('bcd')
+                                  ? 'Rental not offered by this dive center'
+                                  : ''
+                              }
                               onClick={() =>
                                 setBcdSize(
                                   bcdSize !== 'None' ? bcdSize : activeProfile?.bcd_size || 'M'
                                 )
                               }
                               className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
-                                bcdSize !== 'None'
-                                  ? 'bg-blue-600 text-white shadow-2xs'
-                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                                !isItemRentalOffered('bcd')
+                                  ? 'opacity-40 cursor-not-allowed text-gray-400'
+                                  : bcdSize !== 'None'
+                                    ? 'bg-blue-600 text-white shadow-2xs'
+                                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
                               }`}
                             >
                               Rent
@@ -2520,7 +2792,11 @@ const BookingWizard = () => {
                                 : 'text-gray-400'
                             }`}
                           >
-                            {finSize !== 'None' || bootSize !== 'None' ? 'Included' : 'No charge'}
+                            {getItemPriceLabel(
+                              'fins_boots',
+                              finSize !== 'None' || bootSize !== 'None',
+                              8.0
+                            )}
                           </span>
                           <div className='inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shrink-0'>
                             <button
@@ -2539,6 +2815,12 @@ const BookingWizard = () => {
                             </button>
                             <button
                               type='button'
+                              disabled={!isItemRentalOffered('fins_boots')}
+                              title={
+                                !isItemRentalOffered('fins_boots')
+                                  ? 'Rental not offered by this dive center'
+                                  : ''
+                              }
                               onClick={() => {
                                 setFinSize(
                                   finSize !== 'None' ? finSize : activeProfile?.fin_size || 'M'
@@ -2550,9 +2832,11 @@ const BookingWizard = () => {
                                 );
                               }}
                               className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
-                                finSize !== 'None' || bootSize !== 'None'
-                                  ? 'bg-blue-600 text-white shadow-2xs'
-                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                                !isItemRentalOffered('fins_boots')
+                                  ? 'opacity-40 cursor-not-allowed text-gray-400'
+                                  : finSize !== 'None' || bootSize !== 'None'
+                                    ? 'bg-blue-600 text-white shadow-2xs'
+                                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
                               }`}
                             >
                               Rent
@@ -2663,7 +2947,7 @@ const BookingWizard = () => {
                               rentalRegulator ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400'
                             }`}
                           >
-                            {rentalRegulator ? 'Included' : 'No charge'}
+                            {getItemPriceLabel('regulator', rentalRegulator, 10.0)}
                           </span>
                           <div className='inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shrink-0'>
                             <button
@@ -2679,6 +2963,12 @@ const BookingWizard = () => {
                             </button>
                             <button
                               type='button'
+                              disabled={!isItemRentalOffered('regulator')}
+                              title={
+                                !isItemRentalOffered('regulator')
+                                  ? 'Rental not offered by this dive center'
+                                  : ''
+                              }
                               onClick={() => {
                                 setRentalRegulator(true);
                                 setRegulatorFitting(
@@ -2686,9 +2976,11 @@ const BookingWizard = () => {
                                 );
                               }}
                               className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
-                                rentalRegulator
-                                  ? 'bg-blue-600 text-white shadow-2xs'
-                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                                !isItemRentalOffered('regulator')
+                                  ? 'opacity-40 cursor-not-allowed text-gray-400'
+                                  : rentalRegulator
+                                    ? 'bg-blue-600 text-white shadow-2xs'
+                                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
                               }`}
                             >
                               Rent
@@ -2764,7 +3056,7 @@ const BookingWizard = () => {
                               rentalMask ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400'
                             }`}
                           >
-                            {rentalMask ? 'Included' : 'No charge'}
+                            {getItemPriceLabel('mask_snorkel', rentalMask, 5.0)}
                           </span>
                           <div className='inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shrink-0'>
                             <button
@@ -2780,11 +3072,19 @@ const BookingWizard = () => {
                             </button>
                             <button
                               type='button'
+                              disabled={!isItemRentalOffered('mask_snorkel')}
+                              title={
+                                !isItemRentalOffered('mask_snorkel')
+                                  ? 'Rental not offered by this dive center'
+                                  : ''
+                              }
                               onClick={() => setRentalMask(true)}
                               className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
-                                rentalMask
-                                  ? 'bg-blue-600 text-white shadow-2xs'
-                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                                !isItemRentalOffered('mask_snorkel')
+                                  ? 'opacity-40 cursor-not-allowed text-gray-400'
+                                  : rentalMask
+                                    ? 'bg-blue-600 text-white shadow-2xs'
+                                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
                               }`}
                             >
                               Rent
@@ -2841,7 +3141,7 @@ const BookingWizard = () => {
                                 : 'text-gray-400'
                             }`}
                           >
-                            {rentalComputer ? '+ €10.00/day' : 'No charge'}
+                            {getItemPriceLabel('dive_computer', rentalComputer, 10.0)}
                           </span>
                           <div className='inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shrink-0'>
                             <button
@@ -2857,11 +3157,19 @@ const BookingWizard = () => {
                             </button>
                             <button
                               type='button'
+                              disabled={!isItemRentalOffered('dive_computer')}
+                              title={
+                                !isItemRentalOffered('dive_computer')
+                                  ? 'Rental not offered by this dive center'
+                                  : ''
+                              }
                               onClick={() => setRentalComputer(true)}
                               className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
-                                rentalComputer
-                                  ? 'bg-blue-600 text-white shadow-2xs'
-                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                                !isItemRentalOffered('dive_computer')
+                                  ? 'opacity-40 cursor-not-allowed text-gray-400'
+                                  : rentalComputer
+                                    ? 'bg-blue-600 text-white shadow-2xs'
+                                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
                               }`}
                             >
                               Rent
@@ -3005,7 +3313,7 @@ const BookingWizard = () => {
                     {/* 8. Thermal Neoprene Hood */}
                     <div
                       className={`p-3.5 transition-colors ${
-                        hoodSize !== 'None' ? 'bg-blue-50/25 dark:bg-blue-950/20' : ''
+                        hoodOption === 'RENT' ? 'bg-blue-50/25 dark:bg-blue-950/20' : ''
                       }`}
                     >
                       {/* Sub-row 1 */}
@@ -3013,9 +3321,11 @@ const BookingWizard = () => {
                         <div className='flex items-center gap-3 min-w-0'>
                           <div
                             className={`p-2 rounded-lg shrink-0 ${
-                              hoodSize !== 'None'
+                              hoodOption === 'RENT'
                                 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300'
-                                : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                                : hoodOption === 'OWN'
+                                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                  : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
                             }`}
                           >
                             <Sparkles size={18} />
@@ -3026,7 +3336,7 @@ const BookingWizard = () => {
                                 Thermal Neoprene Hood
                               </span>
                               <span className='text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'>
-                                Head thermal protection
+                                Optional thermal accessory
                               </span>
                             </div>
                           </div>
@@ -3035,32 +3345,64 @@ const BookingWizard = () => {
                         <div className='flex items-center gap-3 self-end sm:self-auto shrink-0'>
                           <span
                             className={`text-xs font-semibold ${
-                              hoodSize !== 'None'
+                              hoodOption === 'RENT'
                                 ? 'text-blue-600 dark:text-blue-400 font-bold'
                                 : 'text-gray-400'
                             }`}
                           >
-                            {hoodSize !== 'None' ? '+ €5.00/day' : 'No charge'}
+                            {hoodOption === 'NONE'
+                              ? 'Not needed'
+                              : hoodOption === 'OWN'
+                                ? 'No charge'
+                                : getItemPriceLabel('hood', true, 5.0)}
                           </span>
                           <div className='inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shrink-0'>
                             <button
                               type='button'
-                              onClick={() => setHoodSize('None')}
-                              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
-                                hoodSize === 'None'
+                              onClick={() => {
+                                setHoodOption('NONE');
+                                setHoodSize('None');
+                              }}
+                              className={`px-2 py-1 text-xs font-semibold rounded-md transition-all ${
+                                hoodOption === 'NONE'
+                                  ? 'bg-slate-700 text-white shadow-2xs'
+                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                              }`}
+                            >
+                              None
+                            </button>
+                            <button
+                              type='button'
+                              onClick={() => {
+                                setHoodOption('OWN');
+                                setHoodSize('None');
+                              }}
+                              className={`px-2 py-1 text-xs font-semibold rounded-md transition-all ${
+                                hoodOption === 'OWN'
                                   ? 'bg-emerald-600 text-white shadow-2xs'
                                   : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
                               }`}
                             >
-                              ✓ My Own
+                              ✓ Bring Own
                             </button>
                             <button
                               type='button'
-                              onClick={() => setHoodSize(hoodSize !== 'None' ? hoodSize : 'M')}
-                              className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
-                                hoodSize !== 'None'
-                                  ? 'bg-blue-600 text-white shadow-2xs'
-                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                              disabled={!isItemRentalOffered('hood')}
+                              title={
+                                !isItemRentalOffered('hood')
+                                  ? 'Rental not offered by this dive center'
+                                  : ''
+                              }
+                              onClick={() => {
+                                setHoodOption('RENT');
+                                setHoodSize(hoodSize !== 'None' ? hoodSize : 'M');
+                              }}
+                              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                                !isItemRentalOffered('hood')
+                                  ? 'opacity-40 cursor-not-allowed text-gray-400'
+                                  : hoodOption === 'RENT'
+                                    ? 'bg-blue-600 text-white shadow-2xs'
+                                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
                               }`}
                             >
                               Rent
@@ -3071,10 +3413,10 @@ const BookingWizard = () => {
 
                       {/* Sub-row 2 */}
                       <div className='mt-2.5 pt-2.5 border-t border-gray-100 dark:border-gray-700/50 pl-0 sm:pl-11'>
-                        {hoodSize !== 'None' ? (
+                        {hoodOption === 'RENT' ? (
                           <div className='flex items-center gap-2 max-w-xs'>
                             <label className='text-[11px] font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap'>
-                              Size:
+                              Rental Size:
                             </label>
                             <select
                               value={hoodSize}
@@ -3087,9 +3429,13 @@ const BookingWizard = () => {
                               <option value='XL'>XL (Extra Large)</option>
                             </select>
                           </div>
+                        ) : hoodOption === 'OWN' ? (
+                          <span className='text-xs text-emerald-700 dark:text-emerald-400 font-medium italic'>
+                            ✓ Bringing own personal thermal hood.
+                          </span>
                         ) : (
-                          <span className='text-xs text-gray-500 dark:text-gray-400 italic'>
-                            Bringing own hood / None needed.
+                          <span className='text-xs text-gray-400 italic'>
+                            No thermal hood required for this dive.
                           </span>
                         )}
                       </div>
@@ -3098,7 +3444,7 @@ const BookingWizard = () => {
                     {/* 9. Neoprene Dive Gloves */}
                     <div
                       className={`p-3.5 transition-colors ${
-                        glovesSize !== 'None' ? 'bg-blue-50/25 dark:bg-blue-950/20' : ''
+                        glovesOption === 'RENT' ? 'bg-blue-50/25 dark:bg-blue-950/20' : ''
                       }`}
                     >
                       {/* Sub-row 1 */}
@@ -3106,9 +3452,11 @@ const BookingWizard = () => {
                         <div className='flex items-center gap-3 min-w-0'>
                           <div
                             className={`p-2 rounded-lg shrink-0 ${
-                              glovesSize !== 'None'
+                              glovesOption === 'RENT'
                                 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300'
-                                : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                                : glovesOption === 'OWN'
+                                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                  : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
                             }`}
                           >
                             <Shield size={18} />
@@ -3119,7 +3467,7 @@ const BookingWizard = () => {
                                 Neoprene Dive Gloves
                               </span>
                               <span className='text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'>
-                                Hand protection
+                                Optional hand protection
                               </span>
                             </div>
                           </div>
@@ -3128,34 +3476,64 @@ const BookingWizard = () => {
                         <div className='flex items-center gap-3 self-end sm:self-auto shrink-0'>
                           <span
                             className={`text-xs font-semibold ${
-                              glovesSize !== 'None'
+                              glovesOption === 'RENT'
                                 ? 'text-blue-600 dark:text-blue-400 font-bold'
                                 : 'text-gray-400'
                             }`}
                           >
-                            {glovesSize !== 'None' ? '+ €5.00/day' : 'No charge'}
+                            {glovesOption === 'NONE'
+                              ? 'Not needed'
+                              : glovesOption === 'OWN'
+                                ? 'No charge'
+                                : getItemPriceLabel('gloves', true, 5.0)}
                           </span>
                           <div className='inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shrink-0'>
                             <button
                               type='button'
-                              onClick={() => setGlovesSize('None')}
-                              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
-                                glovesSize === 'None'
+                              onClick={() => {
+                                setGlovesOption('NONE');
+                                setGlovesSize('None');
+                              }}
+                              className={`px-2 py-1 text-xs font-semibold rounded-md transition-all ${
+                                glovesOption === 'NONE'
+                                  ? 'bg-slate-700 text-white shadow-2xs'
+                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                              }`}
+                            >
+                              None
+                            </button>
+                            <button
+                              type='button'
+                              onClick={() => {
+                                setGlovesOption('OWN');
+                                setGlovesSize('None');
+                              }}
+                              className={`px-2 py-1 text-xs font-semibold rounded-md transition-all ${
+                                glovesOption === 'OWN'
                                   ? 'bg-emerald-600 text-white shadow-2xs'
                                   : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
                               }`}
                             >
-                              ✓ My Own
+                              ✓ Bring Own
                             </button>
                             <button
                               type='button'
-                              onClick={() =>
-                                setGlovesSize(glovesSize !== 'None' ? glovesSize : 'M')
+                              disabled={!isItemRentalOffered('gloves')}
+                              title={
+                                !isItemRentalOffered('gloves')
+                                  ? 'Rental not offered by this dive center'
+                                  : ''
                               }
-                              className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
-                                glovesSize !== 'None'
-                                  ? 'bg-blue-600 text-white shadow-2xs'
-                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                              onClick={() => {
+                                setGlovesOption('RENT');
+                                setGlovesSize(glovesSize !== 'None' ? glovesSize : 'M');
+                              }}
+                              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                                !isItemRentalOffered('gloves')
+                                  ? 'opacity-40 cursor-not-allowed text-gray-400'
+                                  : glovesOption === 'RENT'
+                                    ? 'bg-blue-600 text-white shadow-2xs'
+                                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
                               }`}
                             >
                               Rent
@@ -3166,10 +3544,10 @@ const BookingWizard = () => {
 
                       {/* Sub-row 2 */}
                       <div className='mt-2.5 pt-2.5 border-t border-gray-100 dark:border-gray-700/50 pl-0 sm:pl-11'>
-                        {glovesSize !== 'None' ? (
+                        {glovesOption === 'RENT' ? (
                           <div className='flex items-center gap-2 max-w-xs'>
                             <label className='text-[11px] font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap'>
-                              Size:
+                              Rental Size:
                             </label>
                             <select
                               value={glovesSize}
@@ -3182,9 +3560,13 @@ const BookingWizard = () => {
                               <option value='XL'>XL (Extra Large)</option>
                             </select>
                           </div>
+                        ) : glovesOption === 'OWN' ? (
+                          <span className='text-xs text-emerald-700 dark:text-emerald-400 font-medium italic'>
+                            ✓ Bringing own personal dive gloves.
+                          </span>
                         ) : (
-                          <span className='text-xs text-gray-500 dark:text-gray-400 italic'>
-                            Bringing own gloves / None needed.
+                          <span className='text-xs text-gray-400 italic'>
+                            No dive gloves required for this dive.
                           </span>
                         )}
                       </div>
@@ -3193,7 +3575,7 @@ const BookingWizard = () => {
                     {/* 10. Primary Dive Torch / Light (Opt) */}
                     <div
                       className={`p-3.5 transition-colors ${
-                        rentalTorch ? 'bg-blue-50/25 dark:bg-blue-950/20' : ''
+                        torchOption === 'RENT' ? 'bg-blue-50/25 dark:bg-blue-950/20' : ''
                       }`}
                     >
                       {/* Sub-row 1 */}
@@ -3201,9 +3583,11 @@ const BookingWizard = () => {
                         <div className='flex items-center gap-3 min-w-0'>
                           <div
                             className={`p-2 rounded-lg shrink-0 ${
-                              rentalTorch
+                              torchOption === 'RENT'
                                 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300'
-                                : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                                : torchOption === 'OWN'
+                                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                  : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
                             }`}
                           >
                             <Flame size={18} />
@@ -3223,32 +3607,64 @@ const BookingWizard = () => {
                         <div className='flex items-center gap-3 self-end sm:self-auto shrink-0'>
                           <span
                             className={`text-xs font-semibold ${
-                              rentalTorch
+                              torchOption === 'RENT'
                                 ? 'text-blue-600 dark:text-blue-400 font-bold'
                                 : 'text-gray-400'
                             }`}
                           >
-                            {rentalTorch ? '+ €8.00/day' : 'No charge'}
+                            {torchOption === 'NONE'
+                              ? 'Not needed'
+                              : torchOption === 'OWN'
+                                ? 'No charge'
+                                : getItemPriceLabel('dive_torch', true, 8.0)}
                           </span>
                           <div className='inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shrink-0'>
                             <button
                               type='button'
-                              onClick={() => setRentalTorch(false)}
-                              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
-                                !rentalTorch
+                              onClick={() => {
+                                setTorchOption('NONE');
+                                setRentalTorch(false);
+                              }}
+                              className={`px-2 py-1 text-xs font-semibold rounded-md transition-all ${
+                                torchOption === 'NONE'
+                                  ? 'bg-slate-700 text-white shadow-2xs'
+                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                              }`}
+                            >
+                              None
+                            </button>
+                            <button
+                              type='button'
+                              onClick={() => {
+                                setTorchOption('OWN');
+                                setRentalTorch(false);
+                              }}
+                              className={`px-2 py-1 text-xs font-semibold rounded-md transition-all ${
+                                torchOption === 'OWN'
                                   ? 'bg-emerald-600 text-white shadow-2xs'
                                   : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
                               }`}
                             >
-                              ✓ My Own
+                              ✓ Bring Own
                             </button>
                             <button
                               type='button'
-                              onClick={() => setRentalTorch(true)}
-                              className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
-                                rentalTorch
-                                  ? 'bg-blue-600 text-white shadow-2xs'
-                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                              disabled={!isItemRentalOffered('dive_torch')}
+                              title={
+                                !isItemRentalOffered('dive_torch')
+                                  ? 'Rental not offered by this dive center'
+                                  : ''
+                              }
+                              onClick={() => {
+                                setTorchOption('RENT');
+                                setRentalTorch(true);
+                              }}
+                              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                                !isItemRentalOffered('dive_torch')
+                                  ? 'opacity-40 cursor-not-allowed text-gray-400'
+                                  : torchOption === 'RENT'
+                                    ? 'bg-blue-600 text-white shadow-2xs'
+                                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
                               }`}
                             >
                               Rent
@@ -3259,18 +3675,27 @@ const BookingWizard = () => {
 
                       {/* Sub-row 2 */}
                       <div className='mt-2.5 pt-2.5 border-t border-gray-100 dark:border-gray-700/50 pl-0 sm:pl-11'>
-                        <span className='text-xs text-gray-500 dark:text-gray-400 italic'>
-                          {rentalTorch
-                            ? 'High-lumen primary dive torch with fresh battery and secure wrist lanyard.'
-                            : 'Bringing own torch / None needed.'}
-                        </span>
+                        {torchOption === 'RENT' ? (
+                          <span className='text-xs text-gray-600 dark:text-gray-300'>
+                            Center-provided high-lumen primary dive torch with fresh battery and
+                            secure wrist lanyard.
+                          </span>
+                        ) : torchOption === 'OWN' ? (
+                          <span className='text-xs text-emerald-700 dark:text-emerald-400 font-medium italic'>
+                            ✓ Bringing own primary dive torch.
+                          </span>
+                        ) : (
+                          <span className='text-xs text-gray-400 italic'>
+                            No dive light / torch needed for this dive.
+                          </span>
+                        )}
                       </div>
                     </div>
 
                     {/* 11. Surface Marker Buoy (SMB & Spool) */}
                     <div
                       className={`p-3.5 transition-colors ${
-                        rentalSmb ? 'bg-blue-50/25 dark:bg-blue-950/20' : ''
+                        smbOption === 'RENT' ? 'bg-blue-50/25 dark:bg-blue-950/20' : ''
                       }`}
                     >
                       {/* Sub-row 1 */}
@@ -3278,9 +3703,11 @@ const BookingWizard = () => {
                         <div className='flex items-center gap-3 min-w-0'>
                           <div
                             className={`p-2 rounded-lg shrink-0 ${
-                              rentalSmb
+                              smbOption === 'RENT'
                                 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300'
-                                : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                                : smbOption === 'OWN'
+                                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                  : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
                             }`}
                           >
                             <Compass size={18} />
@@ -3300,38 +3727,67 @@ const BookingWizard = () => {
                         <div className='flex items-center gap-3 self-end sm:self-auto shrink-0'>
                           <span
                             className={`text-xs font-semibold ${
-                              rentalSmb
+                              smbOption === 'RENT'
                                 ? 'text-blue-600 dark:text-blue-400 font-bold'
                                 : 'text-gray-400'
                             }`}
                           >
-                            {rentalSmb ? '+ €5.00/day' : 'No charge'}
+                            {smbOption === 'NONE'
+                              ? 'Not needed'
+                              : smbOption === 'OWN'
+                                ? 'No charge'
+                                : getItemPriceLabel('smb', true, 5.0)}
                           </span>
                           <div className='inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shrink-0'>
                             <button
                               type='button'
                               onClick={() => {
+                                setSmbOption('NONE');
                                 setRentalSmb(false);
-                                setHasOwnSmb(true);
+                                setHasOwnSmb(false);
                               }}
-                              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
-                                !rentalSmb
-                                  ? 'bg-emerald-600 text-white shadow-2xs'
+                              className={`px-2 py-1 text-xs font-semibold rounded-md transition-all ${
+                                smbOption === 'NONE'
+                                  ? 'bg-slate-700 text-white shadow-2xs'
                                   : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
                               }`}
                             >
-                              ✓ My Own
+                              None
                             </button>
                             <button
                               type='button'
                               onClick={() => {
+                                setSmbOption('OWN');
+                                setRentalSmb(false);
+                                setHasOwnSmb(true);
+                              }}
+                              className={`px-2 py-1 text-xs font-semibold rounded-md transition-all ${
+                                smbOption === 'OWN'
+                                  ? 'bg-emerald-600 text-white shadow-2xs'
+                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                              }`}
+                            >
+                              ✓ Bring Own
+                            </button>
+                            <button
+                              type='button'
+                              disabled={!isItemRentalOffered('smb')}
+                              title={
+                                !isItemRentalOffered('smb')
+                                  ? 'Rental not offered by this dive center'
+                                  : ''
+                              }
+                              onClick={() => {
+                                setSmbOption('RENT');
                                 setRentalSmb(true);
                                 setHasOwnSmb(false);
                               }}
-                              className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
-                                rentalSmb
-                                  ? 'bg-blue-600 text-white shadow-2xs'
-                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                                !isItemRentalOffered('smb')
+                                  ? 'opacity-40 cursor-not-allowed text-gray-400'
+                                  : smbOption === 'RENT'
+                                    ? 'bg-blue-600 text-white shadow-2xs'
+                                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
                               }`}
                             >
                               Rent
@@ -3342,11 +3798,20 @@ const BookingWizard = () => {
 
                       {/* Sub-row 2 */}
                       <div className='mt-2.5 pt-2.5 border-t border-gray-100 dark:border-gray-700/50 pl-0 sm:pl-11'>
-                        <span className='text-xs text-gray-500 dark:text-gray-400 italic'>
-                          {rentalSmb
-                            ? 'Center-provided Surface Marker Buoy & finger spool for ascent safety and surface traffic awareness.'
-                            : 'Bringing own personal SMB & finger spool.'}
-                        </span>
+                        {smbOption === 'RENT' ? (
+                          <span className='text-xs text-gray-600 dark:text-gray-300'>
+                            Center-provided Surface Marker Buoy & finger spool for ascent safety and
+                            surface traffic awareness.
+                          </span>
+                        ) : smbOption === 'OWN' ? (
+                          <span className='text-xs text-emerald-700 dark:text-emerald-400 font-medium italic'>
+                            ✓ Bringing own personal Surface Marker Buoy & spool.
+                          </span>
+                        ) : (
+                          <span className='text-xs text-gray-400 italic'>
+                            No personal SMB needed (divemaster deploys boat safety buoy).
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -3390,10 +3855,10 @@ const BookingWizard = () => {
                         {hasOwnLeadWeights ? (
                           <li>Own Lead Weights (0 kg needed from center)</li>
                         ) : null}
-                        {hoodSize === 'None' ? <li>Own Thermal Hood (or none needed)</li> : null}
-                        {glovesSize === 'None' ? <li>Own Dive Gloves (or none needed)</li> : null}
-                        {!rentalTorch ? <li>Own Primary Dive Torch</li> : null}
-                        {!rentalSmb && hasOwnSmb ? (
+                        {hoodOption === 'OWN' ? <li>Own Thermal Hood</li> : null}
+                        {glovesOption === 'OWN' ? <li>Own Dive Gloves</li> : null}
+                        {torchOption === 'OWN' ? <li>Own Primary Dive Torch</li> : null}
+                        {smbOption === 'OWN' ? (
                           <li>Own Surface Marker Buoy (SMB) & Spool</li>
                         ) : null}
                       </ul>
@@ -3433,14 +3898,16 @@ const BookingWizard = () => {
                             )
                           </li>
                         ) : null}
-                        {hoodSize !== 'None' ? (
+                        {hoodOption === 'RENT' && hoodSize !== 'None' ? (
                           <li>Rental Thermal Hood (Size {hoodSize})</li>
                         ) : null}
-                        {glovesSize !== 'None' ? (
+                        {glovesOption === 'RENT' && glovesSize !== 'None' ? (
                           <li>Rental Dive Gloves (Size {glovesSize})</li>
                         ) : null}
-                        {rentalTorch ? <li>Rental Primary Dive Torch</li> : null}
-                        {rentalSmb ? <li>Rental Surface Marker Buoy (SMB) & Spool</li> : null}
+                        {torchOption === 'RENT' ? <li>Rental Primary Dive Torch</li> : null}
+                        {smbOption === 'RENT' ? (
+                          <li>Rental Surface Marker Buoy (SMB) & Spool</li>
+                        ) : null}
                       </ul>
                     </div>
                   </div>
@@ -4277,32 +4744,36 @@ const BookingWizard = () => {
                         : 'Configure in Step 2'}
                     </span>
                   </div>
-                  {rentalTorch && currentStep > 1 && (
+                  {torchOption === 'RENT' && currentStep > 1 && (
                     <div className='flex justify-between text-gray-600 dark:text-gray-400'>
                       <span>Rental Light:</span>
                       <span className='font-semibold text-gray-900 dark:text-white'>
-                        Primary Dive Torch Included
+                        Primary Dive Torch
                       </span>
                     </div>
                   )}
-                  {(hoodSize !== 'None' || glovesSize !== 'None') && currentStep > 1 && (
+                  {(hoodOption === 'RENT' || glovesOption === 'RENT') && currentStep > 1 && (
                     <div className='flex justify-between text-gray-600 dark:text-gray-400'>
                       <span>Thermal Gear:</span>
                       <span className='font-semibold text-gray-900 dark:text-white'>
                         {[
-                          hoodSize !== 'None' ? `Hood (${hoodSize})` : null,
-                          glovesSize !== 'None' ? `Gloves (${glovesSize})` : null,
+                          hoodOption === 'RENT' && hoodSize !== 'None'
+                            ? `Hood (${hoodSize})`
+                            : null,
+                          glovesOption === 'RENT' && glovesSize !== 'None'
+                            ? `Gloves (${glovesSize})`
+                            : null,
                         ]
                           .filter(Boolean)
                           .join(' • ')}
                       </span>
                     </div>
                   )}
-                  {rentalSmb && currentStep > 1 && (
+                  {smbOption === 'RENT' && currentStep > 1 && (
                     <div className='flex justify-between text-gray-600 dark:text-gray-400'>
                       <span>Safety Marker:</span>
                       <span className='font-semibold text-gray-900 dark:text-white'>
-                        Rental SMB & Spool Included
+                        Rental SMB & Spool
                       </span>
                     </div>
                   )}

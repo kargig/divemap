@@ -26,7 +26,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../api';
 import ErrorPage from '../components/ErrorPage';
 import MapLayersPanel from '../components/MapLayersPanel';
-import PageHeader from '../components/PageHeader';
+import PageTitle from '../components/PageTitle';
 import SEO from '../components/SEO';
 import Modal from '../components/ui/Modal';
 import UnifiedMapFilters from '../components/UnifiedMapFilters';
@@ -899,20 +899,11 @@ const IndependentMapView = () => {
         title='Global Interactive Dive Map | Divemap'
         description='Explore scuba dive sites and diving centers globally on our interactive map. Filter by difficulty, view marine conditions, and plan your next dive trip.'
       />
-      {!isFullscreen && (
-        <div className='max-w-[95vw] xl:max-w-[1600px] w-full mx-auto px-0 sm:px-4 lg:px-6 xl:px-8 pt-3 sm:pt-6 pb-2 sm:pb-3'>
-          <PageHeader
-            title='Interactive Map'
-            titleIcon={Map}
-            breadcrumbItems={[{ label: 'Interactive Map' }]}
-          />
-        </div>
-      )}
       <div
-        className={`${isFullscreen ? 'h-screen fixed inset-0 z-50' : 'h-[calc(100vh-14rem)] min-h-[500px]'} bg-gray-50 dark:bg-slate-900 overflow-hidden flex flex-col transition-all duration-300`}
+        className={`${isFullscreen ? 'h-screen' : navbarVisible ? 'h-[calc(100vh-4rem)]' : 'h-screen'} bg-gray-50 dark:bg-slate-900 overflow-hidden flex flex-col ${isFullscreen ? 'fixed inset-0 z-50' : ''} transition-all duration-300`}
       >
         {/* Content wrapper with max-width */}
-        <div className='flex-1 flex flex-col min-h-0 max-w-[95vw] xl:max-w-[1600px] w-full mx-auto sm:px-4 lg:px-6 xl:px-8 pb-3 sm:pb-6'>
+        <div className='flex-1 flex flex-col min-h-0 max-w-[95vw] xl:max-w-[1600px] w-full mx-auto'>
           {/* Header */}
           <div
             className={`bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 shadow-sm flex-shrink-0 ${isFullscreen ? 'z-[9999]' : ''}`}
@@ -927,9 +918,9 @@ const IndependentMapView = () => {
                   >
                     <Map className='w-4 h-4' />
                   </button>
-                  <span className='text-sm sm:text-base font-semibold text-gray-900 dark:text-slate-100'>
-                    {isFullscreen ? 'Interactive Map' : 'Map View'}
-                  </span>
+                  <PageTitle className='!text-base sm:!text-lg font-semibold'>
+                    Interactive Map
+                  </PageTitle>
                 </div>
                 {/* Wrench button - Mobile controls toggle */}
                 {isMobile ? (

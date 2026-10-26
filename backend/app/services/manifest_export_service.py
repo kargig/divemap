@@ -1083,16 +1083,37 @@ class ManifestExportService:
             else:
                 acc_lines.append("Own Computer")
 
-            if eq.get("rental_torch"):
+            if eq.get("torch_option") == "RENT" or eq.get("rental_torch"):
                 acc_lines.append("<font color='#1E40AF'><b>Rent Torch</b></font>")
-            if eq.get("rental_smb") or (eq.get("has_own_smb") is False and eq.get("rental_smb") is not False):
+            elif eq.get("torch_option") == "OWN" or eq.get("has_own_torch"):
+                acc_lines.append("Own Torch")
+
+            if eq.get("smb_option") == "RENT" or eq.get("rental_smb"):
                 acc_lines.append("<font color='#1E40AF'><b>Rent SMB</b></font>")
-            elif eq.get("has_own_smb"):
+            elif eq.get("smb_option") == "OWN" or eq.get("has_own_smb"):
                 acc_lines.append("Own SMB")
-            if eq.get("hood_size") and eq.get("hood_size") != "None":
-                acc_lines.append(f"<font color='#1E40AF'><b>Rent Hood ({eq.get('hood_size')})</b></font>")
-            if eq.get("gloves_size") and eq.get("gloves_size") != "None":
-                acc_lines.append(f"<font color='#1E40AF'><b>Rent Gloves ({eq.get('gloves_size')})</b></font>")
+
+            if eq.get("hood_option") == "RENT" or (
+                eq.get("hood_size")
+                and eq.get("hood_size") != "None"
+                and eq.get("hood_option") != "NONE"
+            ):
+                acc_lines.append(
+                    f"<font color='#1E40AF'><b>Rent Hood ({eq.get('hood_size') or 'M'})</b></font>"
+                )
+            elif eq.get("hood_option") == "OWN" or eq.get("has_own_hood"):
+                acc_lines.append("Own Hood")
+
+            if eq.get("gloves_option") == "RENT" or (
+                eq.get("gloves_size")
+                and eq.get("gloves_size") != "None"
+                and eq.get("gloves_option") != "NONE"
+            ):
+                acc_lines.append(
+                    f"<font color='#1E40AF'><b>Rent Gloves ({eq.get('gloves_size') or 'M'})</b></font>"
+                )
+            elif eq.get("gloves_option") == "OWN" or eq.get("has_own_gloves"):
+                acc_lines.append("Own Gloves")
             if eq.get("rental_scooter"):
                 acc_lines.append("<font color='#D97706'><b>DPV Scooter</b></font>")
             if eq.get("stage_tank") and eq.get("stage_tank") != "None":
