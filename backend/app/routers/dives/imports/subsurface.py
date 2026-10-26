@@ -4,7 +4,7 @@ from datetime import datetime
 from fastapi import Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
-from app.models import DiveSite
+from app.models import DiveSite, DivingCenter
 from app.physics import GasMix, calculate_real_volume
 
 from ..dives_shared import Dive, User, get_current_user, get_db, router
@@ -610,6 +610,11 @@ async def import_subsurface_xml(
         all_sites = db.query(
             DiveSite.id, DiveSite.name, DiveSite.country, DiveSite.region
         ).all()
+        all_centers = (
+            db.query(DivingCenter.id, DivingCenter.name, DivingCenter.country)
+            .order_by(DivingCenter.name.asc())
+            .all()
+        )
 
         xml_site_names = set()
         for site_info in dive_sites.values():
@@ -659,11 +664,16 @@ async def import_subsurface_xml(
             for site in all_sites
         ]
 
+        diving_centers_for_selection = [
+            {"id": dc.id, "name": dc.name, "country": dc.country} for dc in all_centers
+        ]
+
         return {
             "message": f"Successfully parsed {len(parsed_dives)} dives",
             "dives": parsed_dives,
             "total_count": len(parsed_dives),
             "available_dive_sites": dive_sites_for_selection,
+            "available_diving_centers": diving_centers_for_selection,
         }
 
     except ET.ParseError:

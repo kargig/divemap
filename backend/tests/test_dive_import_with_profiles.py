@@ -156,6 +156,8 @@ class TestDiveImportWithProfiles:
             data = response.json()
             assert "dives" in data
             assert len(data["dives"]) == 1
+            assert "available_diving_centers" in data
+            assert isinstance(data["available_diving_centers"], list)
 
             dive_data = data["dives"][0]
             assert "profile_data" in dive_data

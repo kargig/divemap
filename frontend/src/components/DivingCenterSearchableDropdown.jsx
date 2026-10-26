@@ -101,15 +101,30 @@ const DivingCenterSearchableDropdown = ({
     const formattedOptions = combinedCenters.map(center => ({
       value: center.id.toString(),
       label: center.country ? `${center.name} (${center.country})` : center.name,
+      name: center.name || '',
     }));
 
-    // If no search term, return everything we have
-    if (!searchTerm.trim()) return formattedOptions;
+    // If no search term, return everything sorted alphabetically by name
+    if (!searchTerm.trim()) {
+      return [...formattedOptions].sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+      );
+    }
 
     // Local filter for instant feedback while remote results load
     // and to further narrow down results
     const lowerSearchTerm = searchTerm.toLowerCase();
-    return formattedOptions.filter(option => option.label.toLowerCase().includes(lowerSearchTerm));
+    const filtered = formattedOptions.filter(option =>
+      option.label.toLowerCase().includes(lowerSearchTerm)
+    );
+
+    return filtered.sort((a, b) => {
+      const aStarts = a.name.toLowerCase().startsWith(lowerSearchTerm);
+      const bStarts = b.name.toLowerCase().startsWith(lowerSearchTerm);
+      if (aStarts && !bStarts) return -1;
+      if (!aStarts && bStarts) return 1;
+      return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+    });
   }, [combinedCenters, searchTerm]);
 
   const handleValueChange = value => {
