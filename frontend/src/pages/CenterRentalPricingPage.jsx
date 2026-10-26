@@ -20,6 +20,7 @@ const DEFAULT_PRICING = {
     dive_torch: 8.0,
     hood: 5.0,
     gloves: 5.0,
+    smb: 5.0,
     dpv_scooter: 40.0,
     stage_tank: 20.0,
   },
@@ -326,6 +327,7 @@ const CenterRentalPricingPage = () => {
                     { key: 'dive_torch', label: 'Primary Dive Torch' },
                     { key: 'hood', label: 'Thermal Neoprene Hood' },
                     { key: 'gloves', label: 'Neoprene Dive Gloves' },
+                    { key: 'smb', label: 'Surface Marker Buoy (SMB) & Spool' },
                     { key: 'dpv_scooter', label: 'DPV Underwater Scooter' },
                     { key: 'stage_tank', label: 'Stage Cylinder (Deco / Nitrox 50 / O2)' },
                   ].map(item => (

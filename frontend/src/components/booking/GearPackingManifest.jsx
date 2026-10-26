@@ -19,6 +19,7 @@ const GearPackingManifest = ({ summary, participants = [] }) => {
   const scootersCount = summary?.scooters_count || 0;
   const torchesCount = summary?.torches_count || 0;
   const computersCount = summary?.computers_count || 0;
+  const smbsCount = summary?.smbs_count || 0;
 
   const leadBreakdown = summary?.lead_breakdown || {};
   const valveFittings = summary?.valve_fittings || {};
@@ -234,11 +235,17 @@ const GearPackingManifest = ({ summary, participants = [] }) => {
         scootersCount > 0 ||
         torchesCount > 0 ||
         computersCount > 0 ||
+        smbsCount > 0 ||
         totalStageTanks > 0) && (
         <div className='pt-1.5 flex flex-wrap gap-2 text-xs'>
           {computersCount > 0 && (
             <span className='px-2 py-0.5 bg-blue-100 text-blue-900 rounded font-bold text-[11px] flex items-center gap-1 border border-blue-300'>
               <Sparkles size={11} className='text-blue-600' /> Dive Computers: {computersCount}x
+            </span>
+          )}
+          {smbsCount > 0 && (
+            <span className='px-2 py-0.5 bg-orange-100 text-orange-900 rounded font-bold text-[11px] flex items-center gap-1 border border-orange-300'>
+              <Compass size={11} className='text-orange-600' /> Rental SMBs: {smbsCount}x
             </span>
           )}
           {torchesCount > 0 && (
@@ -467,13 +474,13 @@ const GearPackingManifest = ({ summary, participants = [] }) => {
           </div>
         </div>
 
-        {/* 2. Lead Ballast & Belts Card (6 Cols) */}
+        {/* 2. Lead Weights & Belts Card (6 Cols) */}
         <div className='lg:col-span-6 p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-4'>
           <div className='flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-700'>
             <div>
               <h4 className='font-bold text-sm text-gray-900 dark:text-white uppercase tracking-tight flex items-center gap-2'>
                 <Anchor size={16} className='text-indigo-600' />
-                Lead Ballast & Weight Belts
+                Lead Weights & Weight Belts
               </h4>
               <span className='text-[11px] text-gray-400'>
                 Stage in weight bucket with 15% check-dive buffer.

@@ -1,5 +1,6 @@
 import { ExternalLink, Code, Database, Shield, Zap, BookOpen } from 'lucide-react';
 
+import PageTitle from '../components/PageTitle';
 import SEO from '../components/SEO';
 
 const API = () => {
@@ -18,9 +19,7 @@ const API = () => {
         <div className='bg-white dark:bg-slate-800 rounded-lg shadow-md border border-gray-100 dark:border-slate-700 p-8'>
           <div className='text-center mb-8'>
             <Code className='h-16 w-16 text-blue-600 dark:text-blue-400 mx-auto mb-4' />
-            <h1 className='text-3xl font-bold text-gray-900 dark:text-slate-100 mb-2'>
-              API Documentation
-            </h1>
+            <PageTitle className='justify-center mb-2'>API Documentation</PageTitle>
             <p className='text-lg text-gray-600 dark:text-slate-300'>
               Learn how to integrate with the Divemap backend API
             </p>

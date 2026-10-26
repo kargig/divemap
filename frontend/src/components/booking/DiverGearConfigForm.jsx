@@ -31,7 +31,7 @@ const DiverGearConfigForm = ({
   loading = false,
   compact = false,
   showEmergencyAndInsurance = true,
-  showBallastCalculator = true,
+  showWeightCalculator = true,
 }) => {
   const [unitSystem, setUnitSystem] = useState('METRIC'); // METRIC | IMPERIAL
 
@@ -58,7 +58,7 @@ const DiverGearConfigForm = ({
   const [rentalRegulator, setRentalRegulator] = useState(true);
   const [stageTank, setStageTank] = useState('None');
 
-  // 3. Buoyancy & Ballast
+  // 3. Buoyancy & Weights
   const [bcdGender, setBcdGender] = useState('MEN');
   const [bcdSize, setBcdSize] = useState('None');
   const [leadKg, setLeadKg] = useState('4.0');
@@ -86,6 +86,7 @@ const DiverGearConfigForm = ({
   // 7. Safety Gear & Dive Computer
   const [rentalComputer, setRentalComputer] = useState(false);
   const [hasOwnComputer, setHasOwnComputer] = useState(true);
+  const [rentalSmb, setRentalSmb] = useState(false);
   const [hasOwnSmb, setHasOwnSmb] = useState(false);
 
   // 8. Insurance & Emergency
@@ -95,7 +96,7 @@ const DiverGearConfigForm = ({
   const [insurancePolicyNumber, setInsurancePolicyNumber] = useState('');
   const [insuranceExpiryDate, setInsuranceExpiryDate] = useState('');
 
-  // Ballast Physics Calculator State
+  // Weight Physics Calculator State
   const [showEstimator, setShowEstimator] = useState(false);
   const [waterTypeIdx, setWaterTypeIdx] = useState(6); // Default: Aegean / Eastern Med (1.029)
 
@@ -118,7 +119,7 @@ const DiverGearConfigForm = ({
     setRentalSnorkel(Boolean(eq.rental_snorkel));
     setHoodSize(eq.hood_size || 'None');
 
-    // Ballast
+    // Lead Weights
     const rawLead = initialData.estimated_lead_kg ?? eq.estimated_lead_kg ?? eq.lead_kg;
     if (rawLead !== undefined && rawLead !== null) {
       setLeadKg(rawLead.toString());
@@ -175,6 +176,7 @@ const DiverGearConfigForm = ({
         ? Boolean(eq.has_own_dive_computer)
         : !eq.rental_dive_computer
     );
+    setRentalSmb(Boolean(eq.rental_smb));
     setHasOwnSmb(Boolean(eq.has_own_smb));
 
     // Emergency & Insurance
@@ -296,7 +298,7 @@ const DiverGearConfigForm = ({
     setLeadKg(calculatedLead.kg.toString());
     setLeadLbs(calculatedLead.lbs.toString());
     toast.success(
-      `Applied recommended ballast: ${unitSystem === 'METRIC' ? `${calculatedLead.kg} kg` : `${calculatedLead.lbs} lbs`}`
+      `Applied recommended weights: ${unitSystem === 'METRIC' ? `${calculatedLead.kg} kg` : `${calculatedLead.lbs} lbs`}`
     );
   };
 
@@ -342,6 +344,7 @@ const DiverGearConfigForm = ({
         rental_torch: rentalTorch,
         rental_dive_computer: rentalComputer,
         has_own_dive_computer: hasOwnComputer,
+        rental_smb: rentalSmb,
         has_own_smb: hasOwnSmb,
         emergency_contact_name: emergencyContactName.trim() || undefined,
         emergency_contact_phone: emergencyContactPhone.trim() || undefined,
@@ -538,7 +541,7 @@ const DiverGearConfigForm = ({
               Lead Weights & Weight System
             </h4>
           </div>
-          {showBallastCalculator && (
+          {showWeightCalculator && (
             <button
               type='button'
               onClick={() => setShowEstimator(!showEstimator)}
@@ -930,8 +933,24 @@ const DiverGearConfigForm = ({
           <label className='flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300 cursor-pointer'>
             <input
               type='checkbox'
+              checked={rentalSmb}
+              onChange={e => {
+                setRentalSmb(e.target.checked);
+                if (e.target.checked) setHasOwnSmb(false);
+              }}
+              className='rounded text-blue-600'
+            />
+            <span>Rent SMB & Spool</span>
+          </label>
+
+          <label className='flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300 cursor-pointer'>
+            <input
+              type='checkbox'
               checked={hasOwnSmb}
-              onChange={e => setHasOwnSmb(e.target.checked)}
+              onChange={e => {
+                setHasOwnSmb(e.target.checked);
+                if (e.target.checked) setRentalSmb(false);
+              }}
               className='rounded text-blue-600'
             />
             <span>Has own SMB & Spool</span>

@@ -29,6 +29,7 @@ import { useQuery } from 'react-query';
 import { useSearchParams, Link } from 'react-router-dom';
 
 import api from '../api';
+import PageTitle from '../components/PageTitle';
 import SEO from '../components/SEO';
 import { formatDate, formatTime } from '../utils/dateHelpers';
 
@@ -673,10 +674,10 @@ const AdminAuditLogs = () => {
       <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
         <div className='flex flex-col md:flex-row md:items-center md:justify-between mb-6'>
           <div>
-            <h1 className='text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white flex items-center mb-1'>
+            <PageTitle className='mb-1'>
               <SafetyCertificateOutlined style={{ marginRight: 8, color: token.colorPrimary }} />
               Platform Security & Privacy Audits
-            </h1>
+            </PageTitle>
             <p className='text-sm text-gray-500 dark:text-gray-400'>
               Monitor authentication events, staff credential activity, and entity lifecycle
               forensics.

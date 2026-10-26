@@ -10,6 +10,7 @@ import MinGasCalculator from '../components/calculators/MinGasCalculator';
 import ModCalculator from '../components/calculators/ModCalculator';
 import SacRateCalculator from '../components/calculators/SacRateCalculator';
 import WeightCalculator from '../components/calculators/WeightCalculator';
+import PageHeader from '../components/PageHeader';
 import SEO from '../components/SEO';
 import Select from '../components/ui/Select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/Tabs';
@@ -61,18 +62,13 @@ const Tools = () => {
         title={`${activeToolLabel} | Divemap Diving Tools`}
         description={`Use our ${activeToolLabel} to plan your scuba dives safely. Divemap offers a suite of advanced diving calculators for gas planning, MOD, best mix, and tank buoyancy.`}
       />
-      <div className='bg-white shadow-sm rounded-lg overflow-hidden mb-8 min-h-[80vh] flex flex-col'>
-        <div className='p-4 sm:p-6 border-b border-gray-200'>
-          <h1 className='text-2xl sm:text-3xl font-bold text-gray-900 flex items-center'>
-            <Calculator className='h-6 w-6 sm:h-8 sm:w-8 mr-2 sm:mr-3 text-blue-600' />
-            Diving Tools
-          </h1>
-          <p className='mt-1 text-gray-600 hidden sm:block'>
-            Useful calculators for dive planning. Remember to always double-check your calculations.
-          </p>
-        </div>
-
-        <div className='flex-grow bg-gray-50 p-0 sm:p-4 lg:p-6'>
+      <PageHeader
+        title='Diving Tools'
+        titleIcon={Calculator}
+        breadcrumbItems={[{ label: 'Resources' }, { label: 'Diving Tools' }]}
+      />
+      <div className='bg-white dark:bg-slate-800 shadow-sm rounded-lg overflow-hidden mb-8 min-h-[80vh] flex flex-col border border-gray-100 dark:border-slate-700'>
+        <div className='flex-grow bg-gray-50 dark:bg-slate-900 p-0 sm:p-4 lg:p-6'>
           <Tabs value={activeTab} onValueChange={handleTabChange} className='w-full'>
             {/* Mobile View: Select Dropdown */}
             <div className='mb-4 px-4 sm:hidden'>

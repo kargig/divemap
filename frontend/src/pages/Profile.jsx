@@ -1,5 +1,5 @@
 /* global Notification */
-import { Modal, Dropdown } from 'antd';
+import { Modal, Dropdown, Tooltip } from 'antd';
 import {
   MoreVertical,
   User,
@@ -38,6 +38,7 @@ import {
   Loader2,
   Ticket,
   HeartPulse,
+  HelpCircle,
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
@@ -56,6 +57,7 @@ import AvatarEditor from '../components/AvatarEditor';
 import { FormField } from '../components/forms/FormField';
 import MaskedEmail from '../components/MaskedEmail';
 import OrganizationLogo from '../components/OrganizationLogo';
+import PageTitle from '../components/PageTitle';
 import SEO from '../components/SEO';
 import { getSocialMediaIcon } from '../components/SocialMediaIcons';
 import ThemeToggle from '../components/ThemeToggle';
@@ -794,9 +796,7 @@ const Profile = () => {
       />
       <div className='w-full lg:max-w-[95vw] xl:max-w-[1600px] mx-auto px-0 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8 overflow-x-hidden'>
         <div className='mb-6 sm:mb-8'>
-          <h1 className='text-2xl sm:text-3xl font-bold text-gray-900 dark:text-slate-100 mb-2'>
-            Profile
-          </h1>
+          <PageTitle className='mb-2'>Profile</PageTitle>
           <p className='text-sm sm:text-base text-gray-600 dark:text-slate-400'>
             Manage your account settings and diving information
           </p>
@@ -924,9 +924,9 @@ const Profile = () => {
             {/* TAB 1: ACCOUNT & SECURITY */}
             {activeTab === 'account' && (
               <>
-                <div className='bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-md border border-gray-100 dark:border-slate-700'>
-                  <div className='flex items-center justify-between mb-4 sm:mb-6'>
-                    <h2 className='text-lg sm:text-xl font-semibold text-gray-900 dark:text-slate-100 uppercase tracking-tight'>
+                <div className='bg-white dark:bg-slate-800 p-3.5 sm:p-5 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700'>
+                  <div className='flex items-center justify-between mb-3 sm:mb-4'>
+                    <h2 className='text-base sm:text-lg font-semibold text-gray-900 dark:text-slate-100 uppercase tracking-tight'>
                       Account Information
                     </h2>
                     <Button
@@ -1056,86 +1056,96 @@ const Profile = () => {
                       </form>
                     </FormProvider>
                   ) : (
-                    <div className='grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3.5 sm:gap-y-4'>
-                      <div className='flex items-start'>
-                        <div className='bg-gray-100 dark:bg-slate-700 p-1.5 rounded-lg mr-3 shrink-0'>
-                          <User className='h-4 w-4 text-blue-600 dark:text-blue-400' />
+                    <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3'>
+                      <div className='flex items-center gap-2.5 p-2.5 rounded-lg bg-gray-50/70 dark:bg-slate-700/40 border border-gray-100 dark:border-slate-700/60'>
+                        <div className='bg-white dark:bg-slate-700 p-1.5 rounded-md shadow-2xs shrink-0 text-blue-600 dark:text-blue-400'>
+                          <User className='h-3.5 w-3.5' />
                         </div>
-                        <div className='min-w-0'>
-                          <span className='text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider block mb-0.5'>
+                        <div className='min-w-0 flex-1'>
+                          <span className='text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider block leading-tight'>
                             Username
                           </span>
-                          <p className='text-gray-900 dark:text-slate-100 font-semibold truncate'>
+                          <p className='text-gray-900 dark:text-slate-100 font-semibold text-xs sm:text-sm truncate'>
                             {user.username}
                           </p>
                         </div>
                       </div>
 
-                      <div className='flex items-start'>
-                        <div className='bg-gray-100 dark:bg-slate-700 p-1.5 rounded-lg mr-3 shrink-0'>
-                          <User className='h-4 w-4 text-blue-600 dark:text-blue-400' />
+                      <div className='flex items-center gap-2.5 p-2.5 rounded-lg bg-gray-50/70 dark:bg-slate-700/40 border border-gray-100 dark:border-slate-700/60'>
+                        <div className='bg-white dark:bg-slate-700 p-1.5 rounded-md shadow-2xs shrink-0 text-blue-600 dark:text-blue-400'>
+                          <User className='h-3.5 w-3.5' />
                         </div>
-                        <div className='min-w-0'>
-                          <span className='text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider block mb-0.5'>
+                        <div className='min-w-0 flex-1'>
+                          <span className='text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider block leading-tight'>
                             Full Name
                           </span>
-                          <p className='text-gray-900 dark:text-slate-100 font-semibold truncate'>
+                          <p className='text-gray-900 dark:text-slate-100 font-semibold text-xs sm:text-sm truncate'>
                             {user.name || 'Not set'}
                           </p>
                         </div>
                       </div>
 
-                      <div className='flex items-start'>
-                        <div className='bg-gray-100 dark:bg-slate-700 p-1.5 rounded-lg mr-3 shrink-0'>
-                          <Mail className='h-4 w-4 text-blue-600 dark:text-blue-400' />
+                      <div className='flex items-center gap-2.5 p-2.5 rounded-lg bg-gray-50/70 dark:bg-slate-700/40 border border-gray-100 dark:border-slate-700/60'>
+                        <div className='bg-white dark:bg-slate-700 p-1.5 rounded-md shadow-2xs shrink-0 text-blue-600 dark:text-blue-400'>
+                          <Mail className='h-3.5 w-3.5' />
                         </div>
-                        <div className='min-w-0'>
-                          <span className='text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider block mb-0.5'>
+                        <div className='min-w-0 flex-1'>
+                          <span className='text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider block leading-tight'>
                             Email
                           </span>
-                          <p className='text-gray-900 dark:text-slate-100 font-semibold truncate'>
+                          <p className='text-gray-900 dark:text-slate-100 font-semibold text-xs sm:text-sm truncate'>
                             <MaskedEmail email={user.email} />
                           </p>
                         </div>
                       </div>
 
-                      <div className='flex items-start'>
-                        <div className='bg-gray-100 dark:bg-slate-700 p-1.5 rounded-lg mr-3 shrink-0'>
-                          <Activity className='h-4 w-4 text-blue-600 dark:text-blue-400' />
+                      <div className='flex items-center gap-2.5 p-2.5 rounded-lg bg-gray-50/70 dark:bg-slate-700/40 border border-gray-100 dark:border-slate-700/60'>
+                        <div className='bg-white dark:bg-slate-700 p-1.5 rounded-md shadow-2xs shrink-0 text-blue-600 dark:text-blue-400'>
+                          <Shield className='h-3.5 w-3.5' />
                         </div>
-                        <div className='min-w-0'>
-                          <span className='text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider block mb-0.5'>
-                            Total Dives
+                        <div className='min-w-0 flex-1'>
+                          <span className='text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider block leading-tight'>
+                            Role
                           </span>
-                          <div className='flex items-baseline gap-2'>
-                            <p className='text-gray-900 dark:text-slate-100 font-bold text-base sm:text-lg leading-tight'>
-                              {(user?.number_of_dives || 0) +
-                                (userStats?.dives_created || 0) +
-                                (userStats?.buddy_dives_count || 0)}
-                            </p>
-                          </div>
-                          <p className='text-[10px] leading-tight text-gray-500 dark:text-slate-400 mt-0.5'>
-                            {user?.number_of_dives || 0} prior + {userStats?.dives_created || 0} on
-                            Divemap
+                          <p className='text-gray-900 dark:text-slate-100 font-semibold text-xs sm:text-sm truncate'>
+                            {user.is_admin
+                              ? 'Administrator'
+                              : user.is_moderator
+                                ? 'Moderator'
+                                : 'User'}
                           </p>
                         </div>
                       </div>
 
-                      <div className='flex items-start'>
-                        <div className='bg-gray-100 dark:bg-slate-700 p-1.5 rounded-lg mr-3 shrink-0'>
-                          <Shield className='h-4 w-4 text-blue-600 dark:text-blue-400' />
+                      <div className='flex items-center gap-2.5 p-2.5 rounded-lg bg-gray-50/70 dark:bg-slate-700/40 border border-gray-100 dark:border-slate-700/60'>
+                        <div className='bg-white dark:bg-slate-700 p-1.5 rounded-md shadow-2xs shrink-0 text-blue-600 dark:text-blue-400'>
+                          <Calendar className='h-3.5 w-3.5' />
                         </div>
-                        <div>
-                          <span className='text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider block mb-0.5'>
+                        <div className='min-w-0 flex-1'>
+                          <span className='text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider block leading-tight'>
+                            Member Since
+                          </span>
+                          <p className='text-gray-900 dark:text-slate-100 font-semibold text-xs sm:text-sm truncate'>
+                            {formatDate(user.created_at)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className='flex items-center gap-2.5 p-2.5 rounded-lg bg-gray-50/70 dark:bg-slate-700/40 border border-gray-100 dark:border-slate-700/60'>
+                        <div className='bg-white dark:bg-slate-700 p-1.5 rounded-md shadow-2xs shrink-0 text-blue-600 dark:text-blue-400'>
+                          <Eye className='h-3.5 w-3.5' />
+                        </div>
+                        <div className='min-w-0 flex-1'>
+                          <span className='text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider block leading-tight'>
                             Buddy Visibility
                           </span>
-                          <p className='text-gray-900 dark:text-slate-100'>
+                          <p className='text-gray-900 dark:text-slate-100 text-xs sm:text-sm font-semibold truncate'>
                             {(user.buddy_visibility || 'public') === 'public' ? (
-                              <span className='text-green-600 dark:text-emerald-400 font-bold text-sm'>
+                              <span className='text-green-600 dark:text-emerald-400 font-bold'>
                                 Public
                               </span>
                             ) : (
-                              <span className='text-gray-600 dark:text-slate-400 font-bold text-sm'>
+                              <span className='text-gray-600 dark:text-slate-400 font-bold'>
                                 Private
                               </span>
                             )}
@@ -1144,15 +1154,15 @@ const Profile = () => {
                       </div>
 
                       {ownedDivingCenters && ownedDivingCenters.length > 0 && (
-                        <div className='flex items-start'>
-                          <div className='bg-gray-100 dark:bg-slate-700 p-1.5 rounded-lg mr-3 shrink-0'>
-                            <Building2 className='h-4 w-4 text-blue-600 dark:text-blue-400' />
+                        <div className='col-span-full flex items-center gap-2.5 p-2.5 rounded-lg bg-gray-50/70 dark:bg-slate-700/40 border border-gray-100 dark:border-slate-700/60'>
+                          <div className='bg-white dark:bg-slate-700 p-1.5 rounded-md shadow-2xs shrink-0 text-blue-600 dark:text-blue-400'>
+                            <Building2 className='h-3.5 w-3.5' />
                           </div>
                           <div className='flex-1 min-w-0'>
-                            <span className='text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider block mb-0.5'>
+                            <span className='text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider block leading-tight'>
                               Owned Centers
                             </span>
-                            <div className='flex flex-wrap gap-1.5 mt-1'>
+                            <div className='flex flex-wrap gap-1.5 mt-0.5'>
                               {ownedDivingCenters.map(center => (
                                 <Link
                                   key={center.id}
@@ -1166,38 +1176,6 @@ const Profile = () => {
                           </div>
                         </div>
                       )}
-
-                      <div className='flex items-start'>
-                        <div className='bg-gray-100 dark:bg-slate-700 p-1.5 rounded-lg mr-3 shrink-0'>
-                          <Calendar className='h-4 w-4 text-blue-600 dark:text-blue-400' />
-                        </div>
-                        <div>
-                          <span className='text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider block mb-0.5'>
-                            Member Since
-                          </span>
-                          <p className='text-gray-900 dark:text-slate-100 font-semibold text-sm'>
-                            {formatDate(user.created_at)}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className='flex items-start'>
-                        <div className='bg-gray-100 dark:bg-slate-700 p-1.5 rounded-lg mr-3 shrink-0'>
-                          <Shield className='h-4 w-4 text-blue-600 dark:text-blue-400' />
-                        </div>
-                        <div>
-                          <span className='text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider block mb-0.5'>
-                            Role
-                          </span>
-                          <p className='text-gray-900 dark:text-slate-100 font-semibold text-sm'>
-                            {user.is_admin
-                              ? 'Administrator'
-                              : user.is_moderator
-                                ? 'Moderator'
-                                : 'User'}
-                          </p>
-                        </div>
-                      </div>
                     </div>
                   )}
                 </div>
@@ -2051,7 +2029,7 @@ const Profile = () => {
                         </h2>
                         <p className='text-sm text-gray-500 dark:text-slate-400 mt-1 max-w-xl'>
                           Manage tailored equipment profiles, cylinder preferences, wetsuit sizing,
-                          and ballast weights for tropical, cold water, or technical dives.
+                          and lead weights for tropical, cold water, or technical dives.
                         </p>
                       </div>
                     </div>
@@ -2262,20 +2240,9 @@ const Profile = () => {
                 </div>
                 <div className='flex justify-between items-center text-sm'>
                   <div className='flex items-center gap-2 min-w-0 flex-1 mr-2'>
-                    <User size={16} className='text-gray-400 shrink-0' />
-                    <span className='text-gray-600 dark:text-slate-400 truncate'>
-                      Dives from Profile
-                    </span>
-                  </div>
-                  <span className='font-semibold text-gray-900 dark:text-slate-100 shrink-0'>
-                    {user?.number_of_dives || 0}
-                  </span>
-                </div>
-                <div className='flex justify-between items-center text-sm'>
-                  <div className='flex items-center gap-2 min-w-0 flex-1 mr-2'>
                     <Activity size={16} className='text-gray-400 shrink-0' />
                     <span className='text-gray-600 dark:text-slate-400 truncate'>
-                      Dives Created
+                      Logged on Divemap
                     </span>
                   </div>
                   <div className='shrink-0'>
@@ -2296,6 +2263,20 @@ const Profile = () => {
                   </div>
                   <span className='font-semibold text-gray-900 dark:text-slate-100 shrink-0'>
                     {userStats?.buddy_dives_count || 0}
+                  </span>
+                </div>
+                <div className='flex justify-between items-center text-sm'>
+                  <div className='flex items-center gap-1.5 min-w-0 flex-1 mr-2'>
+                    <User size={16} className='text-gray-400 shrink-0' />
+                    <span className='text-gray-600 dark:text-slate-400 truncate'>Prior Dives</span>
+                    <Tooltip title='Dives completed prior to Divemap, configured in your profile settings.'>
+                      <span className='inline-flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 cursor-help'>
+                        <HelpCircle size={14} className='shrink-0' />
+                      </span>
+                    </Tooltip>
+                  </div>
+                  <span className='font-semibold text-gray-900 dark:text-slate-100 shrink-0'>
+                    {user?.number_of_dives || 0}
                   </span>
                 </div>
                 <div className='flex justify-between items-center text-sm'>

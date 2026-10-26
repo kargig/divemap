@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
 
+import PageHeader from '../components/PageHeader';
 import SEO from '../components/SEO';
 import { getTagsWithCounts } from '../services/tags';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
@@ -28,18 +29,18 @@ const DivingTagsPage = () => {
         description='Explore the diving tags and categories used on Divemap to find dive sites that match your interests, like Wreck, Cave, Deep, and Reef diving.'
       />
       <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-0 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
+        <PageHeader
+          title='Diving Tags'
+          titleIcon={Tags}
+          badge={isLoading ? null : tags?.length}
+          breadcrumbItems={[{ label: 'Resources' }, { label: 'Diving Tags' }]}
+        />
         <div className='bg-white dark:bg-slate-800 shadow-sm rounded-lg overflow-hidden border border-gray-100 dark:border-slate-700'>
           <div className='p-4 sm:p-6 border-b border-gray-200 dark:border-slate-700'>
             <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
-              <div>
-                <h1 className='text-3xl font-bold text-gray-900 dark:text-slate-100 flex items-center'>
-                  <Tags className='h-8 w-8 mr-3 text-blue-600 dark:text-blue-400' />
-                  Diving Tags
-                </h1>
-                <p className='mt-1 text-gray-600 dark:text-slate-400'>
-                  Explore the tags used to categorize dive sites and experiences.
-                </p>
-              </div>
+              <p className='text-sm text-gray-600 dark:text-slate-400'>
+                Explore the tags used to categorize dive sites and experiences.
+              </p>
               <div className='relative w-full md:w-64'>
                 <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
                   <Search className='h-5 w-5 text-gray-400' />

@@ -3,6 +3,8 @@ import {
   Clock,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   User,
   Shield,
   FileText,
@@ -23,6 +25,11 @@ import {
   Mail,
   ExternalLink,
   CheckCircle,
+  Droplets,
+  Wind,
+  Eye,
+  Activity,
+  Scale,
 } from 'lucide-react';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -53,6 +60,7 @@ const BookingWizard = () => {
 
   // Wizard Step: 1 = Credentials, 2 = Equipment, 3 = Emergency & Insurance, 4 = Medical, 5 = Waiver & Review
   const [currentStep, setCurrentStep] = useState(1);
+  const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false);
 
   // Slot context data
   const [loading, setLoading] = useState(true);
@@ -96,6 +104,10 @@ const BookingWizard = () => {
   const [selectedProfileId, setSelectedProfileId] = useState('');
   const [rentalTorch, setRentalTorch] = useState(false);
   const [rentalComputer, setRentalComputer] = useState(false);
+  const [hoodSize, setHoodSize] = useState('None');
+  const [glovesSize, setGlovesSize] = useState('None');
+  const [rentalSmb, setRentalSmb] = useState(false);
+  const [hasOwnSmb, setHasOwnSmb] = useState(true);
   const [leadKg, setLeadKg] = useState('5.0');
   const [secondaryNitroxCert, setSecondaryNitroxCert] = useState('');
   const [weightSystem, setWeightSystem] = useState('INTEGRATED');
@@ -235,6 +247,10 @@ const BookingWizard = () => {
           shoeSizeEu,
           rentalTorch,
           rentalComputer,
+          hoodSize,
+          glovesSize,
+          rentalSmb,
+          hasOwnSmb,
           emergencyContactName,
           emergencyContactPhone,
           emergencyContactRelation,
@@ -284,6 +300,10 @@ const BookingWizard = () => {
           shoeSizeEu,
           rentalTorch,
           rentalComputer,
+          hoodSize,
+          glovesSize,
+          rentalSmb,
+          hasOwnSmb,
           emergencyContactName,
           emergencyContactPhone,
           emergencyContactRelation,
@@ -372,6 +392,8 @@ const BookingWizard = () => {
       setRentalRegulator(true);
       setRentalComputer(true);
       setRentalTorch(true);
+      setRentalSmb(true);
+      setHasOwnSmb(false);
       setHasOwnLeadWeights(false);
     } else {
       setWetsuitSize('None');
@@ -382,12 +404,50 @@ const BookingWizard = () => {
       setRentalRegulator(false);
       setRentalComputer(false);
       setRentalTorch(false);
+      setRentalSmb(false);
+      setHasOwnSmb(true);
+      setHoodSize('None');
+      setGlovesSize('None');
     }
   };
 
   const handleUnitSelection = unitId => {
     setSelectedUnitId(unitId);
     applyUnitGearDefaults(unitId);
+  };
+
+  const handleSetAllOwn = () => {
+    setWetsuitSize('None');
+    setBcdSize('None');
+    setFinSize('None');
+    setBootSize('None');
+    setRentalRegulator(false);
+    setRentalMask(false);
+    setHasOwnLeadWeights(true);
+    setHoodSize('None');
+    setGlovesSize('None');
+    setRentalComputer(false);
+    setRentalTorch(false);
+    setRentalSmb(false);
+    setHasOwnSmb(true);
+    toast.success('Marked all equipment as bringing your own');
+  };
+
+  const handleSetAllRent = () => {
+    setWetsuitSize(activeProfile?.wetsuit_size || 'M');
+    setBcdSize(activeProfile?.bcd_size || 'M');
+    setFinSize(activeProfile?.fin_size || 'M');
+    setBootSize(activeProfile?.shoe_size_eu || '43');
+    setRentalRegulator(true);
+    setRentalMask(true);
+    setHasOwnLeadWeights(false);
+    setHoodSize('M');
+    setGlovesSize('M');
+    setRentalComputer(true);
+    setRentalTorch(true);
+    setRentalSmb(true);
+    setHasOwnSmb(false);
+    toast.success('Selected full rental kit from center');
   };
 
   // Load Checkout Context
@@ -472,6 +532,12 @@ const BookingWizard = () => {
 
           setRentalComputer(!primaryProf.has_own_dive_computer);
           setRentalTorch(!primaryProf.has_own_torch);
+          const hasOwnS =
+            primaryProf.has_own_smb !== undefined ? Boolean(primaryProf.has_own_smb) : false;
+          setHasOwnSmb(hasOwnS);
+          setRentalSmb(!hasOwnS);
+          if (primaryProf.hood_size) setHoodSize(primaryProf.hood_size);
+          if (primaryProf.gloves_size) setGlovesSize(primaryProf.gloves_size);
           setHasOwnLeadWeights(Boolean(primaryProf.has_own_lead_weights));
 
           if (primaryProf.estimated_lead_kg) setLeadKg(primaryProf.estimated_lead_kg.toString());
@@ -509,6 +575,10 @@ const BookingWizard = () => {
           if (pg.shoe_size_eu) setShoeSizeEu(pg.shoe_size_eu.toString());
           if (pg.rental_torch) setRentalTorch(pg.rental_torch);
           if (pg.rental_dive_computer) setRentalComputer(pg.rental_dive_computer);
+          if (pg.hood_size) setHoodSize(pg.hood_size);
+          if (pg.gloves_size) setGlovesSize(pg.gloves_size);
+          if (pg.rental_smb !== undefined) setRentalSmb(Boolean(pg.rental_smb));
+          if (pg.has_own_smb !== undefined) setHasOwnSmb(Boolean(pg.has_own_smb));
           if (pg.estimated_lead_kg) setLeadKg(pg.estimated_lead_kg.toString());
           if (pg.emergency_contact_name) setEmergencyContactName(pg.emergency_contact_name);
           if (pg.emergency_contact_phone) setEmergencyContactPhone(pg.emergency_contact_phone);
@@ -574,6 +644,10 @@ const BookingWizard = () => {
             setRentalTorch(Boolean(cookiePrefs.rentalTorch));
           if (cookiePrefs.rentalComputer !== undefined)
             setRentalComputer(Boolean(cookiePrefs.rentalComputer));
+          if (cookiePrefs.hoodSize) setHoodSize(cookiePrefs.hoodSize);
+          if (cookiePrefs.glovesSize) setGlovesSize(cookiePrefs.glovesSize);
+          if (cookiePrefs.rentalSmb !== undefined) setRentalSmb(Boolean(cookiePrefs.rentalSmb));
+          if (cookiePrefs.hasOwnSmb !== undefined) setHasOwnSmb(Boolean(cookiePrefs.hasOwnSmb));
 
           // Emergency Contact from cookies
           if (cookiePrefs.emergencyContactName) {
@@ -734,6 +808,11 @@ const BookingWizard = () => {
 
     setRentalComputer(!prof.has_own_dive_computer);
     setRentalTorch(!prof.has_own_torch);
+    const hasOwnS = prof.has_own_smb !== undefined ? Boolean(prof.has_own_smb) : false;
+    setHasOwnSmb(hasOwnS);
+    setRentalSmb(!hasOwnS);
+    if (prof.hood_size) setHoodSize(prof.hood_size);
+    if (prof.gloves_size) setGlovesSize(prof.gloves_size);
     setHasOwnLeadWeights(Boolean(prof.has_own_lead_weights));
 
     if (prof.estimated_lead_kg) setLeadKg(prof.estimated_lead_kg.toString());
@@ -766,7 +845,9 @@ const BookingWizard = () => {
     toast.success('Liability waiver signed electronically!');
   };
 
-  const hasContactOrId = Boolean(diverEmail.trim() || diverPhone.trim() || passportNumber.trim());
+  const hasContact = Boolean(diverEmail.trim() || diverPhone.trim());
+  const hasPassport = Boolean(passportNumber.trim());
+  const hasContactOrId = hasContact && hasPassport;
 
   const selectedUnit = contextData?.units?.find(u => u.id === selectedUnitId);
 
@@ -796,6 +877,15 @@ const BookingWizard = () => {
     // 1. Auxiliary items
     if (rentalTorch && items.dive_torch) {
       rentalItems.push({ label: 'Rental Dive Torch', price: items.dive_torch });
+    }
+    if (hoodSize && hoodSize !== 'None' && items.hood) {
+      rentalItems.push({ label: `Rental Thermal Hood (${hoodSize})`, price: items.hood });
+    }
+    if (glovesSize && glovesSize !== 'None' && items.gloves) {
+      rentalItems.push({ label: `Rental Dive Gloves (${glovesSize})`, price: items.gloves });
+    }
+    if (rentalSmb && items.smb) {
+      rentalItems.push({ label: 'Rental Surface Marker Buoy (SMB)', price: items.smb });
     }
 
     const dailyInsFee =
@@ -872,6 +962,9 @@ const BookingWizard = () => {
     bootSize,
     rentalComputer,
     rentalTorch,
+    hoodSize,
+    glovesSize,
+    rentalSmb,
     hasInsurance,
   ]);
 
@@ -948,8 +1041,12 @@ const BookingWizard = () => {
       toast.error('Date of Birth is required for maritime manifest compliance.');
       return false;
     }
-    if (!hasContactOrId) {
-      toast.error('Please provide at least one contact method (Email, Phone, or Passport/ID).');
+    if (!passportNumber.trim()) {
+      toast.error('Passport or National ID number is required for official maritime manifest.');
+      return false;
+    }
+    if (!hasContact) {
+      toast.error('Please provide at least one contact method (Email or Phone/WhatsApp).');
       return false;
     }
     if (!certAgency || !certLevel || !certNumber.trim()) {
@@ -1095,6 +1192,10 @@ const BookingWizard = () => {
               rental_torch: rentalTorch,
               rental_dive_computer: rentalComputer,
               has_own_dive_computer: !rentalComputer,
+              hood_size: hoodSize === 'None' ? null : hoodSize,
+              gloves_size: glovesSize === 'None' ? null : glovesSize,
+              rental_smb: rentalSmb,
+              has_own_smb: hasOwnSmb,
               regulator_fitting: regulatorFitting,
               weight_system: weightSystem,
               weight_systems: weightSystems,
@@ -1169,6 +1270,10 @@ const BookingWizard = () => {
           rental_torch: rentalTorch,
           rental_dive_computer: rentalComputer,
           has_own_dive_computer: !rentalComputer,
+          hood_size: hoodSize === 'None' ? null : hoodSize,
+          gloves_size: glovesSize === 'None' ? null : glovesSize,
+          rental_smb: rentalSmb,
+          has_own_smb: hasOwnSmb,
           regulator_fitting: regulatorFitting,
           weight_system: weightSystem,
           weight_systems: weightSystems,
@@ -1655,10 +1760,13 @@ const BookingWizard = () => {
                     </span>
                     <span
                       className={`text-[11px] font-medium ${
-                        !hasContactOrId ? 'text-amber-600 font-semibold' : 'text-emerald-600'
+                        !hasPassport || !hasContact
+                          ? 'text-amber-600 font-semibold'
+                          : 'text-emerald-600'
                       }`}
                     >
-                      * At least one of Email, Phone, or Passport/National ID is required
+                      * Passport/ID and at least one contact method required for Coast Guard
+                      manifest
                     </span>
                   </div>
 
@@ -2076,60 +2184,118 @@ const BookingWizard = () => {
                     </div>
                   ))}
 
-                {/* Equipment Configuration Cards (Owned vs Rental) */}
+                {/* Master-Detail Equipment Rows with 2-tier Sub-Row Layout */}
                 <div className='pt-3 border-t border-gray-100 dark:border-gray-700 space-y-3'>
-                  <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-1'>
-                    <span className='text-xs font-bold text-gray-500 uppercase tracking-wider'>
-                      Equipment Allocation & Sizing
-                    </span>
-                    <span className='text-[11px] text-gray-400'>
-                      Items you own are grayed out. Click &quot;Need to rent&quot; on any item to
-                      request center equipment.
-                    </span>
+                  <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-1'>
+                    <div>
+                      <span className='text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider block'>
+                        Equipment Allocation & Rental Sizing
+                      </span>
+                      <span className='text-[11px] text-gray-500 dark:text-gray-400'>
+                        Specify whether you are bringing each item or renting from the dive center.
+                      </span>
+                    </div>
+
+                    {/* Quick Presets */}
+                    <div className='flex items-center gap-2 shrink-0'>
+                      <button
+                        type='button'
+                        onClick={handleSetAllOwn}
+                        className='px-2.5 py-1 text-xs font-medium rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-2xs'
+                      >
+                        ✓ Bringing All Own
+                      </button>
+                      <button
+                        type='button'
+                        onClick={handleSetAllRent}
+                        className='px-2.5 py-1 text-xs font-medium rounded-lg border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors shadow-2xs'
+                      >
+                        + Rent Full Kit
+                      </button>
+                    </div>
                   </div>
 
-                  <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'>
-                    {/* 1. Wetsuit Card */}
+                  {/* Unified Master-Detail List with 2-tier Sub-Rows */}
+                  <div className='divide-y divide-gray-100 dark:divide-gray-700/60 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden shadow-sm'>
+                    {/* 1. Wetsuit / Exposure Suit */}
                     <div
-                      className={`p-3.5 rounded-xl border transition-all ${
-                        wetsuitSize === 'None'
-                          ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60'
-                          : 'bg-white dark:bg-gray-800 border-blue-300 dark:border-blue-700 shadow-sm ring-1 ring-blue-100 dark:ring-blue-900/30'
+                      className={`p-3.5 transition-colors ${
+                        wetsuitSize !== 'None' ? 'bg-blue-50/25 dark:bg-blue-950/20' : ''
                       }`}
                     >
-                      <div className='flex items-center justify-between mb-2'>
-                        <span className='font-bold text-xs text-gray-900 dark:text-white'>
-                          Wetsuit / Exposure Suit
-                        </span>
-                        {wetsuitSize === 'None' ? (
-                          <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'>
-                            ✓ Bringing Own
+                      {/* Sub-row 1: Title & Controls Header */}
+                      <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2.5'>
+                        <div className='flex items-center gap-3 min-w-0'>
+                          <div
+                            className={`p-2 rounded-lg shrink-0 ${
+                              wetsuitSize !== 'None'
+                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300'
+                                : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                            }`}
+                          >
+                            <Droplets size={18} />
+                          </div>
+                          <div className='min-w-0'>
+                            <div className='flex items-center gap-2 flex-wrap'>
+                              <span className='font-bold text-sm text-gray-900 dark:text-white'>
+                                Wetsuit / Exposure Suit
+                              </span>
+                              <span className='text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'>
+                                Thermal protection
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className='flex items-center gap-3 self-end sm:self-auto shrink-0'>
+                          <span
+                            className={`text-xs font-semibold ${
+                              wetsuitSize !== 'None'
+                                ? 'text-blue-600 dark:text-blue-400'
+                                : 'text-gray-400'
+                            }`}
+                          >
+                            {wetsuitSize !== 'None' ? 'Included' : 'No charge'}
                           </span>
-                        ) : (
-                          <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300'>
-                            Rent from Center
-                          </span>
-                        )}
+                          <div className='inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shrink-0'>
+                            <button
+                              type='button'
+                              onClick={() => setWetsuitSize('None')}
+                              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                                wetsuitSize === 'None'
+                                  ? 'bg-emerald-600 text-white shadow-2xs'
+                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                              }`}
+                            >
+                              ✓ My Own
+                            </button>
+                            <button
+                              type='button'
+                              onClick={() =>
+                                setWetsuitSize(
+                                  wetsuitSize !== 'None'
+                                    ? wetsuitSize
+                                    : activeProfile?.wetsuit_size || 'M'
+                                )
+                              }
+                              className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                                wetsuitSize !== 'None'
+                                  ? 'bg-blue-600 text-white shadow-2xs'
+                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                              }`}
+                            >
+                              Rent
+                            </button>
+                          </div>
+                        </div>
                       </div>
 
-                      {wetsuitSize === 'None' ? (
-                        <div className='flex items-center justify-between pt-1'>
-                          <span className='text-xs text-gray-500 italic'>
-                            No rental suit needed.
-                          </span>
-                          <button
-                            type='button'
-                            onClick={() => setWetsuitSize(activeProfile?.wetsuit_size || 'M')}
-                            className='text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 hover:underline'
-                          >
-                            + Need to rent suit
-                          </button>
-                        </div>
-                      ) : (
-                        <div className='space-y-2 pt-1'>
-                          <div className='grid grid-cols-2 gap-2'>
+                      {/* Sub-row 2: Options Shelf */}
+                      <div className='mt-2.5 pt-2.5 border-t border-gray-100 dark:border-gray-700/50 pl-0 sm:pl-11'>
+                        {wetsuitSize !== 'None' ? (
+                          <div className='grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3'>
                             <div>
-                              <label className='block text-[11px] font-medium text-gray-600 dark:text-gray-400 mb-0.5'>
+                              <label className='block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1'>
                                 Cut
                               </label>
                               <select
@@ -2139,260 +2305,287 @@ const BookingWizard = () => {
                                   if (e.target.value === 'WOMEN') setBcdGender('WOMEN');
                                   else if (e.target.value === 'MEN') setBcdGender('MEN');
                                 }}
-                                className='w-full px-2 py-1 border border-gray-300 rounded-md text-xs bg-white'
+                                className='w-full px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium'
                               >
                                 <option value='MEN'>Men / Unisex</option>
                                 <option value='WOMEN'>Women</option>
                               </select>
                             </div>
                             <div>
-                              <label className='block text-[11px] font-medium text-gray-600 dark:text-gray-400 mb-0.5'>
-                                Rental Size *
+                              <label className='block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1'>
+                                Size
                               </label>
                               <select
                                 value={wetsuitSize}
                                 onChange={e => setWetsuitSize(e.target.value)}
-                                className='w-full px-2 py-1 border border-gray-300 rounded-md text-xs bg-white font-medium'
+                                className='w-full px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium'
                               >
-                                <option value='XS'>XS</option>
-                                <option value='S'>S</option>
-                                <option value='M'>M</option>
-                                <option value='L'>L</option>
-                                <option value='XL'>XL</option>
-                                <option value='XXL'>XXL</option>
+                                <option value='XS'>XS (Extra Small)</option>
+                                <option value='S'>S (Small)</option>
+                                <option value='M'>M (Medium)</option>
+                                <option value='L'>L (Large)</option>
+                                <option value='XL'>XL (Extra Large)</option>
+                                <option value='XXL'>XXL (Double Extra Large)</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className='block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1'>
+                                Thickness
+                              </label>
+                              <select
+                                value={wetsuitThickness}
+                                onChange={e => setWetsuitThickness(e.target.value)}
+                                className='w-full px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium'
+                              >
+                                <option value='5mm'>5mm Full (Standard)</option>
+                                <option value='3mm'>3mm Full (Warm Water)</option>
+                                <option value='7mm'>7mm Semi-Dry (Cold Water)</option>
+                                <option value='3mm-shorty'>3mm Shorty (Tropical)</option>
                               </select>
                             </div>
                           </div>
-                          <div className='flex items-center justify-between pt-1'>
-                            <span className='text-[10px] text-gray-400'>
-                              Thickness: {wetsuitThickness}
+                        ) : (
+                          <div className='flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400'>
+                            <span className='italic font-medium'>Bringing own wetsuit.</span>
+                            <span className='text-gray-300 dark:text-gray-600'>•</span>
+                            <span className='text-[11px] text-gray-400'>
+                              Suit thickness (for lead weight estimation):
                             </span>
+                            <select
+                              value={wetsuitThickness}
+                              onChange={e => setWetsuitThickness(e.target.value)}
+                              className='px-2 py-0.5 border border-gray-200 dark:border-gray-700 rounded-md text-xs bg-gray-50 dark:bg-gray-750 text-gray-700 dark:text-gray-300 font-medium'
+                            >
+                              <option value='5mm'>5mm Full</option>
+                              <option value='3mm'>3mm Full</option>
+                              <option value='7mm'>7mm Semi-Dry</option>
+                              <option value='3mm-shorty'>3mm Shorty</option>
+                              <option value='drysuit'>Drysuit</option>
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 2. BCD / Buoyancy Wing */}
+                    <div
+                      className={`p-3.5 transition-colors ${
+                        bcdSize !== 'None' ? 'bg-blue-50/25 dark:bg-blue-950/20' : ''
+                      }`}
+                    >
+                      {/* Sub-row 1 */}
+                      <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2.5'>
+                        <div className='flex items-center gap-3 min-w-0'>
+                          <div
+                            className={`p-2 rounded-lg shrink-0 ${
+                              bcdSize !== 'None'
+                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300'
+                                : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                            }`}
+                          >
+                            <Shield size={18} />
+                          </div>
+                          <div className='min-w-0'>
+                            <div className='flex items-center gap-2 flex-wrap'>
+                              <span className='font-bold text-sm text-gray-900 dark:text-white'>
+                                BCD / Buoyancy Wing
+                              </span>
+                              <span className='text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'>
+                                Buoyancy control
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className='flex items-center gap-3 self-end sm:self-auto shrink-0'>
+                          <span
+                            className={`text-xs font-semibold ${
+                              bcdSize !== 'None'
+                                ? 'text-blue-600 dark:text-blue-400'
+                                : 'text-gray-400'
+                            }`}
+                          >
+                            {bcdSize !== 'None' ? 'Included' : 'No charge'}
+                          </span>
+                          <div className='inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shrink-0'>
                             <button
                               type='button'
-                              onClick={() => setWetsuitSize('None')}
-                              className='text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:underline'
+                              onClick={() => setBcdSize('None')}
+                              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                                bcdSize === 'None'
+                                  ? 'bg-emerald-600 text-white shadow-2xs'
+                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                              }`}
                             >
-                              I&apos;ll bring my own
+                              ✓ My Own
+                            </button>
+                            <button
+                              type='button'
+                              onClick={() =>
+                                setBcdSize(
+                                  bcdSize !== 'None' ? bcdSize : activeProfile?.bcd_size || 'M'
+                                )
+                              }
+                              className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                                bcdSize !== 'None'
+                                  ? 'bg-blue-600 text-white shadow-2xs'
+                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                              }`}
+                            >
+                              Rent
                             </button>
                           </div>
                         </div>
-                      )}
-                    </div>
-
-                    {/* 2. BCD Card */}
-                    <div
-                      className={`p-3.5 rounded-xl border transition-all ${
-                        bcdSize === 'None'
-                          ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60'
-                          : 'bg-white dark:bg-gray-800 border-blue-300 dark:border-blue-700 shadow-sm ring-1 ring-blue-100 dark:ring-blue-900/30'
-                      }`}
-                    >
-                      <div className='flex items-center justify-between mb-2'>
-                        <span className='font-bold text-xs text-gray-900 dark:text-white'>
-                          BCD / Buoyancy Wing
-                        </span>
-                        {bcdSize === 'None' ? (
-                          <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'>
-                            ✓ Bringing Own
-                          </span>
-                        ) : (
-                          <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300'>
-                            Rent from Center
-                          </span>
-                        )}
                       </div>
 
-                      {bcdSize === 'None' ? (
-                        <div className='flex items-center justify-between pt-1'>
-                          <span className='text-xs text-gray-500 italic'>
-                            No rental BCD needed.
-                          </span>
-                          <button
-                            type='button'
-                            onClick={() => setBcdSize(activeProfile?.bcd_size || 'M')}
-                            className='text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 hover:underline'
-                          >
-                            + Need to rent BCD
-                          </button>
-                        </div>
-                      ) : (
-                        <div className='space-y-2 pt-1'>
-                          <div className='grid grid-cols-2 gap-2'>
+                      {/* Sub-row 2 */}
+                      <div className='mt-2.5 pt-2.5 border-t border-gray-100 dark:border-gray-700/50 pl-0 sm:pl-11'>
+                        {bcdSize !== 'None' ? (
+                          <div className='grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 max-w-md'>
                             <div>
-                              <label className='block text-[11px] font-medium text-gray-600 dark:text-gray-400 mb-0.5'>
+                              <label className='block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1'>
                                 Cut
                               </label>
                               <select
                                 value={bcdGender}
                                 onChange={e => setBcdGender(e.target.value)}
-                                className='w-full px-2 py-1 border border-gray-300 rounded-md text-xs bg-white'
+                                className='w-full px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium'
                               >
-                                <option value='MEN'>Men / Unisex</option>
+                                <option value='MEN'>Unisex / Men</option>
                                 <option value='WOMEN'>Women</option>
                               </select>
                             </div>
                             <div>
-                              <label className='block text-[11px] font-medium text-gray-600 dark:text-gray-400 mb-0.5'>
-                                Rental Size *
+                              <label className='block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1'>
+                                Size
                               </label>
                               <select
                                 value={bcdSize}
                                 onChange={e => setBcdSize(e.target.value)}
-                                className='w-full px-2 py-1 border border-gray-300 rounded-md text-xs bg-white font-medium'
+                                className='w-full px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium'
                               >
-                                <option value='XS'>XS</option>
-                                <option value='S'>S</option>
-                                <option value='M'>M</option>
-                                <option value='L'>L</option>
-                                <option value='XL'>XL</option>
+                                <option value='XS'>XS (Extra Small)</option>
+                                <option value='S'>S (Small)</option>
+                                <option value='M'>M (Medium)</option>
+                                <option value='L'>L (Large)</option>
+                                <option value='XL'>XL (Extra Large)</option>
                               </select>
                             </div>
                           </div>
-                          <div className='flex items-center justify-end pt-1'>
-                            <button
-                              type='button'
-                              onClick={() => setBcdSize('None')}
-                              className='text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:underline'
-                            >
-                              I&apos;ll bring my own
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* 3. Regulator Card */}
-                    <div
-                      className={`p-3.5 rounded-xl border transition-all ${
-                        !rentalRegulator
-                          ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60'
-                          : 'bg-white dark:bg-gray-800 border-blue-300 dark:border-blue-700 shadow-sm ring-1 ring-blue-100 dark:ring-blue-900/30'
-                      }`}
-                    >
-                      <div className='flex items-center justify-between mb-2'>
-                        <span className='font-bold text-xs text-gray-900 dark:text-white'>
-                          Regulator Set
-                        </span>
-                        {!rentalRegulator ? (
-                          <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'>
-                            ✓ Bringing Own
-                          </span>
                         ) : (
-                          <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300'>
-                            Rent from Center
+                          <span className='text-xs text-gray-500 dark:text-gray-400 italic'>
+                            Bringing own BCD / Wing
                           </span>
                         )}
                       </div>
+                    </div>
 
-                      {!rentalRegulator ? (
-                        <div className='space-y-2 pt-1'>
-                          <div>
-                            <label className='block text-[11px] font-medium text-gray-600 dark:text-gray-400 mb-0.5'>
-                              Your Regulator First Stage Valve *
-                            </label>
-                            <select
-                              value={regulatorFitting}
-                              onChange={e => setRegulatorFitting(e.target.value)}
-                              className='w-full px-2 py-1 border border-gray-300 rounded-md text-xs bg-white font-medium'
-                            >
-                              <option value='DIN'>DIN (G 5/8&quot; Threaded) — Standard</option>
-                              <option value='YOKE'>Yoke (INT / A-clamp)</option>
-                            </select>
-                            <span className='text-[10px] text-gray-400 mt-0.5 block'>
-                              Center deck crew will configure your cylinder with matching valve
-                              connection.
-                            </span>
+                    {/* 3. Fins & Neoprene Boots */}
+                    <div
+                      className={`p-3.5 transition-colors ${
+                        finSize !== 'None' || bootSize !== 'None'
+                          ? 'bg-blue-50/25 dark:bg-blue-950/20'
+                          : ''
+                      }`}
+                    >
+                      {/* Sub-row 1 */}
+                      <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2.5'>
+                        <div className='flex items-center gap-3 min-w-0'>
+                          <div
+                            className={`p-2 rounded-lg shrink-0 ${
+                              finSize !== 'None' || bootSize !== 'None'
+                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300'
+                                : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                            }`}
+                          >
+                            <Activity size={18} />
                           </div>
-                          <div className='flex items-center justify-between pt-1'>
-                            <span className='text-[10px] text-emerald-600 font-medium'>
-                              ✓ Cylinder matched to {regulatorFitting}
-                            </span>
+                          <div className='min-w-0'>
+                            <div className='flex items-center gap-2 flex-wrap'>
+                              <span className='font-bold text-sm text-gray-900 dark:text-white'>
+                                Fins & Neoprene Boots
+                              </span>
+                              <span className='text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'>
+                                Propulsion & footwear
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className='flex items-center gap-3 self-end sm:self-auto shrink-0'>
+                          <span
+                            className={`text-xs font-semibold ${
+                              finSize !== 'None' || bootSize !== 'None'
+                                ? 'text-blue-600 dark:text-blue-400'
+                                : 'text-gray-400'
+                            }`}
+                          >
+                            {finSize !== 'None' || bootSize !== 'None' ? 'Included' : 'No charge'}
+                          </span>
+                          <div className='inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shrink-0'>
                             <button
                               type='button'
                               onClick={() => {
-                                setRentalRegulator(true);
-                                setRegulatorFitting(
-                                  contextData?.center_settings?.default_valve_fitting || 'DIN'
-                                );
+                                setFinSize('None');
+                                setBootSize('None');
                               }}
-                              className='text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 hover:underline'
+                              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                                finSize === 'None' && bootSize === 'None'
+                                  ? 'bg-emerald-600 text-white shadow-2xs'
+                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                              }`}
                             >
-                              + Rent center regulator
+                              ✓ My Own
                             </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className='space-y-2 pt-1'>
-                          <p className='text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed'>
-                            Center provides rental regulator with matched{' '}
-                            <strong>
-                              {contextData?.center_settings?.default_valve_fitting || 'DIN'}
-                            </strong>{' '}
-                            valve.
-                          </p>
-                          <div className='flex items-center justify-end pt-1'>
                             <button
                               type='button'
-                              onClick={() => setRentalRegulator(false)}
-                              className='text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:underline'
+                              onClick={() => {
+                                setFinSize(
+                                  finSize !== 'None' ? finSize : activeProfile?.fin_size || 'M'
+                                );
+                                setBootSize(
+                                  bootSize !== 'None'
+                                    ? bootSize
+                                    : activeProfile?.shoe_size_eu || '43'
+                                );
+                              }}
+                              className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                                finSize !== 'None' || bootSize !== 'None'
+                                  ? 'bg-blue-600 text-white shadow-2xs'
+                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                              }`}
                             >
-                              I&apos;ll bring my own regulator
+                              Rent
                             </button>
                           </div>
                         </div>
-                      )}
-                    </div>
-
-                    {/* 4. Fins & Booties Card */}
-                    <div
-                      className={`p-3.5 rounded-xl border transition-all ${
-                        finSize === 'None' && bootSize === 'None'
-                          ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60'
-                          : 'bg-white dark:bg-gray-800 border-blue-300 dark:border-blue-700 shadow-sm ring-1 ring-blue-100 dark:ring-blue-900/30'
-                      }`}
-                    >
-                      <div className='flex items-center justify-between mb-2'>
-                        <span className='font-bold text-xs text-gray-900 dark:text-white'>
-                          Fins & Neoprene Boots
-                        </span>
-                        {finSize === 'None' && bootSize === 'None' ? (
-                          <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'>
-                            ✓ Bringing Own
-                          </span>
-                        ) : (
-                          <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300'>
-                            Rent from Center
-                          </span>
-                        )}
                       </div>
 
-                      {finSize === 'None' && bootSize === 'None' ? (
-                        <div className='flex items-center justify-between pt-1'>
-                          <span className='text-xs text-gray-500 italic'>
-                            No rental fins needed.
-                          </span>
-                          <button
-                            type='button'
-                            onClick={() => {
-                              setFinSize('M');
-                              setBootSize(shoeSizeEu || '43');
-                            }}
-                            className='text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 hover:underline'
-                          >
-                            + Need to rent fins/boots
-                          </button>
-                        </div>
-                      ) : (
-                        <div className='space-y-2 pt-1'>
-                          <div className='grid grid-cols-2 gap-2'>
+                      {/* Sub-row 2 */}
+                      <div className='mt-2.5 pt-2.5 border-t border-gray-100 dark:border-gray-700/50 pl-0 sm:pl-11'>
+                        {finSize !== 'None' || bootSize !== 'None' ? (
+                          <div className='grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3'>
                             <div>
-                              <label className='block text-[11px] font-medium text-gray-600 dark:text-gray-400 mb-0.5'>
-                                Fin Size
+                              <label className='block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1'>
+                                Fin Style
+                              </label>
+                              <select
+                                value={finType}
+                                onChange={e => setFinType(e.target.value)}
+                                className='w-full px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium'
+                              >
+                                <option value='OPEN_HEEL'>Open-Heel (With Boots)</option>
+                                <option value='FULL_FOOT'>Full-Foot (Barefoot)</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className='block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1'>
+                                Fins Size
                               </label>
                               <select
                                 value={finSize}
                                 onChange={e => setFinSize(e.target.value)}
-                                className='w-full px-2 py-1 border border-gray-300 rounded-md text-xs bg-white font-medium'
+                                className='w-full px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium'
                               >
                                 <option value='XS'>XS (EU 35-37)</option>
                                 <option value='S'>S (EU 38-40)</option>
@@ -2401,244 +2594,760 @@ const BookingWizard = () => {
                                 <option value='XL'>XL (EU 47+)</option>
                               </select>
                             </div>
-                            <div>
-                              <label className='block text-[11px] font-medium text-gray-600 dark:text-gray-400 mb-0.5'>
-                                Booties Size
-                              </label>
-                              <select
-                                value={bootSize}
-                                onChange={e => setBootSize(e.target.value)}
-                                className='w-full px-2 py-1 border border-gray-300 rounded-md text-xs bg-white font-medium'
-                              >
-                                <option value='36'>EU 36</option>
-                                <option value='37'>EU 37</option>
-                                <option value='38'>EU 38</option>
-                                <option value='39'>EU 39</option>
-                                <option value='40'>EU 40</option>
-                                <option value='41'>EU 41</option>
-                                <option value='42'>EU 42</option>
-                                <option value='43'>EU 43</option>
-                                <option value='44'>EU 44</option>
-                                <option value='45'>EU 45</option>
-                                <option value='46'>EU 46</option>
-                              </select>
+                            {finType === 'OPEN_HEEL' && (
+                              <div>
+                                <label className='block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1'>
+                                  Booties Size
+                                </label>
+                                <select
+                                  value={bootSize}
+                                  onChange={e => setBootSize(e.target.value)}
+                                  className='w-full px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium'
+                                >
+                                  <option value='36'>EU 36</option>
+                                  <option value='37'>EU 37</option>
+                                  <option value='38'>EU 38</option>
+                                  <option value='39'>EU 39</option>
+                                  <option value='40'>EU 40</option>
+                                  <option value='41'>EU 41</option>
+                                  <option value='42'>EU 42</option>
+                                  <option value='43'>EU 43</option>
+                                  <option value='44'>EU 44</option>
+                                  <option value='45'>EU 45</option>
+                                  <option value='46'>EU 46</option>
+                                </select>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className='text-xs text-gray-500 dark:text-gray-400 italic'>
+                            Bringing own fins & neoprene boots
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 4. Regulator Set */}
+                    <div
+                      className={`p-3.5 transition-colors ${
+                        rentalRegulator ? 'bg-blue-50/25 dark:bg-blue-950/20' : ''
+                      }`}
+                    >
+                      {/* Sub-row 1 */}
+                      <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2.5'>
+                        <div className='flex items-center gap-3 min-w-0'>
+                          <div
+                            className={`p-2 rounded-lg shrink-0 ${
+                              rentalRegulator
+                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300'
+                                : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                            }`}
+                          >
+                            <Wind size={18} />
+                          </div>
+                          <div className='min-w-0'>
+                            <div className='flex items-center gap-2 flex-wrap'>
+                              <span className='font-bold text-sm text-gray-900 dark:text-white'>
+                                Regulator Set
+                              </span>
+                              <span className='text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'>
+                                1st & 2nd stage, octo, SPG
+                              </span>
                             </div>
                           </div>
-                          <div className='flex items-center justify-end pt-1'>
+                        </div>
+
+                        <div className='flex items-center gap-3 self-end sm:self-auto shrink-0'>
+                          <span
+                            className={`text-xs font-semibold ${
+                              rentalRegulator ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400'
+                            }`}
+                          >
+                            {rentalRegulator ? 'Included' : 'No charge'}
+                          </span>
+                          <div className='inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shrink-0'>
+                            <button
+                              type='button'
+                              onClick={() => setRentalRegulator(false)}
+                              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                                !rentalRegulator
+                                  ? 'bg-emerald-600 text-white shadow-2xs'
+                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                              }`}
+                            >
+                              ✓ My Own
+                            </button>
                             <button
                               type='button'
                               onClick={() => {
-                                setFinSize('None');
-                                setBootSize('None');
+                                setRentalRegulator(true);
+                                setRegulatorFitting(
+                                  contextData?.center_settings?.default_valve_fitting || 'DIN'
+                                );
                               }}
-                              className='text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:underline'
+                              className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                                rentalRegulator
+                                  ? 'bg-blue-600 text-white shadow-2xs'
+                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                              }`}
                             >
-                              I&apos;ll bring my own
+                              Rent
                             </button>
                           </div>
                         </div>
-                      )}
-                    </div>
-
-                    {/* 5. Mask Card */}
-                    <div
-                      className={`p-3.5 rounded-xl border transition-all ${
-                        !rentalMask
-                          ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60'
-                          : 'bg-white dark:bg-gray-800 border-blue-300 dark:border-blue-700 shadow-sm ring-1 ring-blue-100 dark:ring-blue-900/30'
-                      }`}
-                    >
-                      <div className='flex items-center justify-between mb-2'>
-                        <span className='font-bold text-xs text-gray-900 dark:text-white'>
-                          Diving Mask
-                        </span>
-                        {!rentalMask ? (
-                          <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'>
-                            ✓ Bringing Own
-                          </span>
-                        ) : (
-                          <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300'>
-                            Rent from Center
-                          </span>
-                        )}
                       </div>
 
-                      {!rentalMask ? (
-                        <div className='flex items-center justify-between pt-1'>
-                          <span className='text-xs text-gray-500 italic'>
-                            No rental mask needed.
-                          </span>
-                          <button
-                            type='button'
-                            onClick={() => setRentalMask(true)}
-                            className='text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 hover:underline'
-                          >
-                            + Need to rent mask
-                          </button>
-                        </div>
-                      ) : (
-                        <div className='flex items-center justify-between pt-1'>
-                          <span className='text-[11px] text-blue-700 dark:text-blue-300 font-medium'>
-                            Rental mask included in crate.
-                          </span>
-                          <button
-                            type='button'
-                            onClick={() => setRentalMask(false)}
-                            className='text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:underline'
-                          >
-                            I&apos;ll bring my own
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* 6. Lead Weights & System Card */}
-                    <div
-                      className={`p-3.5 rounded-xl border transition-all ${
-                        hasOwnLeadWeights
-                          ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60'
-                          : 'bg-white dark:bg-gray-800 border-blue-300 dark:border-blue-700 shadow-sm ring-1 ring-blue-100 dark:ring-blue-900/30'
-                      }`}
-                    >
-                      <div className='flex items-center justify-between mb-2'>
-                        <span className='font-bold text-xs text-gray-900 dark:text-white'>
-                          Lead Weights & System
-                        </span>
-                        {hasOwnLeadWeights ? (
-                          <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'>
-                            ✓ Bringing Own
+                      {/* Sub-row 2 */}
+                      <div className='mt-2.5 pt-2.5 border-t border-gray-100 dark:border-gray-700/50 pl-0 sm:pl-11'>
+                        {rentalRegulator ? (
+                          <span className='text-xs text-gray-600 dark:text-gray-300'>
+                            Center provides rental regulator with matched{' '}
+                            <strong>
+                              {contextData?.center_settings?.default_valve_fitting || 'DIN'}
+                            </strong>{' '}
+                            cylinder connection.
                           </span>
                         ) : (
-                          <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300'>
-                            Rent from Center
-                          </span>
-                        )}
-                      </div>
-
-                      {hasOwnLeadWeights ? (
-                        <div className='flex items-center justify-between pt-1'>
-                          <span className='text-[11px] text-gray-500'>
-                            0 kg lead packed by center.
-                          </span>
-                          <button
-                            type='button'
-                            onClick={() => setHasOwnLeadWeights(false)}
-                            className='text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 hover:underline'
-                          >
-                            + Need center lead
-                          </button>
-                        </div>
-                      ) : (
-                        <div className='space-y-2 pt-1'>
-                          <div>
-                            <label className='block text-[11px] font-medium text-gray-600 dark:text-gray-400 mb-0.5'>
-                              Total Lead Weights (kg)
+                          <div className='flex flex-wrap items-center gap-3'>
+                            <label className='text-[11px] font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap'>
+                              Your First Stage Valve Connection:
                             </label>
-                            <input
-                              type='number'
-                              step='0.5'
-                              value={leadKg}
-                              onChange={e => setLeadKg(e.target.value)}
-                              className='w-full px-2 py-1 border border-gray-300 rounded-md text-xs font-mono font-bold'
-                            />
+                            <select
+                              value={regulatorFitting}
+                              onChange={e => setRegulatorFitting(e.target.value)}
+                              className='px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium'
+                            >
+                              <option value='DIN'>DIN (G 5/8&quot; Threaded) — Standard</option>
+                              <option value='YOKE'>Yoke (INT / A-clamp)</option>
+                            </select>
+                            <span className='text-[10px] text-gray-400'>
+                              (Deck crew matches cylinder valve)
+                            </span>
                           </div>
-                          <div>
-                            <label className='block text-[11px] font-medium text-gray-600 dark:text-gray-400 mb-1'>
-                              Weight System (Select one or both)
-                            </label>
-                            <div className='space-y-1 bg-gray-50 dark:bg-gray-750 p-2 rounded-lg border border-gray-200 dark:border-gray-700 text-xs'>
-                              <label className='flex items-center gap-2 cursor-pointer'>
-                                <input
-                                  type='checkbox'
-                                  checked={weightSystems.includes('INTEGRATED')}
-                                  onChange={() => handleToggleWeightSystem('INTEGRATED')}
-                                  className='rounded text-blue-600'
-                                />
-                                <span className='text-gray-800 dark:text-gray-200 text-xs'>
-                                  Integrated BCD Pockets
-                                </span>
-                              </label>
-                              <label className='flex items-center gap-2 cursor-pointer'>
-                                <input
-                                  type='checkbox'
-                                  checked={weightSystems.includes('BELT')}
-                                  onChange={() => handleToggleWeightSystem('BELT')}
-                                  className='rounded text-blue-600'
-                                />
-                                <span className='text-gray-800 dark:text-gray-200 text-xs'>
-                                  Weight Belt (Center Rental)
-                                </span>
-                              </label>
-                              <label className='flex items-center gap-2 cursor-pointer'>
-                                <input
-                                  type='checkbox'
-                                  checked={weightSystems.includes('OWN_BELT')}
-                                  onChange={() => handleToggleWeightSystem('OWN_BELT')}
-                                  className='rounded text-blue-600'
-                                />
-                                <span className='text-gray-800 dark:text-gray-200 text-xs'>
-                                  Bringing Own Weight Belt
-                                </span>
-                              </label>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 5. Diving Mask & Snorkel */}
+                    <div
+                      className={`p-3.5 transition-colors ${
+                        rentalMask ? 'bg-blue-50/25 dark:bg-blue-950/20' : ''
+                      }`}
+                    >
+                      {/* Sub-row 1 */}
+                      <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2.5'>
+                        <div className='flex items-center gap-3 min-w-0'>
+                          <div
+                            className={`p-2 rounded-lg shrink-0 ${
+                              rentalMask
+                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300'
+                                : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                            }`}
+                          >
+                            <Eye size={18} />
+                          </div>
+                          <div className='min-w-0'>
+                            <div className='flex items-center gap-2 flex-wrap'>
+                              <span className='font-bold text-sm text-gray-900 dark:text-white'>
+                                Diving Mask & Snorkel
+                              </span>
+                              <span className='text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'>
+                                Tempered glass mask
+                              </span>
                             </div>
-                            {weightSystems.includes('INTEGRATED') &&
-                              (weightSystems.includes('BELT') ||
-                                weightSystems.includes('OWN_BELT')) && (
-                                <span className='text-[10px] text-blue-600 dark:text-blue-400 block pt-0.5 italic'>
-                                  ✓ Weights split between BCD pockets and weight belt
-                                </span>
-                              )}
                           </div>
-                          <div className='flex items-center justify-end pt-1'>
+                        </div>
+
+                        <div className='flex items-center gap-3 self-end sm:self-auto shrink-0'>
+                          <span
+                            className={`text-xs font-semibold ${
+                              rentalMask ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400'
+                            }`}
+                          >
+                            {rentalMask ? 'Included' : 'No charge'}
+                          </span>
+                          <div className='inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shrink-0'>
+                            <button
+                              type='button'
+                              onClick={() => setRentalMask(false)}
+                              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                                !rentalMask
+                                  ? 'bg-emerald-600 text-white shadow-2xs'
+                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                              }`}
+                            >
+                              ✓ My Own
+                            </button>
+                            <button
+                              type='button'
+                              onClick={() => setRentalMask(true)}
+                              className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                                rentalMask
+                                  ? 'bg-blue-600 text-white shadow-2xs'
+                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                              }`}
+                            >
+                              Rent
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Sub-row 2 */}
+                      <div className='mt-2.5 pt-2.5 border-t border-gray-100 dark:border-gray-700/50 pl-0 sm:pl-11'>
+                        <span className='text-xs text-gray-500 dark:text-gray-400 italic'>
+                          {rentalMask
+                            ? 'Rental diving mask & snorkel included in your center equipment crate.'
+                            : 'Bringing own personal diving mask.'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* 6. Wrist Dive Computer (Must) */}
+                    <div
+                      className={`p-3.5 transition-colors ${
+                        rentalComputer ? 'bg-blue-50/25 dark:bg-blue-950/20' : ''
+                      }`}
+                    >
+                      {/* Sub-row 1 */}
+                      <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2.5'>
+                        <div className='flex items-center gap-3 min-w-0'>
+                          <div
+                            className={`p-2 rounded-lg shrink-0 ${
+                              rentalComputer
+                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300'
+                                : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                            }`}
+                          >
+                            <Clock size={18} />
+                          </div>
+                          <div className='min-w-0'>
+                            <div className='flex items-center gap-2 flex-wrap'>
+                              <span className='font-bold text-sm text-gray-900 dark:text-white'>
+                                Wrist Dive Computer
+                              </span>
+                              <span className='text-[10px] px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300'>
+                                Mandatory: 1 per diver
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className='flex items-center gap-3 self-end sm:self-auto shrink-0'>
+                          <span
+                            className={`text-xs font-semibold ${
+                              rentalComputer
+                                ? 'text-blue-600 dark:text-blue-400 font-bold'
+                                : 'text-gray-400'
+                            }`}
+                          >
+                            {rentalComputer ? '+ €10.00/day' : 'No charge'}
+                          </span>
+                          <div className='inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shrink-0'>
+                            <button
+                              type='button'
+                              onClick={() => setRentalComputer(false)}
+                              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                                !rentalComputer
+                                  ? 'bg-emerald-600 text-white shadow-2xs'
+                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                              }`}
+                            >
+                              ✓ My Own
+                            </button>
+                            <button
+                              type='button'
+                              onClick={() => setRentalComputer(true)}
+                              className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                                rentalComputer
+                                  ? 'bg-blue-600 text-white shadow-2xs'
+                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                              }`}
+                            >
+                              Rent
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Sub-row 2 */}
+                      <div className='mt-2.5 pt-2.5 border-t border-gray-100 dark:border-gray-700/50 pl-0 sm:pl-11'>
+                        <span className='text-xs text-gray-500 dark:text-gray-400 italic'>
+                          {rentalComputer
+                            ? 'Digital wrist unit for live depth, NDL, decompression ceiling, and ascent rate.'
+                            : 'Bringing own personal dive computer (no sharing allowed).'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* 7. Lead Weights & Weight System */}
+                    <div
+                      className={`p-3.5 transition-colors ${
+                        !hasOwnLeadWeights ? 'bg-blue-50/25 dark:bg-blue-950/20' : ''
+                      }`}
+                    >
+                      {/* Sub-row 1 */}
+                      <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2.5'>
+                        <div className='flex items-center gap-3 min-w-0'>
+                          <div
+                            className={`p-2 rounded-lg shrink-0 ${
+                              !hasOwnLeadWeights
+                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300'
+                                : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                            }`}
+                          >
+                            <Scale size={18} />
+                          </div>
+                          <div className='min-w-0'>
+                            <div className='flex items-center gap-2 flex-wrap'>
+                              <span className='font-bold text-sm text-gray-900 dark:text-white'>
+                                Lead Weights & Weight System
+                              </span>
+                              <span className='text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'>
+                                Lead & trim weights
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className='flex items-center gap-3 self-end sm:self-auto shrink-0'>
+                          <span
+                            className={`text-xs font-semibold ${
+                              !hasOwnLeadWeights
+                                ? 'text-blue-600 dark:text-blue-400'
+                                : 'text-gray-400'
+                            }`}
+                          >
+                            {!hasOwnLeadWeights ? 'Included' : 'No charge'}
+                          </span>
+                          <div className='inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shrink-0'>
                             <button
                               type='button'
                               onClick={() => setHasOwnLeadWeights(true)}
-                              className='text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:underline'
+                              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                                hasOwnLeadWeights
+                                  ? 'bg-emerald-600 text-white shadow-2xs'
+                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                              }`}
                             >
-                              I&apos;ll bring my own lead
+                              ✓ My Own
+                            </button>
+                            <button
+                              type='button'
+                              onClick={() => setHasOwnLeadWeights(false)}
+                              className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                                !hasOwnLeadWeights
+                                  ? 'bg-blue-600 text-white shadow-2xs'
+                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                              }`}
+                            >
+                              Rent
                             </button>
                           </div>
                         </div>
-                      )}
-                    </div>
-                  </div>
+                      </div>
 
-                  {/* Auxiliary Rental Items: Computer & Torch */}
-                  <div className='mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 space-y-2'>
-                    <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-1'>
-                      <label className='flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300 cursor-pointer'>
-                        <input
-                          type='checkbox'
-                          checked={rentalComputer}
-                          onChange={e => setRentalComputer(e.target.checked)}
-                          className='rounded text-blue-600'
-                        />
-                        <span className='font-bold text-blue-700 dark:text-blue-300 flex items-center gap-1'>
-                          Rent Dive Computer (Must - Wrist Unit)
-                        </span>
-                      </label>
-                      <span className='text-[11px] text-gray-400'>
-                        * Mandatory Safety: Every diver must carry an individual computer (no
-                        sharing)
-                      </span>
+                      {/* Sub-row 2 */}
+                      <div className='mt-2.5 pt-2.5 border-t border-gray-100 dark:border-gray-700/50 pl-0 sm:pl-11'>
+                        {!hasOwnLeadWeights ? (
+                          <div className='grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 max-w-md'>
+                            <div>
+                              <label className='block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1'>
+                                Required Weights (kg)
+                              </label>
+                              <div className='flex items-center gap-1.5'>
+                                <input
+                                  type='number'
+                                  step='0.5'
+                                  min='0'
+                                  max='30'
+                                  value={leadKg}
+                                  onChange={e => setLeadKg(e.target.value)}
+                                  className='w-full px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs font-mono font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
+                                />
+                                <span className='text-xs font-bold text-gray-500'>kg</span>
+                              </div>
+                            </div>
+                            <div>
+                              <label className='block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1'>
+                                Weight System
+                              </label>
+                              <select
+                                value={weightSystem}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  setWeightSystem(val);
+                                  if (val === 'BOTH') {
+                                    setWeightSystems(['INTEGRATED', 'BELT']);
+                                  } else if (val === 'OWN_BELT') {
+                                    setWeightSystems(['OWN_BELT']);
+                                  } else {
+                                    setWeightSystems([val]);
+                                  }
+                                }}
+                                className='w-full px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium'
+                              >
+                                <option value='INTEGRATED'>Integrated BCD Pockets</option>
+                                <option value='BELT'>Center Weight Belt</option>
+                                <option value='BOTH'>Split (BCD Pockets + Belt)</option>
+                                <option value='OWN_BELT'>Bringing Own Belt</option>
+                              </select>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className='text-xs text-gray-500 dark:text-gray-400 italic'>
+                            Bringing own lead weights (0 kg needed from center)
+                          </span>
+                        )}
+                      </div>
                     </div>
 
-                    <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-1 pt-1.5 border-t border-gray-100 dark:border-gray-700/60'>
-                      <label className='flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300 cursor-pointer'>
-                        <input
-                          type='checkbox'
-                          checked={rentalTorch}
-                          onChange={e => setRentalTorch(e.target.checked)}
-                          className='rounded text-blue-600'
-                        />
-                        <span className='font-bold text-amber-700 dark:text-amber-300 flex items-center gap-1'>
-                          <Flame size={13} className='text-amber-600' />
-                          Rent Primary Dive Torch / Light (Opt)
+                    {/* 8. Thermal Neoprene Hood */}
+                    <div
+                      className={`p-3.5 transition-colors ${
+                        hoodSize !== 'None' ? 'bg-blue-50/25 dark:bg-blue-950/20' : ''
+                      }`}
+                    >
+                      {/* Sub-row 1 */}
+                      <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2.5'>
+                        <div className='flex items-center gap-3 min-w-0'>
+                          <div
+                            className={`p-2 rounded-lg shrink-0 ${
+                              hoodSize !== 'None'
+                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300'
+                                : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                            }`}
+                          >
+                            <Sparkles size={18} />
+                          </div>
+                          <div className='min-w-0'>
+                            <div className='flex items-center gap-2 flex-wrap'>
+                              <span className='font-bold text-sm text-gray-900 dark:text-white'>
+                                Thermal Neoprene Hood
+                              </span>
+                              <span className='text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'>
+                                Head thermal protection
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className='flex items-center gap-3 self-end sm:self-auto shrink-0'>
+                          <span
+                            className={`text-xs font-semibold ${
+                              hoodSize !== 'None'
+                                ? 'text-blue-600 dark:text-blue-400 font-bold'
+                                : 'text-gray-400'
+                            }`}
+                          >
+                            {hoodSize !== 'None' ? '+ €5.00/day' : 'No charge'}
+                          </span>
+                          <div className='inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shrink-0'>
+                            <button
+                              type='button'
+                              onClick={() => setHoodSize('None')}
+                              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                                hoodSize === 'None'
+                                  ? 'bg-emerald-600 text-white shadow-2xs'
+                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                              }`}
+                            >
+                              ✓ My Own
+                            </button>
+                            <button
+                              type='button'
+                              onClick={() => setHoodSize(hoodSize !== 'None' ? hoodSize : 'M')}
+                              className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                                hoodSize !== 'None'
+                                  ? 'bg-blue-600 text-white shadow-2xs'
+                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                              }`}
+                            >
+                              Rent
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Sub-row 2 */}
+                      <div className='mt-2.5 pt-2.5 border-t border-gray-100 dark:border-gray-700/50 pl-0 sm:pl-11'>
+                        {hoodSize !== 'None' ? (
+                          <div className='flex items-center gap-2 max-w-xs'>
+                            <label className='text-[11px] font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap'>
+                              Size:
+                            </label>
+                            <select
+                              value={hoodSize}
+                              onChange={e => setHoodSize(e.target.value)}
+                              className='px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium'
+                            >
+                              <option value='S'>S (Small)</option>
+                              <option value='M'>M (Medium)</option>
+                              <option value='L'>L (Large)</option>
+                              <option value='XL'>XL (Extra Large)</option>
+                            </select>
+                          </div>
+                        ) : (
+                          <span className='text-xs text-gray-500 dark:text-gray-400 italic'>
+                            Bringing own hood / None needed.
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 9. Neoprene Dive Gloves */}
+                    <div
+                      className={`p-3.5 transition-colors ${
+                        glovesSize !== 'None' ? 'bg-blue-50/25 dark:bg-blue-950/20' : ''
+                      }`}
+                    >
+                      {/* Sub-row 1 */}
+                      <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2.5'>
+                        <div className='flex items-center gap-3 min-w-0'>
+                          <div
+                            className={`p-2 rounded-lg shrink-0 ${
+                              glovesSize !== 'None'
+                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300'
+                                : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                            }`}
+                          >
+                            <Shield size={18} />
+                          </div>
+                          <div className='min-w-0'>
+                            <div className='flex items-center gap-2 flex-wrap'>
+                              <span className='font-bold text-sm text-gray-900 dark:text-white'>
+                                Neoprene Dive Gloves
+                              </span>
+                              <span className='text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'>
+                                Hand protection
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className='flex items-center gap-3 self-end sm:self-auto shrink-0'>
+                          <span
+                            className={`text-xs font-semibold ${
+                              glovesSize !== 'None'
+                                ? 'text-blue-600 dark:text-blue-400 font-bold'
+                                : 'text-gray-400'
+                            }`}
+                          >
+                            {glovesSize !== 'None' ? '+ €5.00/day' : 'No charge'}
+                          </span>
+                          <div className='inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shrink-0'>
+                            <button
+                              type='button'
+                              onClick={() => setGlovesSize('None')}
+                              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                                glovesSize === 'None'
+                                  ? 'bg-emerald-600 text-white shadow-2xs'
+                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                              }`}
+                            >
+                              ✓ My Own
+                            </button>
+                            <button
+                              type='button'
+                              onClick={() =>
+                                setGlovesSize(glovesSize !== 'None' ? glovesSize : 'M')
+                              }
+                              className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                                glovesSize !== 'None'
+                                  ? 'bg-blue-600 text-white shadow-2xs'
+                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                              }`}
+                            >
+                              Rent
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Sub-row 2 */}
+                      <div className='mt-2.5 pt-2.5 border-t border-gray-100 dark:border-gray-700/50 pl-0 sm:pl-11'>
+                        {glovesSize !== 'None' ? (
+                          <div className='flex items-center gap-2 max-w-xs'>
+                            <label className='text-[11px] font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap'>
+                              Size:
+                            </label>
+                            <select
+                              value={glovesSize}
+                              onChange={e => setGlovesSize(e.target.value)}
+                              className='px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium'
+                            >
+                              <option value='S'>S (Small)</option>
+                              <option value='M'>M (Medium)</option>
+                              <option value='L'>L (Large)</option>
+                              <option value='XL'>XL (Extra Large)</option>
+                            </select>
+                          </div>
+                        ) : (
+                          <span className='text-xs text-gray-500 dark:text-gray-400 italic'>
+                            Bringing own gloves / None needed.
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 10. Primary Dive Torch / Light (Opt) */}
+                    <div
+                      className={`p-3.5 transition-colors ${
+                        rentalTorch ? 'bg-blue-50/25 dark:bg-blue-950/20' : ''
+                      }`}
+                    >
+                      {/* Sub-row 1 */}
+                      <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2.5'>
+                        <div className='flex items-center gap-3 min-w-0'>
+                          <div
+                            className={`p-2 rounded-lg shrink-0 ${
+                              rentalTorch
+                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300'
+                                : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                            }`}
+                          >
+                            <Flame size={18} />
+                          </div>
+                          <div className='min-w-0'>
+                            <div className='flex items-center gap-2 flex-wrap'>
+                              <span className='font-bold text-sm text-gray-900 dark:text-white'>
+                                Primary Dive Torch / Light
+                              </span>
+                              <span className='text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'>
+                                Caverns & swim-throughs
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className='flex items-center gap-3 self-end sm:self-auto shrink-0'>
+                          <span
+                            className={`text-xs font-semibold ${
+                              rentalTorch
+                                ? 'text-blue-600 dark:text-blue-400 font-bold'
+                                : 'text-gray-400'
+                            }`}
+                          >
+                            {rentalTorch ? '+ €8.00/day' : 'No charge'}
+                          </span>
+                          <div className='inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shrink-0'>
+                            <button
+                              type='button'
+                              onClick={() => setRentalTorch(false)}
+                              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                                !rentalTorch
+                                  ? 'bg-emerald-600 text-white shadow-2xs'
+                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                              }`}
+                            >
+                              ✓ My Own
+                            </button>
+                            <button
+                              type='button'
+                              onClick={() => setRentalTorch(true)}
+                              className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                                rentalTorch
+                                  ? 'bg-blue-600 text-white shadow-2xs'
+                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                              }`}
+                            >
+                              Rent
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Sub-row 2 */}
+                      <div className='mt-2.5 pt-2.5 border-t border-gray-100 dark:border-gray-700/50 pl-0 sm:pl-11'>
+                        <span className='text-xs text-gray-500 dark:text-gray-400 italic'>
+                          {rentalTorch
+                            ? 'High-lumen primary dive torch with fresh battery and secure wrist lanyard.'
+                            : 'Bringing own torch / None needed.'}
                         </span>
-                      </label>
-                      <span className='text-[11px] text-gray-400'>
-                        Recommended for caverns, swim-throughs & twilight dives
-                      </span>
+                      </div>
+                    </div>
+
+                    {/* 11. Surface Marker Buoy (SMB & Spool) */}
+                    <div
+                      className={`p-3.5 transition-colors ${
+                        rentalSmb ? 'bg-blue-50/25 dark:bg-blue-950/20' : ''
+                      }`}
+                    >
+                      {/* Sub-row 1 */}
+                      <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2.5'>
+                        <div className='flex items-center gap-3 min-w-0'>
+                          <div
+                            className={`p-2 rounded-lg shrink-0 ${
+                              rentalSmb
+                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300'
+                                : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                            }`}
+                          >
+                            <Compass size={18} />
+                          </div>
+                          <div className='min-w-0'>
+                            <div className='flex items-center gap-2 flex-wrap'>
+                              <span className='font-bold text-sm text-gray-900 dark:text-white'>
+                                Surface Marker Buoy (SMB) & Spool
+                              </span>
+                              <span className='text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'>
+                                Ascent safety gear
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className='flex items-center gap-3 self-end sm:self-auto shrink-0'>
+                          <span
+                            className={`text-xs font-semibold ${
+                              rentalSmb
+                                ? 'text-blue-600 dark:text-blue-400 font-bold'
+                                : 'text-gray-400'
+                            }`}
+                          >
+                            {rentalSmb ? '+ €5.00/day' : 'No charge'}
+                          </span>
+                          <div className='inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shrink-0'>
+                            <button
+                              type='button'
+                              onClick={() => {
+                                setRentalSmb(false);
+                                setHasOwnSmb(true);
+                              }}
+                              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                                !rentalSmb
+                                  ? 'bg-emerald-600 text-white shadow-2xs'
+                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                              }`}
+                            >
+                              ✓ My Own
+                            </button>
+                            <button
+                              type='button'
+                              onClick={() => {
+                                setRentalSmb(true);
+                                setHasOwnSmb(false);
+                              }}
+                              className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                                rentalSmb
+                                  ? 'bg-blue-600 text-white shadow-2xs'
+                                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                              }`}
+                            >
+                              Rent
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Sub-row 2 */}
+                      <div className='mt-2.5 pt-2.5 border-t border-gray-100 dark:border-gray-700/50 pl-0 sm:pl-11'>
+                        <span className='text-xs text-gray-500 dark:text-gray-400 italic'>
+                          {rentalSmb
+                            ? 'Center-provided Surface Marker Buoy & finger spool for ascent safety and surface traffic awareness.'
+                            : 'Bringing own personal SMB & finger spool.'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2663,24 +3372,29 @@ const BookingWizard = () => {
                         <span>Bringing Your Own Gear (Diver Provided)</span>
                       </div>
                       <ul className='space-y-1.5 text-[11px] text-emerald-800 dark:text-emerald-300 pl-4 list-disc'>
-                        {!rentalMask && <li>Own Mask</li>}
                         {wetsuitSize === 'None' ? (
                           <li>Own Wetsuit / Exposure Suit ({wetsuitThickness})</li>
                         ) : null}
                         {bcdSize === 'None' ? <li>Own BCD / Wing</li> : null}
+                        {finSize === 'None' ? (
+                          <li>Own Fins ({finType === 'OPEN_HEEL' ? 'Open-Heel' : 'Full-Foot'})</li>
+                        ) : null}
+                        {bootSize === 'None' ? <li>Own Booties</li> : null}
                         {!rentalRegulator ? (
                           <li>
                             Own Regulator (<strong>{regulatorFitting}</strong> connection)
                           </li>
                         ) : null}
-                        {finSize === 'None' ? (
-                          <li>Own Fins ({finType === 'OPEN_HEEL' ? 'Open-Heel' : 'Full-Foot'})</li>
-                        ) : null}
-                        {bootSize === 'None' ? <li>Own Booties</li> : null}
+                        {!rentalMask && <li>Own Mask</li>}
                         {!rentalComputer ? <li>Own Personal Dive Computer</li> : null}
-                        {!rentalTorch ? <li>Own Primary Dive Torch</li> : null}
                         {hasOwnLeadWeights ? (
                           <li>Own Lead Weights (0 kg needed from center)</li>
+                        ) : null}
+                        {hoodSize === 'None' ? <li>Own Thermal Hood (or none needed)</li> : null}
+                        {glovesSize === 'None' ? <li>Own Dive Gloves (or none needed)</li> : null}
+                        {!rentalTorch ? <li>Own Primary Dive Torch</li> : null}
+                        {!rentalSmb && hasOwnSmb ? (
+                          <li>Own Surface Marker Buoy (SMB) & Spool</li>
                         ) : null}
                       </ul>
                     </div>
@@ -2692,20 +3406,19 @@ const BookingWizard = () => {
                         <span>Rental Gear Required (Center Provided)</span>
                       </div>
                       <ul className='space-y-1.5 text-[11px] text-blue-800 dark:text-blue-300 pl-4 list-disc'>
-                        {rentalMask ? <li>Rental Mask</li> : null}
                         {wetsuitSize !== 'None' ? (
                           <li>
                             Rental Wetsuit (Size {wetsuitSize}, {wetsuitThickness})
                           </li>
                         ) : null}
                         {bcdSize !== 'None' ? <li>Rental BCD (Size {bcdSize})</li> : null}
+                        {finSize !== 'None' ? <li>Rental Fins ({finSize})</li> : null}
+                        {bootSize !== 'None' ? <li>Rental Booties (EU {bootSize})</li> : null}
                         {rentalRegulator ? (
                           <li>Rental Regulator Set (Fitted with {regulatorFitting})</li>
                         ) : null}
-                        {finSize !== 'None' ? <li>Rental Fins ({finSize})</li> : null}
-                        {bootSize !== 'None' ? <li>Rental Booties (EU {bootSize})</li> : null}
+                        {rentalMask ? <li>Rental Mask</li> : null}
                         {rentalComputer ? <li>Rental Wrist Dive Computer</li> : null}
-                        {rentalTorch ? <li>Rental Primary Dive Torch</li> : null}
                         {!hasOwnLeadWeights ? (
                           <li>
                             Center Lead Weights: {leadKg || '4.0'} kg (
@@ -2720,6 +3433,14 @@ const BookingWizard = () => {
                             )
                           </li>
                         ) : null}
+                        {hoodSize !== 'None' ? (
+                          <li>Rental Thermal Hood (Size {hoodSize})</li>
+                        ) : null}
+                        {glovesSize !== 'None' ? (
+                          <li>Rental Dive Gloves (Size {glovesSize})</li>
+                        ) : null}
+                        {rentalTorch ? <li>Rental Primary Dive Torch</li> : null}
+                        {rentalSmb ? <li>Rental Surface Marker Buoy (SMB) & Spool</li> : null}
                       </ul>
                     </div>
                   </div>
@@ -3339,344 +4060,424 @@ const BookingWizard = () => {
 
           {/* Right Column: Sticky Booking Summary */}
           <div className='lg:col-span-4 space-y-6'>
-            <div className='bg-white dark:bg-gray-800 p-5 sm:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 sticky top-6'>
-              <h3 className='text-base font-bold text-gray-900 dark:text-white uppercase tracking-tight mb-4'>
-                Booking Summary
-              </h3>
+            <div className='bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 sticky top-6 overflow-hidden'>
+              {/* Desktop Header */}
+              <div className='hidden lg:block p-5 sm:p-6 pb-4 border-b border-gray-100 dark:border-gray-700'>
+                <h3 className='text-base font-bold text-gray-900 dark:text-white uppercase tracking-tight'>
+                  Booking Summary
+                </h3>
+              </div>
 
-              <div className='space-y-3 text-sm pb-4 border-b border-gray-100 dark:border-gray-700'>
-                {/* STEP 1 FIELDS: TIER, DIVER NAME, CONTACT, DOB, CERTIFICATION */}
-                <div className='flex justify-between text-gray-600 dark:text-gray-400'>
-                  <span>Tier:</span>
-                  <span className='font-semibold text-gray-900 dark:text-white text-right max-w-[170px] truncate'>
-                    {selectedUnit?.title}
-                  </span>
-                </div>
-                <div className='flex justify-between text-gray-600 dark:text-gray-400'>
-                  <span>Diver Name:</span>
-                  <span
-                    className={`font-semibold text-right max-w-[150px] truncate ${
-                      diverName
-                        ? 'text-gray-900 dark:text-white'
-                        : 'text-amber-600 dark:text-amber-400'
-                    }`}
-                  >
-                    {diverName || 'Required'}
-                  </span>
-                </div>
-                <div className='flex justify-between text-gray-600 dark:text-gray-400'>
-                  <span>Contact / ID:</span>
-                  <span
-                    className={`font-semibold ${
-                      hasContactOrId
-                        ? 'text-gray-900 dark:text-white'
-                        : 'text-amber-600 dark:text-amber-400'
-                    }`}
-                  >
-                    {hasContactOrId ? 'Provided' : '1 Required'}
-                  </span>
-                </div>
-                <div className='flex justify-between text-gray-600 dark:text-gray-400'>
-                  <span>Date of Birth:</span>
-                  <span
-                    className={`font-semibold ${
-                      dateOfBirth
-                        ? 'text-gray-900 dark:text-white'
-                        : 'text-amber-600 dark:text-amber-400'
-                    }`}
-                  >
-                    {dateOfBirth || 'Required'}
-                  </span>
-                </div>
-                <div className='flex justify-between text-gray-600 dark:text-gray-400'>
-                  <span>Certification:</span>
-                  <span
-                    className={`font-semibold text-right max-w-[160px] truncate ${
-                      hasCertDetails
-                        ? 'text-gray-900 dark:text-white'
-                        : 'text-amber-600 dark:text-amber-400'
-                    }`}
-                    title={hasCertDetails ? `${certAgency} ${certLevel}` : 'Required'}
-                  >
-                    {hasCertDetails ? `${certAgency} ${certLevel}` : 'Required'}
-                  </span>
-                </div>
-
-                {/* STEP 2 FIELDS: EQUIPMENT ALLOCATION */}
-                <div className='flex justify-between text-gray-600 dark:text-gray-400'>
-                  <span>Tank / Gas:</span>
-                  <span
-                    className={`font-semibold text-right ${
-                      currentStep > 1
-                        ? 'text-gray-900 dark:text-white'
-                        : 'text-gray-400 dark:text-gray-500'
-                    }`}
-                  >
-                    {currentStep > 1
-                      ? `${selectedTankId}L • ${selectedGasMixId.toUpperCase()} (${regulatorFitting})`
-                      : 'Configure in Step 2'}
-                  </span>
-                </div>
-                <div className='flex justify-between text-gray-600 dark:text-gray-400'>
-                  <span>Lead Weights:</span>
-                  <span
-                    className={`font-semibold text-right ${
-                      currentStep > 1
-                        ? 'text-gray-900 dark:text-white'
-                        : 'text-gray-400 dark:text-gray-500'
-                    }`}
-                  >
-                    {currentStep > 1
-                      ? hasOwnLeadWeights
-                        ? '0 kg (Own Lead)'
-                        : `${leadKg} kg (${
-                            weightSystems.includes('INTEGRATED') &&
-                            (weightSystems.includes('BELT') || weightSystems.includes('OWN_BELT'))
-                              ? 'Split Pockets & Belt'
-                              : weightSystems.includes('OWN_BELT')
-                                ? 'Own Belt'
-                                : weightSystems.includes('BELT')
-                                  ? 'Belt'
-                                  : 'Pockets'
-                          })`
-                      : 'Configure in Step 2'}
-                  </span>
-                </div>
-                <div className='flex justify-between text-gray-600 dark:text-gray-400'>
-                  <span>Wetsuit & BCD:</span>
-                  <span
-                    className={`font-semibold text-right ${
-                      currentStep > 1
-                        ? 'text-gray-900 dark:text-white'
-                        : 'text-gray-400 dark:text-gray-500'
-                    }`}
-                  >
-                    {currentStep > 1
-                      ? `${
-                          wetsuitSize === 'None'
-                            ? 'Own Suit'
-                            : `${wetsuitGender === 'WOMEN' ? "Women's" : "Men's"} ${wetsuitSize}`
-                        } • ${
-                          bcdSize === 'None'
-                            ? 'Own BCD'
-                            : `${bcdGender === 'WOMEN' ? "Women's" : "Men's"} BCD ${bcdSize}`
-                        }`
-                      : 'Configure in Step 2'}
-                  </span>
-                </div>
-                <div className='flex justify-between text-gray-600 dark:text-gray-400'>
-                  <span>Fins & Boots:</span>
-                  <span
-                    className={`font-semibold text-right ${
-                      currentStep > 1
-                        ? 'text-gray-900 dark:text-white'
-                        : 'text-gray-400 dark:text-gray-500'
-                    }`}
-                  >
-                    {currentStep > 1
-                      ? `${
-                          finSize === 'None' && bootSize === 'None'
-                            ? 'Own Fins & Boots'
-                            : `${finSize === 'None' ? 'Own Fins' : `Fins ${finSize}`} • ${
-                                bootSize === 'None' ? 'Own Boots' : `Boots EU ${bootSize}`
-                              }`
-                        }`
-                      : 'Configure in Step 2'}
-                  </span>
-                </div>
-                <div className='flex justify-between text-gray-600 dark:text-gray-400'>
-                  <span>Dive Computer:</span>
-                  <span
-                    className={`font-semibold text-right ${
-                      currentStep > 1
-                        ? 'text-gray-900 dark:text-white'
-                        : 'text-gray-400 dark:text-gray-500'
-                    }`}
-                  >
-                    {currentStep > 1
-                      ? rentalComputer
-                        ? 'Rental Wrist Unit'
-                        : 'Own Computer'
-                      : 'Configure in Step 2'}
-                  </span>
-                </div>
-                {rentalTorch && currentStep > 1 && (
-                  <div className='flex justify-between text-gray-600 dark:text-gray-400'>
-                    <span>Rental Light:</span>
-                    <span className='font-semibold text-gray-900 dark:text-white'>
-                      Primary Dive Torch Included
+              {/* Mobile Collapsible Header / Accordion */}
+              <button
+                type='button'
+                onClick={() => setMobileSummaryOpen(prev => !prev)}
+                className='lg:hidden w-full p-4 flex items-center justify-between bg-gray-50/80 dark:bg-gray-750/70 border-b border-gray-100 dark:border-gray-700 text-left transition-colors'
+              >
+                <div className='flex items-center gap-2.5 min-w-0'>
+                  <div className='p-1.5 rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300 shrink-0'>
+                    <FileText size={16} />
+                  </div>
+                  <div className='min-w-0'>
+                    <span className='text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wide block'>
+                      Booking Summary
+                    </span>
+                    <span className='text-[11px] text-gray-500 dark:text-gray-400 block truncate'>
+                      {mobileSummaryOpen || currentStep === 5
+                        ? 'Tap to collapse details'
+                        : `${selectedUnit?.title || 'Trip'} • €${rentalCalculation.totalDue.toFixed(2)}`}
                     </span>
                   </div>
-                )}
-
-                {/* STEP 3 FIELDS: EMERGENCY & INSURANCE */}
-                <div className='flex justify-between text-gray-600 dark:text-gray-400'>
-                  <span>Emergency Contact:</span>
-                  <span
-                    className={`font-semibold text-right max-w-[150px] truncate ${
-                      emergencyContactName && emergencyContactPhone
-                        ? 'text-gray-900 dark:text-white'
-                        : currentStep >= 3
-                          ? 'text-amber-600 dark:text-amber-400'
-                          : 'text-gray-400 dark:text-gray-500'
-                    }`}
-                    title={
-                      emergencyContactName
-                        ? `${emergencyContactName} (${emergencyContactPhone})`
-                        : currentStep >= 3
-                          ? 'Required'
-                          : 'Configure in Step 3'
-                    }
-                  >
-                    {emergencyContactName && emergencyContactPhone
-                      ? emergencyContactName
-                      : currentStep >= 3
-                        ? 'Required'
-                        : 'Pending Step 3'}
-                  </span>
                 </div>
-                <div className='flex justify-between text-gray-600 dark:text-gray-400'>
-                  <span>Dive Insurance:</span>
-                  <span
-                    className={`font-semibold text-right max-w-[150px] truncate ${
-                      hasInsurance === 'CENTER' || insuranceProvider
-                        ? 'text-gray-900 dark:text-white'
-                        : currentStep >= 3
-                          ? 'text-amber-600 dark:text-amber-400'
+                <div className='flex items-center gap-2 shrink-0'>
+                  <span className='text-sm font-bold font-mono text-blue-600 dark:text-blue-400'>
+                    €{rentalCalculation.totalDue.toFixed(2)}
+                  </span>
+                  <div className='p-1 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'>
+                    {mobileSummaryOpen || currentStep === 5 ? (
+                      <ChevronUp size={14} />
+                    ) : (
+                      <ChevronDown size={14} />
+                    )}
+                  </div>
+                </div>
+              </button>
+
+              {/* Summary Body: Collapsible on mobile, always visible on desktop, default open on Step 5 */}
+              <div
+                className={`p-5 sm:p-6 ${
+                  mobileSummaryOpen || currentStep === 5 ? 'block' : 'hidden lg:block'
+                }`}
+              >
+                <div className='space-y-3 text-sm pb-4 border-b border-gray-100 dark:border-gray-700'>
+                  {/* STEP 1 FIELDS: TIER, DIVER NAME, CONTACT, DOB, CERTIFICATION */}
+                  <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                    <span>Tier:</span>
+                    <span className='font-semibold text-gray-900 dark:text-white text-right max-w-[170px] truncate'>
+                      {selectedUnit?.title}
+                    </span>
+                  </div>
+                  <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                    <span>Diver Name:</span>
+                    <span
+                      className={`font-semibold text-right max-w-[150px] truncate ${
+                        diverName
+                          ? 'text-gray-900 dark:text-white'
+                          : 'text-amber-600 dark:text-amber-400'
+                      }`}
+                    >
+                      {diverName || 'Required'}
+                    </span>
+                  </div>
+                  <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                    <span>Passport / ID:</span>
+                    <span
+                      className={`font-semibold ${
+                        hasPassport
+                          ? 'text-gray-900 dark:text-white'
+                          : 'text-amber-600 dark:text-amber-400'
+                      }`}
+                    >
+                      {hasPassport ? 'Provided' : 'Required'}
+                    </span>
+                  </div>
+                  <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                    <span>Contact:</span>
+                    <span
+                      className={`font-semibold ${
+                        hasContact
+                          ? 'text-gray-900 dark:text-white'
+                          : 'text-amber-600 dark:text-amber-400'
+                      }`}
+                    >
+                      {hasContact ? 'Provided' : 'Required'}
+                    </span>
+                  </div>
+                  <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                    <span>Date of Birth:</span>
+                    <span
+                      className={`font-semibold ${
+                        dateOfBirth
+                          ? 'text-gray-900 dark:text-white'
+                          : 'text-amber-600 dark:text-amber-400'
+                      }`}
+                    >
+                      {dateOfBirth || 'Required'}
+                    </span>
+                  </div>
+                  <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                    <span>Certification:</span>
+                    <span
+                      className={`font-semibold text-right max-w-[160px] truncate ${
+                        hasCertDetails
+                          ? 'text-gray-900 dark:text-white'
+                          : 'text-amber-600 dark:text-amber-400'
+                      }`}
+                      title={hasCertDetails ? `${certAgency} ${certLevel}` : 'Required'}
+                    >
+                      {hasCertDetails ? `${certAgency} ${certLevel}` : 'Required'}
+                    </span>
+                  </div>
+
+                  {/* STEP 2 FIELDS: EQUIPMENT ALLOCATION */}
+                  <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                    <span>Tank / Gas:</span>
+                    <span
+                      className={`font-semibold text-right ${
+                        currentStep > 1
+                          ? 'text-gray-900 dark:text-white'
                           : 'text-gray-400 dark:text-gray-500'
-                    }`}
-                  >
-                    {hasInsurance === 'CENTER'
-                      ? 'Center Daily'
-                      : insuranceProvider
-                        ? insuranceProvider
+                      }`}
+                    >
+                      {currentStep > 1
+                        ? `${selectedTankId}L • ${selectedGasMixId.toUpperCase()} (${regulatorFitting})`
+                        : 'Configure in Step 2'}
+                    </span>
+                  </div>
+                  <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                    <span>Lead Weights:</span>
+                    <span
+                      className={`font-semibold text-right ${
+                        currentStep > 1
+                          ? 'text-gray-900 dark:text-white'
+                          : 'text-gray-400 dark:text-gray-500'
+                      }`}
+                    >
+                      {currentStep > 1
+                        ? hasOwnLeadWeights
+                          ? '0 kg (Own Lead)'
+                          : `${leadKg} kg (${
+                              weightSystems.includes('INTEGRATED') &&
+                              (weightSystems.includes('BELT') || weightSystems.includes('OWN_BELT'))
+                                ? 'Split Pockets & Belt'
+                                : weightSystems.includes('OWN_BELT')
+                                  ? 'Own Belt'
+                                  : weightSystems.includes('BELT')
+                                    ? 'Belt'
+                                    : 'Pockets'
+                            })`
+                        : 'Configure in Step 2'}
+                    </span>
+                  </div>
+                  <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                    <span>Wetsuit & BCD:</span>
+                    <span
+                      className={`font-semibold text-right ${
+                        currentStep > 1
+                          ? 'text-gray-900 dark:text-white'
+                          : 'text-gray-400 dark:text-gray-500'
+                      }`}
+                    >
+                      {currentStep > 1
+                        ? `${
+                            wetsuitSize === 'None'
+                              ? 'Own Suit'
+                              : `${wetsuitGender === 'WOMEN' ? "Women's" : "Men's"} ${wetsuitSize}`
+                          } • ${
+                            bcdSize === 'None'
+                              ? 'Own BCD'
+                              : `${bcdGender === 'WOMEN' ? "Women's" : "Men's"} BCD ${bcdSize}`
+                          }`
+                        : 'Configure in Step 2'}
+                    </span>
+                  </div>
+                  <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                    <span>Fins & Boots:</span>
+                    <span
+                      className={`font-semibold text-right ${
+                        currentStep > 1
+                          ? 'text-gray-900 dark:text-white'
+                          : 'text-gray-400 dark:text-gray-500'
+                      }`}
+                    >
+                      {currentStep > 1
+                        ? `${
+                            finSize === 'None' && bootSize === 'None'
+                              ? 'Own Fins & Boots'
+                              : `${finSize === 'None' ? 'Own Fins' : `Fins ${finSize}`} • ${
+                                  bootSize === 'None' ? 'Own Boots' : `Boots EU ${bootSize}`
+                                }`
+                          }`
+                        : 'Configure in Step 2'}
+                    </span>
+                  </div>
+                  <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                    <span>Dive Computer:</span>
+                    <span
+                      className={`font-semibold text-right ${
+                        currentStep > 1
+                          ? 'text-gray-900 dark:text-white'
+                          : 'text-gray-400 dark:text-gray-500'
+                      }`}
+                    >
+                      {currentStep > 1
+                        ? rentalComputer
+                          ? 'Rental Wrist Unit'
+                          : 'Own Computer'
+                        : 'Configure in Step 2'}
+                    </span>
+                  </div>
+                  {rentalTorch && currentStep > 1 && (
+                    <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                      <span>Rental Light:</span>
+                      <span className='font-semibold text-gray-900 dark:text-white'>
+                        Primary Dive Torch Included
+                      </span>
+                    </div>
+                  )}
+                  {(hoodSize !== 'None' || glovesSize !== 'None') && currentStep > 1 && (
+                    <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                      <span>Thermal Gear:</span>
+                      <span className='font-semibold text-gray-900 dark:text-white'>
+                        {[
+                          hoodSize !== 'None' ? `Hood (${hoodSize})` : null,
+                          glovesSize !== 'None' ? `Gloves (${glovesSize})` : null,
+                        ]
+                          .filter(Boolean)
+                          .join(' • ')}
+                      </span>
+                    </div>
+                  )}
+                  {rentalSmb && currentStep > 1 && (
+                    <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                      <span>Safety Marker:</span>
+                      <span className='font-semibold text-gray-900 dark:text-white'>
+                        Rental SMB & Spool Included
+                      </span>
+                    </div>
+                  )}
+
+                  {/* STEP 3 FIELDS: EMERGENCY & INSURANCE */}
+                  <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                    <span>Emergency Contact:</span>
+                    <span
+                      className={`font-semibold text-right max-w-[150px] truncate ${
+                        emergencyContactName && emergencyContactPhone
+                          ? 'text-gray-900 dark:text-white'
+                          : currentStep >= 3
+                            ? 'text-amber-600 dark:text-amber-400'
+                            : 'text-gray-400 dark:text-gray-500'
+                      }`}
+                      title={
+                        emergencyContactName
+                          ? `${emergencyContactName} (${emergencyContactPhone})`
+                          : currentStep >= 3
+                            ? 'Required'
+                            : 'Configure in Step 3'
+                      }
+                    >
+                      {emergencyContactName && emergencyContactPhone
+                        ? emergencyContactName
                         : currentStep >= 3
                           ? 'Required'
                           : 'Pending Step 3'}
-                  </span>
-                </div>
-
-                {/* STEP 4 FIELD: MEDICAL */}
-                <div className='flex justify-between text-gray-600 dark:text-gray-400'>
-                  <span>Medical:</span>
-                  <span
-                    className={`font-semibold ${
-                      medicalStatus === 'CLEARED'
-                        ? 'text-emerald-600 dark:text-emerald-400'
-                        : currentStep >= 4
-                          ? 'text-amber-600 dark:text-amber-400'
-                          : 'text-gray-400 dark:text-gray-500'
-                    }`}
-                  >
-                    {medicalStatus === 'CLEARED'
-                      ? 'Cleared'
-                      : medicalStatus === 'FLAGGED_CONTACT_CENTER'
-                        ? 'Flagged'
-                        : currentStep >= 4
-                          ? 'Pending Action'
-                          : 'Pending Step 4'}
-                  </span>
-                </div>
-
-                {/* STEP 5 FIELD: WAIVER */}
-                <div className='flex justify-between text-gray-600 dark:text-gray-400'>
-                  <span>Waiver:</span>
-                  <span
-                    className={`font-semibold ${
-                      waiverSignature
-                        ? 'text-emerald-600 dark:text-emerald-400'
-                        : currentStep >= 5
-                          ? 'text-amber-600 dark:text-amber-400'
-                          : 'text-gray-400 dark:text-gray-500'
-                    }`}
-                  >
-                    {waiverSignature
-                      ? 'Signed'
-                      : currentStep >= 5
-                        ? 'Pending Signature'
-                        : 'Pending Step 5'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Itemized Price Breakdown */}
-              <div className='pt-3 pb-3 border-b border-gray-100 dark:border-gray-700 text-xs space-y-2'>
-                <div className='flex justify-between text-gray-600 dark:text-gray-400'>
-                  <span>Base Dive Trip:</span>
-                  <span className='font-mono font-semibold text-gray-900 dark:text-white'>
-                    €{rentalCalculation.basePrice.toFixed(2)}
-                  </span>
-                </div>
-
-                {rentalCalculation.rentalItems.length > 0 && (
-                  <div className='space-y-1.5 pt-1 border-t border-gray-100 dark:border-gray-700/60'>
-                    <span className='text-[10px] font-bold text-gray-400 uppercase tracking-wider block'>
-                      Equipment Rental Surcharges:
                     </span>
-                    {rentalCalculation.rentalItems.map((item, idx) => (
-                      <div
-                        key={idx}
-                        className='flex justify-between text-gray-600 dark:text-gray-400 pl-2'
-                      >
-                        <span className='truncate'>{item.label}:</span>
-                        <span className='font-mono text-blue-600 dark:text-blue-400 shrink-0'>
-                          +€{item.price.toFixed(2)}
-                        </span>
-                      </div>
-                    ))}
-
-                    {rentalCalculation.isPackageApplied && (
-                      <div className='p-1.5 bg-blue-50 dark:bg-blue-900/30 rounded text-[10px] text-blue-800 dark:text-blue-300 font-medium'>
-                        ✓ Full Equipment Rental Package rate applied
-                      </div>
-                    )}
                   </div>
-                )}
-              </div>
+                  <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                    <span>Dive Insurance:</span>
+                    <span
+                      className={`font-semibold text-right max-w-[150px] truncate ${
+                        hasInsurance === 'CENTER' || insuranceProvider
+                          ? 'text-gray-900 dark:text-white'
+                          : currentStep >= 3
+                            ? 'text-amber-600 dark:text-amber-400'
+                            : 'text-gray-400 dark:text-gray-500'
+                      }`}
+                    >
+                      {hasInsurance === 'CENTER'
+                        ? 'Center Daily'
+                        : insuranceProvider
+                          ? insuranceProvider
+                          : currentStep >= 3
+                            ? 'Required'
+                            : 'Pending Step 3'}
+                    </span>
+                  </div>
 
-              {/* Total Due */}
-              <div className='pt-3 pb-3 border-b border-gray-100 dark:border-gray-700 flex justify-between items-baseline'>
-                <div>
-                  <span className='text-sm font-bold text-gray-900 dark:text-white uppercase block'>
-                    Total Due
-                  </span>
-                  <span className='text-[10px] text-gray-400'>Pay on arrival at center</span>
+                  {/* STEP 4 FIELD: MEDICAL */}
+                  <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                    <span>Medical:</span>
+                    <span
+                      className={`font-semibold ${
+                        medicalStatus === 'CLEARED'
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : currentStep >= 4
+                            ? 'text-amber-600 dark:text-amber-400'
+                            : 'text-gray-400 dark:text-gray-500'
+                      }`}
+                    >
+                      {medicalStatus === 'CLEARED'
+                        ? 'Cleared'
+                        : medicalStatus === 'FLAGGED_CONTACT_CENTER'
+                          ? 'Flagged'
+                          : currentStep >= 4
+                            ? 'Pending Action'
+                            : 'Pending Step 4'}
+                    </span>
+                  </div>
+
+                  {/* STEP 5 FIELD: WAIVER */}
+                  <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                    <span>Waiver:</span>
+                    <span
+                      className={`font-semibold ${
+                        waiverSignature
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : currentStep >= 5
+                            ? 'text-amber-600 dark:text-amber-400'
+                            : 'text-gray-400 dark:text-gray-500'
+                      }`}
+                    >
+                      {waiverSignature
+                        ? 'Signed'
+                        : currentStep >= 5
+                          ? 'Pending Signature'
+                          : 'Pending Step 5'}
+                    </span>
+                  </div>
                 </div>
-                <span className='text-2xl font-bold font-mono text-blue-600 dark:text-blue-400'>
-                  €{rentalCalculation.totalDue.toFixed(2)}
-                </span>
-              </div>
 
-              <div className='pt-4 space-y-3'>
-                {currentStep < 5 ? (
-                  <button
-                    type='button'
-                    onClick={goToNextStep}
-                    className='w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-all'
-                  >
-                    <span>Continue to Step {currentStep + 1}</span>
-                    <ChevronRight size={16} />
-                  </button>
-                ) : (
-                  <button
-                    type='button'
-                    onClick={handleConfirmBooking}
-                    disabled={submitting || !waiverSignature || (!useAnnualMedical && !dmscAnswers)}
-                    className='w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed'
-                  >
-                    {submitting ? (
-                      <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
-                    ) : (
-                      <CheckCircle2 size={16} />
-                    )}
-                    <span>Confirm Reservation</span>
-                  </button>
-                )}
+                {/* Itemized Price Breakdown */}
+                <div className='pt-3 pb-3 border-b border-gray-100 dark:border-gray-700 text-xs space-y-2'>
+                  <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                    <span>Base Dive Trip:</span>
+                    <span className='font-mono font-semibold text-gray-900 dark:text-white'>
+                      €{rentalCalculation.basePrice.toFixed(2)}
+                    </span>
+                  </div>
 
-                <div className='flex items-center justify-center gap-1.5 text-[11px] text-gray-400'>
-                  <span>Step {currentStep} of 5</span>
-                  <span>•</span>
-                  <span>Pay on arrival at dive center</span>
+                  {rentalCalculation.rentalItems.length > 0 && (
+                    <div className='space-y-1.5 pt-1 border-t border-gray-100 dark:border-gray-700/60'>
+                      <span className='text-[10px] font-bold text-gray-400 uppercase tracking-wider block'>
+                        Equipment Rental Surcharges:
+                      </span>
+                      {rentalCalculation.rentalItems.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className='flex justify-between text-gray-600 dark:text-gray-400 pl-2'
+                        >
+                          <span className='truncate'>{item.label}:</span>
+                          <span className='font-mono text-blue-600 dark:text-blue-400 shrink-0'>
+                            +€{item.price.toFixed(2)}
+                          </span>
+                        </div>
+                      ))}
+
+                      {rentalCalculation.isPackageApplied && (
+                        <div className='p-1.5 bg-blue-50 dark:bg-blue-900/30 rounded text-[10px] text-blue-800 dark:text-blue-300 font-medium'>
+                          ✓ Full Equipment Rental Package rate applied
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Total Due */}
+                <div className='pt-3 pb-3 border-b border-gray-100 dark:border-gray-700 flex justify-between items-baseline'>
+                  <div>
+                    <span className='text-sm font-bold text-gray-900 dark:text-white uppercase block'>
+                      Total Due
+                    </span>
+                    <span className='text-[10px] text-gray-400'>Pay on arrival at center</span>
+                  </div>
+                  <span className='text-2xl font-bold font-mono text-blue-600 dark:text-blue-400'>
+                    €{rentalCalculation.totalDue.toFixed(2)}
+                  </span>
+                </div>
+
+                <div className='pt-4 space-y-3'>
+                  {currentStep < 5 ? (
+                    <button
+                      type='button'
+                      onClick={goToNextStep}
+                      className='w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-all'
+                    >
+                      <span>Continue to Step {currentStep + 1}</span>
+                      <ChevronRight size={16} />
+                    </button>
+                  ) : (
+                    <button
+                      type='button'
+                      onClick={handleConfirmBooking}
+                      disabled={
+                        submitting || !waiverSignature || (!useAnnualMedical && !dmscAnswers)
+                      }
+                      className='w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed'
+                    >
+                      {submitting ? (
+                        <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
+                      ) : (
+                        <CheckCircle2 size={16} />
+                      )}
+                      <span>Confirm Reservation</span>
+                    </button>
+                  )}
+
+                  <div className='flex items-center justify-center gap-1.5 text-[11px] text-gray-400'>
+                    <span>Step {currentStep} of 5</span>
+                    <span>•</span>
+                    <span>Pay on arrival at dive center</span>
+                  </div>
                 </div>
               </div>
             </div>

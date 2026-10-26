@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 
 import api from '../api';
+import PageTitle from '../components/PageTitle';
 import SEO from '../components/SEO';
 import Modal from '../components/ui/Modal';
 import { useAuth } from '../contexts/AuthContext';
@@ -183,7 +184,7 @@ const AdminTags = () => {
       <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
         <div className='flex justify-between items-center mb-6'>
           <div>
-            <h1 className='text-3xl font-bold text-gray-900'>Tag Management</h1>
+            <PageTitle>Tag Management</PageTitle>
             <p className='text-gray-600 mt-2'>Manage all tags in the system</p>
           </div>
           <button

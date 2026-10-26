@@ -107,6 +107,56 @@ def compute_participant_octo_pricing(
                     "formatted": f"€{p:.2f}",
                 }
             )
+        if (
+            eq.get("hood_size")
+            and eq.get("hood_size") != "None"
+            and items_pricing.get("hood")
+        ):
+            p = float(items_pricing["hood"])
+            aux_rental_items.append(
+                {
+                    "id": "rental_hood",
+                    "title": f"Rental Thermal Hood ({eq.get('hood_size')})",
+                    "category": "AUXILIARY_RENTAL",
+                    "quantity": 1,
+                    "amount": p,
+                    "price": int(round(p * 100)),
+                    "formatted": f"€{p:.2f}",
+                }
+            )
+        if (
+            eq.get("gloves_size")
+            and eq.get("gloves_size") != "None"
+            and items_pricing.get("gloves")
+        ):
+            p = float(items_pricing["gloves"])
+            aux_rental_items.append(
+                {
+                    "id": "rental_gloves",
+                    "title": f"Rental Dive Gloves ({eq.get('gloves_size')})",
+                    "category": "AUXILIARY_RENTAL",
+                    "quantity": 1,
+                    "amount": p,
+                    "price": int(round(p * 100)),
+                    "formatted": f"€{p:.2f}",
+                }
+            )
+        if (
+            (eq.get("rental_smb") or (eq.get("has_own_smb") is False and eq.get("rental_smb") is not False))
+            and items_pricing.get("smb")
+        ):
+            p = float(items_pricing["smb"])
+            aux_rental_items.append(
+                {
+                    "id": "rental_smb",
+                    "title": "Rental Surface Marker Buoy (SMB) & Spool",
+                    "category": "AUXILIARY_RENTAL",
+                    "quantity": 1,
+                    "amount": p,
+                    "price": int(round(p * 100)),
+                    "formatted": f"€{p:.2f}",
+                }
+            )
 
         ins_price = (
             float(getattr(center_settings, "daily_insurance_price", 0.0) or 0.0)
@@ -292,6 +342,56 @@ def compute_participant_octo_pricing(
                 {
                     "id": "stage_cylinder",
                     "title": f"Stage Cylinder ({eq.get('stage_tank')})",
+                    "category": "AUXILIARY_RENTAL",
+                    "quantity": 1,
+                    "amount": p,
+                    "price": int(round(p * 100)),
+                    "formatted": f"€{p:.2f}",
+                }
+            )
+        if (
+            eq.get("hood_size")
+            and eq.get("hood_size") != "None"
+            and items_pricing.get("hood")
+        ):
+            p = float(items_pricing["hood"])
+            aux_rental_items.append(
+                {
+                    "id": "rental_hood",
+                    "title": f"Rental Thermal Hood ({eq.get('hood_size')})",
+                    "category": "AUXILIARY_RENTAL",
+                    "quantity": 1,
+                    "amount": p,
+                    "price": int(round(p * 100)),
+                    "formatted": f"€{p:.2f}",
+                }
+            )
+        if (
+            eq.get("gloves_size")
+            and eq.get("gloves_size") != "None"
+            and items_pricing.get("gloves")
+        ):
+            p = float(items_pricing["gloves"])
+            aux_rental_items.append(
+                {
+                    "id": "rental_gloves",
+                    "title": f"Rental Dive Gloves ({eq.get('gloves_size')})",
+                    "category": "AUXILIARY_RENTAL",
+                    "quantity": 1,
+                    "amount": p,
+                    "price": int(round(p * 100)),
+                    "formatted": f"€{p:.2f}",
+                }
+            )
+        if (
+            (eq.get("rental_smb") or (eq.get("has_own_smb") is False and eq.get("rental_smb") is not False))
+            and items_pricing.get("smb")
+        ):
+            p = float(items_pricing["smb"])
+            aux_rental_items.append(
+                {
+                    "id": "rental_smb",
+                    "title": "Rental Surface Marker Buoy (SMB) & Spool",
                     "category": "AUXILIARY_RENTAL",
                     "quantity": 1,
                     "amount": p,

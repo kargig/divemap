@@ -163,6 +163,10 @@ export function saveBookingPreferencesToCookie(prefs, remember = true, userId = 
       shoeSizeEu: prefs.shoeSizeEu || undefined,
       rentalTorch: Boolean(prefs.rentalTorch),
       rentalComputer: Boolean(prefs.rentalComputer),
+      hoodSize: prefs.hoodSize || undefined,
+      glovesSize: prefs.glovesSize || undefined,
+      rentalSmb: prefs.rentalSmb !== undefined ? Boolean(prefs.rentalSmb) : undefined,
+      hasOwnSmb: prefs.hasOwnSmb !== undefined ? Boolean(prefs.hasOwnSmb) : undefined,
 
       // Emergency Contact
       emergencyContactName: prefs.emergencyContactName || undefined,

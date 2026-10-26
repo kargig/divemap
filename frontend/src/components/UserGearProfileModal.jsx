@@ -141,7 +141,7 @@ const UserGearProfileModal = ({
   const [showEstimator, setShowEstimator] = useState(false);
   const [waterTypeIdx, setWaterTypeIdx] = useState(6); // Default: Aegean / Eastern Med (1.029)
 
-  // Dynamically compute recommended lead ballast using Divemap's buoyancy physics
+  // Dynamically compute recommended lead weights using Divemap's buoyancy physics
   const calculatedLead = useMemo(() => {
     let effectiveWeightKg = 75; // Default if not filled
     if (unitSystem === 'METRIC' && weightKg) {
@@ -205,7 +205,7 @@ const UserGearProfileModal = ({
     setLeadKg(calculatedLead.kg.toString());
     setLeadLbs(calculatedLead.lbs.toString());
     toast.success(
-      `Applied recommended ballast: ${unitSystem === 'METRIC' ? `${calculatedLead.kg} kg` : `${calculatedLead.lbs} lbs`}`
+      `Applied recommended weights: ${unitSystem === 'METRIC' ? `${calculatedLead.kg} kg` : `${calculatedLead.lbs} lbs`}`
     );
   };
 
@@ -561,7 +561,7 @@ const UserGearProfileModal = ({
         {/* Section 1: Biometrics */}
         <div>
           <h4 className='text-xs font-bold text-gray-400 uppercase tracking-wider mb-2.5'>
-            1. Diver Biometrics & Ballast
+            1. Diver Biometrics & Weights
           </h4>
           <div className='grid grid-cols-2 sm:grid-cols-4 gap-3'>
             {unitSystem === 'METRIC' ? (
@@ -650,7 +650,7 @@ const UserGearProfileModal = ({
                   type='button'
                   onClick={() => setShowEstimator(!showEstimator)}
                   className='text-[11px] font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-colors'
-                  title='Estimate lead ballast based on suit, body weight, and cylinder'
+                  title='Estimate lead weights based on suit, body weight, and cylinder'
                 >
                   <Calculator size={12} />
                   {showEstimator ? 'Hide' : 'Calculate'}
@@ -850,7 +850,7 @@ const UserGearProfileModal = ({
             <div className='grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-gray-200 dark:border-gray-700'>
               <div>
                 <label className='block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1'>
-                  Suit Thickness * (Needed for Ballast Calculation)
+                  Suit Thickness * (Needed for Weight Calculation)
                 </label>
                 <select
                   value={wetsuitThickness}

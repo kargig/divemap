@@ -771,7 +771,7 @@ const TripParticipantDetailsPage = () => {
               <div className='flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-700'>
                 <div>
                   <h2 className='text-sm sm:text-base font-bold text-gray-900 dark:text-white uppercase tracking-tight'>
-                    Equipment, Cylinder & Ballast Profile
+                    Equipment, Cylinder & Weights Profile
                   </h2>
                   <p className='text-xs text-gray-500'>
                     Live equipment sizing, buoyancy calculations, and valve connections for dockside
@@ -785,7 +785,7 @@ const TripParticipantDetailsPage = () => {
                 initialData={diver}
                 onSave={handleSaveGear}
                 loading={savingGear}
-                showBallastCalculator={true}
+                showWeightCalculator={true}
                 showEmergencyAndInsurance={true}
               />
             </div>

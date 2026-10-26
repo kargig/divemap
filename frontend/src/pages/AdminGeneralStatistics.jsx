@@ -29,6 +29,7 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery } from 'react-query';
 
+import PageTitle from '../components/PageTitle';
 import SEO from '../components/SEO';
 import { useAuth } from '../contexts/AuthContext';
 import { getGeneralStatistics } from '../services/admin';
@@ -116,7 +117,7 @@ const AdminGeneralStatistics = () => {
         <div className='mb-8'>
           <div className='flex items-center justify-between'>
             <div>
-              <h1 className='text-3xl font-bold text-gray-900'>General Statistics</h1>
+              <PageTitle>General Statistics</PageTitle>
               <p className='text-gray-600 mt-2'>
                 Platform statistics, geographic distribution, and notification analytics
               </p>

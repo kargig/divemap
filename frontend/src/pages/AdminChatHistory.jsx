@@ -18,6 +18,7 @@ import { Link } from 'react-router-dom';
 import { getAdminChatSessions, getAdminChatSessionDetail, deleteAdminChatSession } from '../api';
 import AgentExecutionTimeline from '../components/Admin/AgentExecutionTimeline';
 import ChatbotIcon from '../components/Chat/ChatbotIcon';
+import PageTitle from '../components/PageTitle';
 import SEO from '../components/SEO';
 import AdminChatHistoryTable from '../components/tables/AdminChatHistoryTable';
 import Modal from '../components/ui/Modal';
@@ -173,10 +174,10 @@ const AdminChatHistory = () => {
       <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
         <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8'>
           <div>
-            <h1 className='text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3'>
+            <PageTitle className='gap-3'>
               <History className='text-blue-600' />
               Chat Session History
-            </h1>
+            </PageTitle>
             <p className='text-gray-600 dark:text-gray-400 mt-2'>
               Browse and review full chat transcripts between users and the AI assistant.
             </p>

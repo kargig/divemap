@@ -350,6 +350,7 @@ def get_slot_manifest_data(
     scooters_count = 0
     torches_count = 0
     computers_count = 0
+    smbs_count = 0
     total_lead_kg = 0.0
 
     # Denomination tallies for weights & valve fittings
@@ -587,6 +588,8 @@ def get_slot_manifest_data(
             or not eq.get("has_own_dive_computer", True)
         ):
             computers_count += 1
+        if eq.get("rental_smb", False) or (eq.get("has_own_smb") is False and eq.get("rental_smb") is not False):
+            smbs_count += 1
         if eq.get("stage_tank") and eq.get("stage_tank") != "None":
             st_label = str(eq.get("stage_tank"))
             stage_tanks_summary[st_label] = stage_tanks_summary.get(st_label, 0) + 1
@@ -783,6 +786,7 @@ def get_slot_manifest_data(
             "scooters_count": scooters_count,
             "torches_count": torches_count,
             "computers_count": computers_count,
+            "smbs_count": smbs_count,
             "total_lead_kg": round(total_lead_kg, 1),
             "total_participants": len(participants),
             "lead_breakdown": lead_breakdown,
@@ -2368,6 +2372,7 @@ def get_center_rental_pricing(
                 "dive_torch": 8.0,
                 "hood": 5.0,
                 "gloves": 5.0,
+                "smb": 5.0,
                 "dpv_scooter": 40.0,
                 "stage_tank": 20.0,
             },

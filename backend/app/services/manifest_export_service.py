@@ -1085,8 +1085,14 @@ class ManifestExportService:
 
             if eq.get("rental_torch"):
                 acc_lines.append("<font color='#1E40AF'><b>Rent Torch</b></font>")
-            if eq.get("has_own_smb"):
+            if eq.get("rental_smb") or (eq.get("has_own_smb") is False and eq.get("rental_smb") is not False):
+                acc_lines.append("<font color='#1E40AF'><b>Rent SMB</b></font>")
+            elif eq.get("has_own_smb"):
                 acc_lines.append("Own SMB")
+            if eq.get("hood_size") and eq.get("hood_size") != "None":
+                acc_lines.append(f"<font color='#1E40AF'><b>Rent Hood ({eq.get('hood_size')})</b></font>")
+            if eq.get("gloves_size") and eq.get("gloves_size") != "None":
+                acc_lines.append(f"<font color='#1E40AF'><b>Rent Gloves ({eq.get('gloves_size')})</b></font>")
             if eq.get("rental_scooter"):
                 acc_lines.append("<font color='#D97706'><b>DPV Scooter</b></font>")
             if eq.get("stage_tank") and eq.get("stage_tank") != "None":
@@ -1430,9 +1436,17 @@ class ManifestExportService:
                 for sz, count in (summary.get("hoods") or {}).items()
             ]
         )
+        gloves_items = ", ".join(
+            [
+                f"{count}x Size {sz}"
+                for sz, count in (summary.get("gloves") or {}).items()
+            ]
+        )
         crate1_text = f"<b>Suits:</b> {suit_items}"
         if hood_items:
             crate1_text += f"<br/><b>Hoods:</b> {hood_items}"
+        if gloves_items:
+            crate1_text += f"<br/><b>Gloves:</b> {gloves_items}"
 
         bcd_items = (
             ", ".join([f"{count}x {sz}" for sz, count in bcds.items()])

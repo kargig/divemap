@@ -21,6 +21,7 @@ import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 
 import { getAdminApiKeys, createAdminApiKey, updateAdminApiKey, deleteAdminApiKey } from '../api';
+import PageTitle from '../components/PageTitle';
 import SEO from '../components/SEO';
 import Modal from '../components/ui/Modal';
 import { useAuth } from '../contexts/AuthContext';
@@ -271,7 +272,7 @@ const AdminApiKeys = () => {
               <Key className='h-6 w-6' />
             </div>
             <div>
-              <h1 className='text-2xl font-bold text-gray-900'>API Keys</h1>
+              <PageTitle>API Keys</PageTitle>
               <p className='text-sm text-gray-500'>
                 Manage service tokens and backend API credentials.
               </p>

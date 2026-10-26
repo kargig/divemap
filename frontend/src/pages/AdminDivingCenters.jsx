@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import api from '../api';
+import PageTitle from '../components/PageTitle';
 import SEO from '../components/SEO';
 import AdminDivingCentersTable from '../components/tables/AdminDivingCentersTable';
 import { useAuth } from '../contexts/AuthContext';
@@ -474,9 +475,7 @@ const AdminDivingCenters = () => {
       <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
         <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6'>
           <div className='flex-1 min-w-0'>
-            <h1 className='text-2xl sm:text-3xl font-bold text-gray-900'>
-              Diving Centers Management
-            </h1>
+            <PageTitle>Diving Centers Management</PageTitle>
             <p className='text-sm sm:text-base text-gray-600 mt-1 sm:mt-2'>
               Manage all diving centers in the system
             </p>
