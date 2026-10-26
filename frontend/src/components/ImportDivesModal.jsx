@@ -28,6 +28,7 @@ import { extractErrorMessage } from '../utils/apiErrors';
 import { formatDate, formatTime } from '../utils/dateHelpers';
 import { TANK_SIZES } from '../utils/diveConstants';
 
+import DivingCenterSearchableDropdown from './DivingCenterSearchableDropdown';
 import FuzzySearchInput from './FuzzySearchInput';
 import GasTanksDisplay from './GasTanksDisplay';
 import Button from './ui/Button';
@@ -43,15 +44,13 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
   const [currentStep, setCurrentStep] = useState('upload'); // 'upload', 'mapping', 'review', 'importing'
   const [isProcessing, setIsProcessing] = useState(false);
   const [diveSiteSearchStrings, setDiveSiteSearchStrings] = useState({});
-  const [diveCenterSearchStrings, setDiveCenterSearchStrings] = useState({});
   const [csvHeaders, setCsvHeaders] = useState([]);
   const [csvSampleData, setCsvSampleData] = useState([]);
   const [csvTotalRows, setCsvTotalRows] = useState(0);
   const [fieldMapping, setFieldMapping] = useState({});
 
-  const prefillSearchStrings = (dives, sites, centers) => {
+  const prefillSearchStrings = (dives, sites) => {
     const initialSiteSearchStrings = {};
-    const initialCenterSearchStrings = {};
 
     dives.forEach((dive, index) => {
       if (dive.dive_site_id) {
@@ -60,16 +59,9 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
           initialSiteSearchStrings[index] = site.name;
         }
       }
-      if (dive.diving_center_id) {
-        const center = centers.find(c => c.id === dive.diving_center_id);
-        if (center) {
-          initialCenterSearchStrings[index] = center.name;
-        }
-      }
     });
 
     setDiveSiteSearchStrings(initialSiteSearchStrings);
-    setDiveCenterSearchStrings(initialCenterSearchStrings);
   };
 
   // Import mutation
@@ -79,9 +71,11 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
       setParsedDives(dives);
       const sites = data.available_dive_sites || [];
       setAvailableDiveSites(sites);
+      const centers = data.available_diving_centers || [];
+      setAvailableDivingCenters(centers);
 
       // Pre-fill search strings for dives that already have a site selected
-      prefillSearchStrings(dives, sites, []);
+      prefillSearchStrings(dives, sites);
 
       setCurrentStep('review');
       setIsProcessing(false);
@@ -155,8 +149,8 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
       const centers = data.available_diving_centers || [];
       setAvailableDivingCenters(centers);
 
-      // Pre-fill search strings for sites and centers
-      prefillSearchStrings(dives, sites, centers);
+      // Pre-fill search strings for sites
+      prefillSearchStrings(dives, sites);
 
       setCurrentStep('review');
       setIsProcessing(false);
@@ -182,8 +176,8 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
       const centers = data.available_diving_centers || [];
       setAvailableDivingCenters(centers);
 
-      // Pre-fill search strings for sites and centers
-      prefillSearchStrings(dives, sites, centers);
+      // Pre-fill search strings for sites
+      prefillSearchStrings(dives, sites);
 
       setCurrentStep('review');
       setIsProcessing(false);
@@ -205,8 +199,8 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
       const centers = data.available_diving_centers || [];
       setAvailableDivingCenters(centers);
 
-      // Pre-fill search strings for sites and centers
-      prefillSearchStrings(dives, sites, centers);
+      // Pre-fill search strings for sites
+      prefillSearchStrings(dives, sites);
 
       setCurrentStep('review');
       setIsProcessing(false);
@@ -228,8 +222,8 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
       const centers = data.available_diving_centers || [];
       setAvailableDivingCenters(centers);
 
-      // Pre-fill search strings for sites and centers
-      prefillSearchStrings(dives, sites, centers);
+      // Pre-fill search strings for sites
+      prefillSearchStrings(dives, sites);
 
       setCurrentStep('review');
       setIsProcessing(false);
@@ -363,38 +357,22 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
     handleDiveSiteSearchChange(index, site.name);
   };
 
-  const handleDiveCenterSearchChange = (index, value) => {
-    setDiveCenterSearchStrings(prev => ({
-      ...prev,
-      [index]: value,
-    }));
-
-    // If input is cleared, remove diving center selection
-    if (!value || !value.trim()) {
-      setParsedDives(prev =>
-        prev.map((dive, i) =>
-          i === index ? { ...dive, diving_center_id: null, diving_center_name: null } : dive
-        )
-      );
-    }
-  };
-
-  const handleDiveCenterSelect = (index, center) => {
+  const handleDiveCenterChange = (index, centerId, centerName) => {
     setParsedDives(prev =>
       prev.map((dive, i) =>
         i === index
           ? {
               ...dive,
-              diving_center_id: center.id,
-              diving_center_name: center.name,
+              diving_center_id: centerId
+                ? typeof centerId === 'string'
+                  ? parseInt(centerId, 10) || centerId
+                  : centerId
+                : null,
+              diving_center_name: centerName || null,
             }
           : dive
       )
     );
-    setDiveCenterSearchStrings(prev => ({
-      ...prev,
-      [index]: center.name,
-    }));
   };
 
   const handleSkipDive = index => {
@@ -1191,14 +1169,13 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                           <Anchor size={14} className='text-blue-500' /> Diving Center:
                         </span>
                         <div className='mt-1'>
-                          <FuzzySearchInput
-                            data={availableDivingCenters}
-                            searchValue={diveCenterSearchStrings[index] || ''}
-                            onSearchChange={val => handleDiveCenterSearchChange(index, val)}
-                            onSearchSelect={center => handleDiveCenterSelect(index, center)}
+                          <DivingCenterSearchableDropdown
+                            divingCenters={availableDivingCenters}
+                            selectedId={dive.diving_center_id}
+                            onSelect={(id, name) => handleDiveCenterChange(index, id, name)}
                             placeholder='Search for a diving center...'
-                            minQueryLength={2}
-                            configType='divingCenters'
+                            label=''
+                            id={`diving-center-search-${index}`}
                           />
                         </div>
                       </div>

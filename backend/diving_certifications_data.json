@@ -63,7 +63,7 @@
         "name": "Open Water Scuba Instructor (OWSI)",
         "category": "Professional Track",
         "max_depth": null,
-        "gases": null,
+        "gases": "Air / Nitrox up to 40% O2",
         "tanks": null,
         "prerequisites": "Divemaster + 100 dives"
       },
@@ -71,7 +71,7 @@
         "name": "Master Scuba Diver Trainer (MSDT)",
         "category": "Professional Track",
         "max_depth": null,
-        "gases": null,
+        "gases": "Air / Nitrox up to 40% O2",
         "tanks": null,
         "prerequisites": null
       },
@@ -79,7 +79,7 @@
         "name": "IDC Staff Instructor",
         "category": "Professional Track",
         "max_depth": null,
-        "gases": null,
+        "gases": "Air / Nitrox up to 40% O2",
         "tanks": null,
         "prerequisites": null
       },
@@ -87,7 +87,7 @@
         "name": "Master Instructor",
         "category": "Professional Track",
         "max_depth": null,
-        "gases": null,
+        "gases": "Air / Nitrox up to 40% O2",
         "tanks": null,
         "prerequisites": null
       },
@@ -95,7 +95,7 @@
         "name": "Course Director",
         "category": "Professional Track",
         "max_depth": null,
-        "gases": null,
+        "gases": "Air / Nitrox up to 40% O2",
         "tanks": null,
         "prerequisites": null
       },
@@ -280,7 +280,7 @@
         "name": "Assistant Instructor",
         "category": "Professional Track",
         "max_depth": null,
-        "gases": null,
+        "gases": "Air / Nitrox up to 40% O2",
         "tanks": null,
         "prerequisites": null
       },
@@ -288,7 +288,7 @@
         "name": "Open Water Instructor",
         "category": "Professional Track",
         "max_depth": null,
-        "gases": null,
+        "gases": "Air / Nitrox up to 40% O2",
         "tanks": null,
         "prerequisites": null
       },
