@@ -79,6 +79,7 @@ from app.schemas import (
     VisitedDiveSiteResponse,
 )
 from app.services.image_processing import image_processing
+from app.services.nitrox_service import is_instructor_certification
 from app.services.r2_storage_service import r2_storage
 from app.utils import get_client_ip, populate_avatar_full_url, utcnow
 
@@ -169,6 +170,22 @@ def calculate_certification_stats(certifications) -> CertificationStats | None:
                 else:
                     if max_trimix is None:
                         max_trimix = "Trimix"
+
+        # Instructor level check: de facto Nitrox 40 qualified under SSI / ISO 24802
+        is_inst = False
+        if getattr(cert_level, "name", None) and is_instructor_certification(
+            cert_level.name
+        ):
+            is_inst = True
+        elif hasattr(user_cert, "certification_level") and is_instructor_certification(
+            user_cert.certification_level
+        ):
+            is_inst = True
+
+        if is_inst:
+            all_gases.add("Nitrox")
+            if max_nitrox < 40:
+                max_nitrox = 40
 
         # Tanks & Stages
         if cert_level.tanks:

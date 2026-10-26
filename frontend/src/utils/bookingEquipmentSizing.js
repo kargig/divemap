@@ -92,3 +92,65 @@ export function buildEquipmentSizingPayload(state) {
     emergency_contact_relation: (emergencyContactRelation || '').trim() || undefined,
   };
 }
+
+export const INSTRUCTOR_KEYWORDS = ['instructor', 'owsi', 'msdt', 'course director'];
+
+/**
+ * Checks if a certification level represents an Instructor qualification.
+ * Under SSI / ISO 24802 standards, Enriched Air Nitrox 40 is a mandatory prerequisite
+ * for the Instructor Training Course (ITC/IE), making instructors de facto Nitrox certified.
+ * Qualifications up to Divemaster do not de facto grant Nitrox.
+ */
+export function isInstructorCertification(certLevel) {
+  if (!certLevel || typeof certLevel !== 'string') return false;
+  const cl = certLevel.toLowerCase();
+  return INSTRUCTOR_KEYWORDS.some(kw => cl.includes(kw));
+}
+
+/**
+ * Determines whether a certification level or gases specification qualifies a diver for Nitrox.
+ */
+export function isNitroxQualifyingCertification({ certLevel, gases } = {}) {
+  if (isInstructorCertification(certLevel)) {
+    return true;
+  }
+  if (gases && typeof gases === 'string') {
+    const lg = gases.toLowerCase();
+    if (
+      lg.includes('nitrox') ||
+      lg.includes('safeair') ||
+      lg.includes('trimix') ||
+      lg.includes('triox') ||
+      lg.includes('100% o2') ||
+      lg.includes('40% o2') ||
+      lg.includes('deco')
+    ) {
+      return true;
+    }
+  }
+  if (certLevel && typeof certLevel === 'string') {
+    const cl = certLevel.toLowerCase();
+    const techOrNitroxKeywords = [
+      'nitrox',
+      'ean',
+      'enriched air',
+      'safeair',
+      'extended range',
+      'xr',
+      'tec',
+      'technical',
+      'trimix',
+      'helitrox',
+      'triox',
+      'rebreather',
+      'ccr',
+      'decompression',
+      'fundamentals',
+      'fundies',
+    ];
+    if (techOrNitroxKeywords.some(kw => cl.includes(kw))) {
+      return true;
+    }
+  }
+  return false;
+}
