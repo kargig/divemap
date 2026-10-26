@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildEquipmentSizingPayload } from './bookingEquipmentSizing';
+import {
+  buildEquipmentSizingPayload,
+  isInstructorCertification,
+  isNitroxQualifyingCertification,
+} from './bookingEquipmentSizing';
 
 const baseState = {
   wetsuitGender: 'MEN',
@@ -93,5 +97,44 @@ describe('buildEquipmentSizingPayload', () => {
       smbOption: 'NONE',
     };
     expect(buildEquipmentSizingPayload(state)).toEqual(buildEquipmentSizingPayload(state));
+  });
+});
+
+describe('isInstructorCertification and isNitroxQualifyingCertification', () => {
+  it('recognizes instructor levels as de facto Nitrox qualified', () => {
+    expect(isInstructorCertification('Open Water Instructor')).toBe(true);
+    expect(isInstructorCertification('Assistant Instructor')).toBe(true);
+    expect(isInstructorCertification('Open Water Scuba Instructor (OWSI)')).toBe(true);
+    expect(isInstructorCertification('PADI OWSI #123456')).toBe(true);
+    expect(isInstructorCertification('Master Scuba Diver Trainer (MSDT)')).toBe(true);
+    expect(isInstructorCertification('Course Director')).toBe(true);
+
+    expect(isNitroxQualifyingCertification({ certLevel: 'Open Water Instructor' })).toBe(true);
+    expect(isNitroxQualifyingCertification({ certLevel: 'Assistant Instructor' })).toBe(true);
+    expect(isNitroxQualifyingCertification({ certLevel: 'Course Director' })).toBe(true);
+  });
+
+  it('rejects qualifications up to Divemaster unless separate Nitrox is provided', () => {
+    expect(isInstructorCertification('Divemaster')).toBe(false);
+    expect(isInstructorCertification('SSI Divemaster')).toBe(false);
+    expect(isInstructorCertification('Dive Guide')).toBe(false);
+    expect(isInstructorCertification('Rescue Diver')).toBe(false);
+    expect(isInstructorCertification('Master Scuba Diver')).toBe(false);
+    expect(isInstructorCertification('Advanced Open Water Diver (AOWD)')).toBe(false);
+    expect(isInstructorCertification('Open Water Diver (OWD)')).toBe(false);
+
+    expect(isNitroxQualifyingCertification({ certLevel: 'Divemaster', gases: null })).toBe(false);
+    expect(isNitroxQualifyingCertification({ certLevel: 'Divemaster', gases: 'Air' })).toBe(false);
+    expect(isNitroxQualifyingCertification({ certLevel: 'Open Water Diver', gases: 'Air' })).toBe(
+      false
+    );
+
+    // If Divemaster has explicit Nitrox gases or technical specialty
+    expect(
+      isNitroxQualifyingCertification({ certLevel: 'Divemaster', gases: 'Nitrox up to 40% O2' })
+    ).toBe(true);
+    expect(isNitroxQualifyingCertification({ certLevel: 'Enriched Air Diver', gases: 'Air' })).toBe(
+      true
+    );
   });
 });

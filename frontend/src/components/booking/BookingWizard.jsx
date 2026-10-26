@@ -42,7 +42,11 @@ import {
   saveBookingPreferencesToCookie,
   clearBookingPreferencesCookie,
 } from '../../utils/bookingCookies';
-import { buildEquipmentSizingPayload } from '../../utils/bookingEquipmentSizing';
+import {
+  buildEquipmentSizingPayload,
+  isInstructorCertification,
+  isNitroxQualifyingCertification,
+} from '../../utils/bookingEquipmentSizing';
 import { computeWizardRentalEstimate } from '../../utils/bookingRentalEstimate';
 import { getConsentStatus, setConsent } from '../../utils/consent';
 import { formatDate } from '../../utils/dateHelpers';
@@ -1070,61 +1074,33 @@ const BookingWizard = () => {
       return true;
     }
 
-    // 2. Check if user has an active Nitrox card in their profile certifications
+    // 2. Check if user has an active Nitrox card or instructor rating in their profile certifications
     if (
       Array.isArray(contextData?.user_certifications) &&
-      contextData.user_certifications.some(c => c.allows_nitrox)
+      contextData.user_certifications.some(
+        c => c.allows_nitrox || isInstructorCertification(c.level)
+      )
     ) {
       return true;
     }
 
-    // 3. Specification check from availableLevels database specifications
+    // 3. Specification check from availableLevels database specifications or instructor/technical level
     if (certLevel) {
       const activeLevelObj = availableLevels.find(
         lvl => lvl.name?.toLowerCase() === certLevel.toLowerCase()
       );
-      if (activeLevelObj && activeLevelObj.gases) {
-        const gasesStr = activeLevelObj.gases.toLowerCase();
-        if (
-          gasesStr.includes('nitrox') ||
-          gasesStr.includes('safeair') ||
-          gasesStr.includes('trimix') ||
-          gasesStr.includes('triox') ||
-          gasesStr.includes('100% o2') ||
-          gasesStr.includes('40% o2') ||
-          gasesStr.includes('deco')
-        ) {
-          return true;
-        }
-      }
-
-      // 5. Fallback check for technical or dedicated nitrox ratings
-      const cl = certLevel.toLowerCase();
-      const techOrNitroxKeywords = [
-        'nitrox',
-        'ean',
-        'enriched air',
-        'safeair',
-        'extended range',
-        'xr',
-        'tec',
-        'technical',
-        'trimix',
-        'helitrox',
-        'triox',
-        'rebreather',
-        'ccr',
-        'decompression',
-        'fundamentals',
-        'fundies',
-      ];
-      if (techOrNitroxKeywords.some(kw => cl.includes(kw))) {
+      if (
+        isNitroxQualifyingCertification({
+          certLevel,
+          gases: activeLevelObj?.gases,
+        })
+      ) {
         return true;
       }
     }
 
     return false;
-  }, [contextData, availableLevels, certLevel, secondaryNitroxCert]);
+  }, [contextData, availableLevels, certLevel]);
 
   // Step Validation Handlers
   const validateStep1 = () => {

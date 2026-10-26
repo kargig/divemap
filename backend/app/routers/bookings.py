@@ -40,7 +40,11 @@ from app.services.booking_medical_encryption_service import (
 from app.services.booking_pricing_service import compute_participant_octo_pricing
 from app.services.briefing_service import BriefingService
 from app.services.medical_audit_service import log_medical_access
-from app.services.nitrox_service import check_nitrox_eligibility, gases_permit_nitrox
+from app.services.nitrox_service import (
+    check_nitrox_eligibility,
+    gases_permit_nitrox,
+    is_instructor_certification,
+)
 from app.services.waiver_service import WaiverService
 
 logger = logging.getLogger(__name__)
@@ -424,18 +428,23 @@ def get_checkout_context(
             allows_nitrox = False
             if gases and gases_permit_nitrox(gases):
                 allows_nitrox = True
-            elif c.certification_level and any(
-                k in c.certification_level.lower()
-                for k in [
-                    "nitrox",
-                    "ean",
-                    "safeair",
-                    "extended range",
-                    "xr",
-                    "tec",
-                    "trimix",
-                ]
+            elif c.certification_level and (
+                any(
+                    k in c.certification_level.lower()
+                    for k in [
+                        "nitrox",
+                        "ean",
+                        "safeair",
+                        "extended range",
+                        "xr",
+                        "tec",
+                        "trimix",
+                    ]
+                )
+                or is_instructor_certification(c.certification_level)
             ):
+                allows_nitrox = True
+            elif link and link.name and is_instructor_certification(link.name):
                 allows_nitrox = True
 
             card_id = getattr(c, "card_id", None) or ""
