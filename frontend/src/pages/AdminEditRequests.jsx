@@ -15,6 +15,7 @@ import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 
 import api from '../api';
+import PageTitle from '../components/PageTitle';
 import SEO from '../components/SEO';
 import { extractErrorMessage as getErrorMessage } from '../utils/apiErrors';
 
@@ -269,7 +270,7 @@ const AdminEditRequests = () => {
       <SEO title='Divemap - Admin - Edit Requests' description='Divemap Admin Dashboard' />
       <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
         <div className='mb-8'>
-          <h1 className='text-3xl font-bold text-gray-900'>Pending Edit Requests</h1>
+          <PageTitle>Pending Edit Requests</PageTitle>
           <p className='text-gray-600 mt-2'>
             Review and moderate community dive site contributions.
           </p>

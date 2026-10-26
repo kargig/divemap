@@ -193,7 +193,7 @@ const DiverEquipmentChecklist = ({ participants = [], onToggleGearCheck, onEditD
             const isScooterRental = Boolean(eq.rental_scooter || eq.has_scooter);
             const isComputerRental =
               Boolean(eq.rental_dive_computer) || (isFullRentalTier && !eq.has_own_dive_computer);
-            const isBallastRental = !eq.has_own_lead_weights;
+            const isLeadRental = !eq.has_own_lead_weights;
             // Primary cylinders are center-supplied for boat trips (same rental styling)
             const isCylinderRental = true;
 
@@ -413,10 +413,10 @@ const DiverEquipmentChecklist = ({ participants = [], onToggleGearCheck, onEditD
                     )}
                   </div>
 
-                  {/* 4. Lead Ballast & Weights */}
+                  {/* 4. Lead Weights */}
                   <div
                     className={`p-2.5 rounded-xl space-y-1 border ${
-                      isBallastRental
+                      isLeadRental
                         ? 'bg-blue-50/70 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900/60'
                         : 'bg-slate-50 dark:bg-gray-800/80 border-slate-200 dark:border-gray-700'
                     }`}
@@ -425,24 +425,24 @@ const DiverEquipmentChecklist = ({ participants = [], onToggleGearCheck, onEditD
                       <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1'>
                         <Anchor
                           size={12}
-                          className={isBallastRental ? 'text-blue-600' : 'text-slate-500'}
+                          className={isLeadRental ? 'text-blue-600' : 'text-slate-500'}
                         />
-                        Ballast
+                        Weights
                       </span>
                       <span
                         className={`text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded ${
-                          isBallastRental
+                          isLeadRental
                             ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
                             : 'bg-slate-200 dark:bg-gray-700 text-slate-700 dark:text-gray-300'
                         }`}
                       >
-                        {isBallastRental ? 'Rental' : 'Own'}
+                        {isLeadRental ? 'Rental' : 'Own'}
                       </span>
                     </div>
                     <strong className='text-gray-900 dark:text-white block font-mono'>
-                      {isBallastRental ? `${lead} kg (${blocksStr})` : '✓ Own Weights'}
+                      {isLeadRental ? `${lead} kg (${blocksStr})` : '✓ Own Weights'}
                     </strong>
-                    {isBallastRental && (
+                    {isLeadRental && (
                       <span className='inline-block text-[10px] text-gray-500 font-medium'>
                         {eq.weight_system === 'BELT' ? 'Nylon Belt' : 'Integrated Pockets'}
                       </span>
@@ -575,7 +575,11 @@ const DiverEquipmentChecklist = ({ participants = [], onToggleGearCheck, onEditD
                     </span>
                   )}
 
-                  {eq.has_own_smb && <span className={ownChip}>✓ Own SMB & Spool</span>}
+                  {eq.rental_smb ? (
+                    <span className={rentalChip}>Rental SMB & Spool</span>
+                  ) : eq.has_own_smb ? (
+                    <span className={ownChip}>✓ Own SMB & Spool</span>
+                  ) : null}
                 </div>
               </div>
             );

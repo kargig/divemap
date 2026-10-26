@@ -7,6 +7,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { getUserFriendships, removeFriendship, createChatRoom } from '../api';
 import Avatar from '../components/Avatar';
 import BuddyRequests from '../components/BuddyRequests';
+import PageHeader from '../components/PageHeader';
 import SEO from '../components/SEO';
 import { useAuth } from '../contexts/AuthContext';
 import { useResponsive } from '../hooks/useResponsive';
@@ -69,22 +70,12 @@ const Buddies = () => {
         description='Manage your scuba diving buddies, accept requests, and connect with other divers on Divemap.'
       />
       <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-0 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
-        <div className='mb-6 px-4 sm:px-0'>
-          <Link
-            to='/profile'
-            className='inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 mb-4'
-          >
-            <ArrowLeft className='h-4 w-4 mr-2' />
-            Back to Profile
-          </Link>
-          <div className='flex items-center gap-3'>
-            <Users className='h-8 w-8 text-blue-600 dark:text-blue-400' />
-            <h1 className='text-3xl font-bold text-gray-900 dark:text-slate-100'>My Buddies</h1>
-          </div>
-          <p className='text-gray-600 dark:text-slate-400 mt-2'>
-            Manage your dive buddies and friendship requests.
-          </p>
-        </div>
+        <PageHeader
+          title='My Buddies'
+          titleIcon={Users}
+          badge={isLoading ? null : buddies.length}
+          breadcrumbItems={[{ label: 'Profile', href: '/profile' }, { label: 'My Buddies' }]}
+        />
 
         <div className='space-y-6 sm:space-y-8'>
           {/* Pending Requests Section */}

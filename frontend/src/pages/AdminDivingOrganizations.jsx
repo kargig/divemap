@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 
 import api from '../api';
+import PageTitle from '../components/PageTitle';
 import SEO from '../components/SEO';
 import Modal from '../components/ui/Modal';
 import { useAuth } from '../contexts/AuthContext';
@@ -211,7 +212,7 @@ const AdminDivingOrganizations = () => {
       <SEO title='Divemap - Admin - Diving Organizations' description='Divemap Admin Dashboard' />
       <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
         <div className='mb-8'>
-          <h1 className='text-3xl font-bold text-gray-900'>Diving Organizations Management</h1>
+          <PageTitle>Diving Organizations Management</PageTitle>
           <p className='text-gray-600 mt-2'>
             Manage diving certification organizations and their details
           </p>

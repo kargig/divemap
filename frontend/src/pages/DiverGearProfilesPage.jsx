@@ -186,7 +186,7 @@ const DiverGearProfilesPage = () => {
             </div>
             <div>
               <h4 className='text-sm font-bold text-gray-900 dark:text-white'>
-                Need help calculating your required lead ballast?
+                Need help calculating your required lead weights?
               </h4>
               <p className='text-xs text-gray-600 dark:text-gray-300 mt-0.5'>
                 Calculate exact lead requirements based on suit thickness, cylinder buoyancy (empty
@@ -378,7 +378,7 @@ const DiverGearProfilesPage = () => {
                           )}
                         </div>
                         <div className='col-span-2 pt-1.5 border-t border-gray-200/60 dark:border-gray-600/60 flex justify-between items-center'>
-                          <span className='text-gray-400'>Lead Ballast</span>
+                          <span className='text-gray-400'>Lead Weights</span>
                           {prof.has_own_lead_weights ? (
                             <span className='font-semibold text-emerald-700 dark:text-emerald-400'>
                               ✓ Brings Own Lead (0 kg)

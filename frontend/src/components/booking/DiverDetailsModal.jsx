@@ -823,7 +823,7 @@ const DiverDetailsModal = ({
               onCancel={() => setIsEditing(false)}
               loading={loading}
               compact={true}
-              showBallastCalculator={true}
+              showWeightCalculator={true}
               showEmergencyAndInsurance={true}
             />
           </div>

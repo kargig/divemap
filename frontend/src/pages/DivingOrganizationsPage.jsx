@@ -15,6 +15,7 @@ import { useQuery } from 'react-query';
 import { useSearchParams } from 'react-router-dom';
 
 import OrganizationLogo from '../components/OrganizationLogo';
+import PageHeader from '../components/PageHeader';
 import SEO from '../components/SEO';
 import { getDivingOrganizationLevels, getDivingOrganizations } from '../services/organizations';
 
@@ -356,18 +357,18 @@ const DivingOrganizationsPage = () => {
         description='Directory of recognized scuba certification agencies such as PADI, SSI, CMAS, and GUE. Explore certification levels and diving courses.'
       />
       <div className='w-full max-w-[1600px] mx-auto px-0 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
-        <div className='bg-white shadow-sm rounded-lg overflow-hidden mb-8'>
+        <PageHeader
+          title='Diving Organizations'
+          titleIcon={Award}
+          badge={filteredOrgs?.length || organizations?.length || null}
+          breadcrumbItems={[{ label: 'Resources' }, { label: 'Organizations' }]}
+        />
+        <div className='bg-white shadow-sm rounded-lg overflow-hidden mb-8 border border-gray-100 dark:border-slate-700'>
           <div className='p-4 sm:p-6 border-b border-gray-200'>
             <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
-              <div>
-                <h1 className='text-3xl font-bold text-gray-900 flex items-center'>
-                  <Award className='h-8 w-8 mr-3 text-blue-600' />
-                  Diving Organizations
-                </h1>
-                <p className='mt-1 text-gray-600'>
-                  Browse recognized diving organizations and their certification levels.
-                </p>
-              </div>
+              <p className='text-sm text-gray-600 dark:text-slate-400'>
+                Browse recognized diving organizations and their certification levels.
+              </p>
               <div className='relative w-full md:w-64'>
                 <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
                   <Search className='h-5 w-5 text-gray-400' />

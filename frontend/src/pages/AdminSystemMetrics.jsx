@@ -13,6 +13,7 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery } from 'react-query';
 
+import PageTitle from '../components/PageTitle';
 import SEO from '../components/SEO';
 import { useAuth } from '../contexts/AuthContext';
 import { getSystemMetrics, getTurnstileStats, getStorageHealth } from '../services/admin';
@@ -129,7 +130,7 @@ const AdminSystemMetrics = () => {
         <div className='mb-8'>
           <div className='flex items-center justify-between'>
             <div>
-              <h1 className='text-3xl font-bold text-gray-900'>System Metrics</h1>
+              <PageTitle>System Metrics</PageTitle>
               <p className='text-gray-600 mt-2'>System health, storage, usage, and alerts</p>
               {systemMetrics?.timestamp && (
                 <p className='text-sm text-gray-500 mt-1'>

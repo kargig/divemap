@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 
 import api from '../api';
+import PageTitle from '../components/PageTitle';
 import SEO from '../components/SEO';
 import { useAuth } from '../contexts/AuthContext';
 import { formatDate } from '../utils/dateHelpers';
@@ -147,9 +148,7 @@ const AdminDiveSiteAliases = () => {
               Back to Dive Sites
             </button>
           </div>
-          <h1 className='text-3xl font-bold text-gray-900'>
-            Manage Aliases for &quot;{diveSite.name}&quot;
-          </h1>
+          <PageTitle>Manage Aliases for &quot;{diveSite.name}&quot;</PageTitle>
           <p className='text-gray-600 mt-2'>
             Add, edit, or remove aliases for this dive site. Aliases help with newsletter parsing
             and multilingual support.

@@ -22,6 +22,7 @@ import { useState, useMemo, useEffect } from 'react';
 import toast from 'react-hot-toast';
 
 import api from '../api';
+import PageTitle from '../components/PageTitle';
 import SEO from '../components/SEO';
 import AdminDivesTable from '../components/tables/AdminDivesTable';
 import { useAuth } from '../contexts/AuthContext';
@@ -342,7 +343,7 @@ const AdminDivesDesktop = () => {
         <div className='mb-8'>
           <div className='flex items-center justify-between'>
             <div>
-              <h1 className='text-3xl font-bold text-gray-900'>Dive Management</h1>
+              <PageTitle>Dive Management</PageTitle>
               <p className='text-gray-600 mt-2'>Manage all dives in the system</p>
               {totalCount !== undefined && (
                 <p className='text-sm text-gray-500 mt-1'>Total dives: {totalCount}</p>

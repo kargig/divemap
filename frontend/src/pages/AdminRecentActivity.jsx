@@ -16,6 +16,7 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery } from 'react-query';
 
+import PageTitle from '../components/PageTitle';
 import SEO from '../components/SEO';
 import { useAuth } from '../contexts/AuthContext';
 import { getRecentActivity } from '../services/admin';
@@ -154,7 +155,7 @@ const AdminRecentActivity = () => {
         {/* Header */}
         <div className='flex flex-col md:flex-row md:items-center md:justify-between mb-8'>
           <div>
-            <h1 className='text-3xl font-bold text-gray-900 mb-2'>Recent Activity</h1>
+            <PageTitle className='mb-2'>Recent Activity</PageTitle>
             <p className='text-gray-600'>Monitor user actions and system changes in real-time</p>
           </div>
           <button

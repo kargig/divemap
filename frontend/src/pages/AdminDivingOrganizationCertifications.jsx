@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 
 import api from '../api';
+import PageTitle from '../components/PageTitle';
 import SEO from '../components/SEO';
 import Modal from '../components/ui/Modal';
 import { useAuth } from '../contexts/AuthContext';
@@ -193,9 +194,7 @@ const AdminDivingOrganizationCertifications = () => {
               </div>
             )}
             <div>
-              <h1 className='text-3xl font-bold text-gray-900'>
-                {organization?.name} Certifications
-              </h1>
+              <PageTitle>{organization?.name} Certifications</PageTitle>
               <p className='text-gray-600 mt-2'>
                 Manage certification levels for {organization?.name} ({organization?.acronym})
               </p>

@@ -162,7 +162,17 @@ export function saveBookingPreferencesToCookie(prefs, remember = true, userId = 
       bootSize: prefs.bootSize || undefined,
       shoeSizeEu: prefs.shoeSizeEu || undefined,
       rentalTorch: Boolean(prefs.rentalTorch),
+      torchOption: prefs.torchOption || (prefs.rentalTorch ? 'RENT' : 'NONE'),
       rentalComputer: Boolean(prefs.rentalComputer),
+      hoodSize: prefs.hoodSize || undefined,
+      hoodOption:
+        prefs.hoodOption || (prefs.hoodSize && prefs.hoodSize !== 'None' ? 'RENT' : 'NONE'),
+      glovesSize: prefs.glovesSize || undefined,
+      glovesOption:
+        prefs.glovesOption || (prefs.glovesSize && prefs.glovesSize !== 'None' ? 'RENT' : 'NONE'),
+      rentalSmb: prefs.rentalSmb !== undefined ? Boolean(prefs.rentalSmb) : undefined,
+      hasOwnSmb: prefs.hasOwnSmb !== undefined ? Boolean(prefs.hasOwnSmb) : undefined,
+      smbOption: prefs.smbOption || (prefs.rentalSmb ? 'RENT' : prefs.hasOwnSmb ? 'OWN' : 'NONE'),
 
       // Emergency Contact
       emergencyContactName: prefs.emergencyContactName || undefined,

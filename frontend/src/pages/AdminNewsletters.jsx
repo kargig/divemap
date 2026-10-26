@@ -18,6 +18,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useSearchParams } from 'react-router-dom';
 
 import NewsletterUpload from '../components/NewsletterUpload';
+import PageTitle from '../components/PageTitle';
 import SEO from '../components/SEO';
 import TripFormModal from '../components/TripFormModal';
 import Modal from '../components/ui/Modal';
@@ -354,7 +355,7 @@ const AdminNewsletters = () => {
       <SEO title='Divemap - Admin - Newsletters' description='Divemap Admin Dashboard' />
       <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
         <div className='mb-8'>
-          <h1 className='text-3xl font-bold text-gray-900'>Newsletter Management</h1>
+          <PageTitle>Newsletter Management</PageTitle>
           <p className='text-gray-600 mt-2'>Upload and manage dive trip newsletters</p>
         </div>
 

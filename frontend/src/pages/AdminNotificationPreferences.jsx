@@ -17,6 +17,7 @@ import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 
 import api from '../api';
+import PageTitle from '../components/PageTitle';
 import SEO from '../components/SEO';
 import Modal from '../components/ui/Modal';
 import { useAuth } from '../contexts/AuthContext';
@@ -324,7 +325,7 @@ const AdminNotificationPreferences = () => {
       />
       <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
         <div className='mb-6'>
-          <h1 className='text-3xl font-bold text-gray-900'>Manage User Notification Preferences</h1>
+          <PageTitle>Manage User Notification Preferences</PageTitle>
           <p className='text-gray-600 mt-2'>
             View and modify notification preferences for any user
           </p>

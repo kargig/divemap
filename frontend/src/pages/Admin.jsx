@@ -35,6 +35,7 @@ import { useNavigate, Link } from 'react-router-dom';
 
 import { getAdminPopularLists } from '../api';
 import ChatbotIcon from '../components/Chat/ChatbotIcon';
+import PageTitle from '../components/PageTitle';
 import SEO from '../components/SEO';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -120,10 +121,11 @@ const Admin = () => {
     <>
       <SEO title='Divemap - Admin Dashboard' description='Divemap Admin Dashboard' />
       <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
-        <div className='mb-8 flex justify-end items-center'>
+        <div className='mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
+          <PageTitle>Admin Dashboard</PageTitle>
           <button
             onClick={() => setRefreshKey(prev => prev + 1)}
-            className='flex items-center px-3 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50'
+            className='flex items-center px-3 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 self-end sm:self-auto shadow-2xs'
           >
             <RefreshCw
               className={`h-4 w-4 mr-2 ${metricsLoading || statsLoading ? 'animate-spin' : ''}`}

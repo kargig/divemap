@@ -837,6 +837,71 @@ def test_center_rental_pricing_endpoints(client: TestClient, center_ops_setup):
     assert res_get.json()["items"]["bcd"] == 12.0
 
 
+def test_rental_pricing_rejects_empty_package_items(
+    client: TestClient, center_ops_setup
+):
+    center = center_ops_setup["center"]
+    owner = center_ops_setup["owner"]
+    token = create_access_token(data={"sub": owner.username})
+    headers = {"Authorization": f"Bearer {token}"}
+
+    res = client.put(
+        f"/api/v1/centers/{center.id}/booking-ops/rental-pricing",
+        json={
+            "currency": "EUR",
+            "full_kit_package": 30.0,
+            "items": {"bcd": 10.0},
+            "package_items": [],
+        },
+        headers=headers,
+    )
+    assert res.status_code == 400
+    assert "package_items" in res.json()["detail"].lower()
+
+
+def test_manifest_inventory_tallies_respect_three_way_options(
+    client: TestClient, center_ops_setup, db_session: Session
+):
+    center = center_ops_setup["center"]
+    slot = center_ops_setup["slot"]
+    booking = center_ops_setup["booking"]
+    owner = center_ops_setup["owner"]
+
+    # Own hood+size must NOT tally; Rent torch/smb must tally
+    item = (
+        db_session.query(OctoBookingUnitItem)
+        .filter(OctoBookingUnitItem.id == "part-item-1")
+        .one()
+    )
+    item.equipment_sizing = {
+        **(item.equipment_sizing or {}),
+        "hood_option": "OWN",
+        "hood_size": "M",
+        "gloves_option": "NONE",
+        "gloves_size": "L",
+        "torch_option": "RENT",
+        "rental_torch": True,
+        "smb_option": "OWN",
+        "rental_smb": True,
+        "has_own_smb": True,
+    }
+    db_session.commit()
+
+    token = create_access_token(data={"sub": owner.username})
+    headers = {"Authorization": f"Bearer {token}"}
+    res = client.get(
+        f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/manifest",
+        headers=headers,
+    )
+    assert res.status_code == 200
+    packing = res.json()["crate_packing_summary"]
+    assert "Size M" not in (packing.get("hoods") or {})
+    assert "Size L" not in (packing.get("gloves") or {})
+    assert packing["torches_count"] >= 1
+    assert packing["smbs_count"] == 0
+    assert booking.uuid  # fixture booking present
+
+
 def test_download_equipment_checklist_pdf(client: TestClient, center_ops_setup):
     center = center_ops_setup["center"]
     slot = center_ops_setup["slot"]

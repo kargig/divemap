@@ -45,7 +45,7 @@ export const HELP_SECTIONS = [
     title: 'Tools & Planning',
     metaTitle: 'Technical Diving Calculators & Planning Guide | Help Center',
     metaDescription:
-      'Use high-precision diving calculators for MOD, Best Mix, SAC rate, Rock Bottom gas planning, and ballast weight estimation.',
+      'Use high-precision diving calculators for MOD, Best Mix, SAC rate, Rock Bottom gas planning, and lead weight estimation.',
   },
   {
     id: 'community',

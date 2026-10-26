@@ -26,6 +26,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../api';
 import ErrorPage from '../components/ErrorPage';
 import MapLayersPanel from '../components/MapLayersPanel';
+import PageTitle from '../components/PageTitle';
 import SEO from '../components/SEO';
 import Modal from '../components/ui/Modal';
 import UnifiedMapFilters from '../components/UnifiedMapFilters';
@@ -917,9 +918,9 @@ const IndependentMapView = () => {
                   >
                     <Map className='w-4 h-4' />
                   </button>
-                  <h1 className='text-lg font-semibold text-gray-900 dark:text-slate-100'>
+                  <PageTitle className='!text-base sm:!text-lg font-semibold'>
                     Interactive Map
-                  </h1>
+                  </PageTitle>
                 </div>
                 {/* Wrench button - Mobile controls toggle */}
                 {isMobile ? (

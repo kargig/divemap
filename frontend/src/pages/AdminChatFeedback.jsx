@@ -18,6 +18,7 @@ import { Link } from 'react-router-dom';
 
 import { getAdminChatFeedback, getAdminChatFeedbackStats, deleteAdminChatFeedback } from '../api';
 import ChatbotIcon from '../components/Chat/ChatbotIcon';
+import PageTitle from '../components/PageTitle';
 import SEO from '../components/SEO';
 import AdminChatFeedbackTable from '../components/tables/AdminChatFeedbackTable';
 import Modal from '../components/ui/Modal';
@@ -154,10 +155,10 @@ const AdminChatFeedback = () => {
       <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
         <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8'>
           <div>
-            <h1 className='text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3'>
+            <PageTitle className='gap-3'>
               <ChatbotIcon size={32} className='text-blue-600' />
               Chatbot Feedback Dashboard
-            </h1>
+            </PageTitle>
             <p className='text-gray-600 dark:text-gray-400 mt-2'>
               Review and analyze user feedback to improve chatbot responses.
             </p>

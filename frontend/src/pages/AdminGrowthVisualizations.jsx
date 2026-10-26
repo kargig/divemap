@@ -19,6 +19,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
+import PageTitle from '../components/PageTitle';
 import SEO from '../components/SEO';
 import { getGrowthData } from '../services/admin';
 import { formatDate } from '../utils/dateHelpers';
@@ -219,7 +220,7 @@ const AdminGrowthVisualizations = () => {
         <div className='mb-8'>
           <div className='flex items-center justify-between'>
             <div>
-              <h1 className='text-3xl font-bold text-gray-900'>Growth Visualizations</h1>
+              <PageTitle>Growth Visualizations</PageTitle>
               <p className='text-gray-600 mt-1'>Track content growth over time</p>
             </div>
             <div className='flex items-center space-x-4'>
