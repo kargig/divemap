@@ -26,18 +26,86 @@ GAS_LABELS = {
 }
 
 
+def resolve_package_items(pricing_config: dict[str, Any] | None) -> set[str]:
+    """Return center package_items, falling back to defaults when missing or empty."""
+    if not pricing_config or "package_items" not in pricing_config:
+        return set(DEFAULT_PACKAGE_ITEMS)
+    raw = pricing_config.get("package_items") or []
+    if not raw:
+        return set(DEFAULT_PACKAGE_ITEMS)
+    return set(raw)
+
+
+def _offered_price(
+    items_pricing: dict[str, Any],
+    key: str,
+    default: float,
+    *,
+    requested: bool,
+) -> float | None:
+    """
+    Return a billable price (>= 0) for a rental item.
+    If the center marked the item not offered (price < 0) and it was requested, raise.
+    If not requested and not offered, return None (skip silently).
+    """
+    raw = items_pricing.get(key, default)
+    p = float(raw if raw is not None else default)
+    if p < 0:
+        if requested:
+            raise ValueError(
+                f"Rental item '{key}' is not offered by this diving center."
+            )
+        return None
+    return p
+
+
+def _is_accessory_rent(eq: dict[str, Any], option_key: str, rental_flag: str) -> bool:
+    """True when 3-way option is RENT (or legacy rental flag with no OWN/NONE)."""
+    option = eq.get(option_key)
+    if option in ("NONE", "OWN"):
+        return False
+    if option == "RENT":
+        return True
+    # Legacy: rental flag set and option unset
+    return bool(eq.get(rental_flag)) and option is None
+
+
+def _is_sized_accessory_rent(
+    eq: dict[str, Any], option_key: str, size_key: str
+) -> bool:
+    """True when hood/gloves should be billed as rental."""
+    option = eq.get(option_key)
+    if option in ("NONE", "OWN"):
+        return False
+    if option == "RENT":
+        return True
+    size = eq.get(size_key)
+    return bool(size) and size != "None" and option is None
+
+
 def compute_participant_octo_pricing(
     center_settings: DivingCenterBookingSettings | None,
     unit: OctoUnit | None,
     equipment_sizing: dict[str, Any] | None,
     currency: str = "EUR",
+    *,
+    selected_tank_id: str | None = None,
+    selected_gas_mix_id: str | None = None,
 ) -> dict[str, Any]:
     """
     Computes OCTO-compliant pricing object, line items breakdown, and package caps for a diver.
     Conforms to the OCTO Travel API specification for octo/pricing capability.
     Dynamically respects center package_items bundling, tank upgrades, and gas surcharges.
+
+    selected_tank_id / selected_gas_mix_id override values inside equipment_sizing when
+    provided (callers typically store these on unit-item columns, not in sizing JSON).
     """
-    eq = equipment_sizing or {}
+    eq = dict(equipment_sizing or {})
+    if selected_tank_id is not None:
+        eq["selected_tank_id"] = selected_tank_id
+    if selected_gas_mix_id is not None:
+        eq["selected_gas_mix_id"] = selected_gas_mix_id
+
     pricing_config = (
         center_settings.rental_equipment_pricing if center_settings else None
     )
@@ -45,11 +113,7 @@ def compute_participant_octo_pricing(
     full_pkg_rate = (
         float(pricing_config.get("full_kit_package", 30.0)) if pricing_config else 30.0
     )
-    package_items = set(
-        pricing_config.get("package_items")
-        if pricing_config and "package_items" in pricing_config
-        else DEFAULT_PACKAGE_ITEMS
-    )
+    package_items = resolve_package_items(pricing_config)
 
     # Base unit retail price — unit must come from DB; client flags do not pick package tier
     if unit is None:
@@ -78,94 +142,26 @@ def compute_participant_octo_pricing(
     # Gather all equipment items that the diver wants to rent
     candidate_rentals: list[tuple[str, dict[str, Any]]] = []
 
-    # 1. Wetsuit
-    if eq.get("wetsuit_size") and eq.get("wetsuit_size") != "None":
-        p = float(items_pricing.get("wetsuit", 10.0))
-        if p >= 0:
-            candidate_rentals.append(
-                (
-                    "wetsuit",
-                    {
-                        "id": "rental_wetsuit",
-                        "title": f"Rental Wetsuit ({eq.get('wetsuit_size')})",
-                        "quantity": 1,
-                        "amount": p,
-                        "price": int(round(p * 100)),
-                        "formatted": f"€{p:.2f}",
-                    },
-                )
-            )
-
-    # 2. BCD
-    if eq.get("bcd_size") and eq.get("bcd_size") != "None":
-        p = float(items_pricing.get("bcd", 10.0))
-        if p >= 0:
-            candidate_rentals.append(
-                (
-                    "bcd",
-                    {
-                        "id": "rental_bcd",
-                        "title": f"Rental BCD ({eq.get('bcd_size')})",
-                        "quantity": 1,
-                        "amount": p,
-                        "price": int(round(p * 100)),
-                        "formatted": f"€{p:.2f}",
-                    },
-                )
-            )
-
-    # 3. Regulator Set
-    if eq.get("rental_regulator") or (
-        eq.get("has_own_regulator") is False and eq.get("rental_regulator") is not False
-    ):
-        p = float(items_pricing.get("regulator", 10.0))
-        if p >= 0:
-            fitting_label = (
-                f" ({eq.get('regulator_fitting', 'DIN')})"
-                if eq.get("regulator_fitting")
-                else ""
-            )
-            candidate_rentals.append(
-                (
-                    "regulator",
-                    {
-                        "id": "rental_regulator",
-                        "title": f"Rental Regulator Set{fitting_label}",
-                        "quantity": 1,
-                        "amount": p,
-                        "price": int(round(p * 100)),
-                        "formatted": f"€{p:.2f}",
-                    },
-                )
-            )
-
-    # 4. Fins & Booties
-    if eq.get("rental_fins") or (eq.get("fin_size") and eq.get("fin_size") != "None"):
-        p = float(items_pricing.get("fins_boots", 8.0))
-        if p >= 0:
-            candidate_rentals.append(
-                (
-                    "fins_boots",
-                    {
-                        "id": "rental_fins",
-                        "title": f"Rental Fins ({eq.get('fin_size', 'Standard')})",
-                        "quantity": 1,
-                        "amount": p,
-                        "price": int(round(p * 100)),
-                        "formatted": f"€{p:.2f}",
-                    },
-                )
-            )
-    elif eq.get("rental_boots") or (
-        eq.get("boot_size") and eq.get("boot_size") != "None"
-    ):
-        p = 5.0
+    def _append_rental(
+        item_key: str,
+        line_id: str,
+        title: str,
+        price_key: str,
+        default_price: float,
+        *,
+        requested: bool,
+    ) -> None:
+        if not requested:
+            return
+        p = _offered_price(items_pricing, price_key, default_price, requested=True)
+        if p is None:
+            return
         candidate_rentals.append(
             (
-                "fins_boots",
+                item_key,
                 {
-                    "id": "rental_boots",
-                    "title": f"Rental Booties (EU {eq.get('boot_size', eq.get('shoe_size_eu', '43'))})",
+                    "id": line_id,
+                    "title": title,
                     "quantity": 1,
                     "amount": p,
                     "price": int(round(p * 100)),
@@ -174,161 +170,165 @@ def compute_participant_octo_pricing(
             )
         )
 
+    # 1. Wetsuit
+    _append_rental(
+        "wetsuit",
+        "rental_wetsuit",
+        f"Rental Wetsuit ({eq.get('wetsuit_size')})",
+        "wetsuit",
+        10.0,
+        requested=bool(eq.get("wetsuit_size") and eq.get("wetsuit_size") != "None"),
+    )
+
+    # 2. BCD
+    _append_rental(
+        "bcd",
+        "rental_bcd",
+        f"Rental BCD ({eq.get('bcd_size')})",
+        "bcd",
+        10.0,
+        requested=bool(eq.get("bcd_size") and eq.get("bcd_size") != "None"),
+    )
+
+    # 3. Regulator Set
+    reg_requested = bool(
+        eq.get("rental_regulator")
+        or (
+            eq.get("has_own_regulator") is False
+            and eq.get("rental_regulator") is not False
+        )
+    )
+    fitting_label = (
+        f" ({eq.get('regulator_fitting', 'DIN')})"
+        if eq.get("regulator_fitting")
+        else ""
+    )
+    _append_rental(
+        "regulator",
+        "rental_regulator",
+        f"Rental Regulator Set{fitting_label}",
+        "regulator",
+        10.0,
+        requested=reg_requested,
+    )
+
+    # 4. Fins & Booties
+    fins_requested = bool(
+        eq.get("rental_fins") or (eq.get("fin_size") and eq.get("fin_size") != "None")
+    )
+    boots_only = bool(
+        not fins_requested
+        and (
+            eq.get("rental_boots")
+            or (eq.get("boot_size") and eq.get("boot_size") != "None")
+        )
+    )
+    if fins_requested:
+        _append_rental(
+            "fins_boots",
+            "rental_fins",
+            f"Rental Fins ({eq.get('fin_size', 'Standard')})",
+            "fins_boots",
+            8.0,
+            requested=True,
+        )
+    elif boots_only:
+        boot_label = eq.get("boot_size", eq.get("shoe_size_eu", "43"))
+        _append_rental(
+            "fins_boots",
+            "rental_boots",
+            f"Rental Booties (EU {boot_label})",
+            "fins_boots",
+            5.0,
+            requested=True,
+        )
+
     # 5. Mask & Snorkel
-    if eq.get("rental_mask"):
-        p = float(items_pricing.get("mask_snorkel", items_pricing.get("mask", 5.0)))
-        if p >= 0:
-            candidate_rentals.append(
-                (
-                    "mask_snorkel",
-                    {
-                        "id": "rental_mask",
-                        "title": "Rental Mask",
-                        "quantity": 1,
-                        "amount": p,
-                        "price": int(round(p * 100)),
-                        "formatted": f"€{p:.2f}",
-                    },
-                )
-            )
+    mask_price_key = (
+        "mask"
+        if "mask_snorkel" not in items_pricing and "mask" in items_pricing
+        else "mask_snorkel"
+    )
+    _append_rental(
+        "mask_snorkel",
+        "rental_mask",
+        "Rental Mask",
+        mask_price_key,
+        5.0,
+        requested=bool(eq.get("rental_mask")),
+    )
 
     # 6. Dive Computer (Wrist Unit)
-    if eq.get("rental_dive_computer"):
-        p = float(items_pricing.get("dive_computer", 10.0))
-        if p >= 0:
-            candidate_rentals.append(
-                (
-                    "dive_computer",
-                    {
-                        "id": "rental_computer",
-                        "title": "Rental Dive Computer (Wrist Unit)",
-                        "quantity": 1,
-                        "amount": p,
-                        "price": int(round(p * 100)),
-                        "formatted": f"€{p:.2f}",
-                    },
-                )
-            )
+    _append_rental(
+        "dive_computer",
+        "rental_computer",
+        "Rental Dive Computer (Wrist Unit)",
+        "dive_computer",
+        10.0,
+        requested=bool(eq.get("rental_dive_computer")),
+    )
 
-    # 7. Torch
-    if (eq.get("rental_torch") or eq.get("torch_option") == "RENT") and eq.get(
-        "torch_option"
-    ) != "NONE":
-        p = float(items_pricing.get("dive_torch", 8.0))
-        if p >= 0:
-            candidate_rentals.append(
-                (
-                    "dive_torch",
-                    {
-                        "id": "rental_torch",
-                        "title": "Rental Primary Dive Torch",
-                        "quantity": 1,
-                        "amount": p,
-                        "price": int(round(p * 100)),
-                        "formatted": f"€{p:.2f}",
-                    },
-                )
-            )
+    # 7. Torch — exclude OWN / NONE
+    _append_rental(
+        "dive_torch",
+        "rental_torch",
+        "Rental Primary Dive Torch",
+        "dive_torch",
+        8.0,
+        requested=_is_accessory_rent(eq, "torch_option", "rental_torch"),
+    )
 
     # 8. Hood
-    if (
-        eq.get("hood_option") == "RENT"
-        or (eq.get("hood_size") and eq.get("hood_size") != "None")
-    ) and eq.get("hood_option") not in ("NONE", "OWN"):
-        hood_size_label = eq.get("hood_size") or "M"
-        p = float(items_pricing.get("hood", 5.0))
-        if p >= 0:
-            candidate_rentals.append(
-                (
-                    "hood",
-                    {
-                        "id": "rental_hood",
-                        "title": f"Rental Thermal Hood ({hood_size_label})",
-                        "quantity": 1,
-                        "amount": p,
-                        "price": int(round(p * 100)),
-                        "formatted": f"€{p:.2f}",
-                    },
-                )
-            )
+    hood_rent = _is_sized_accessory_rent(eq, "hood_option", "hood_size")
+    _append_rental(
+        "hood",
+        "rental_hood",
+        f"Rental Thermal Hood ({eq.get('hood_size') or 'M'})",
+        "hood",
+        5.0,
+        requested=hood_rent,
+    )
 
     # 9. Gloves
-    if (
-        eq.get("gloves_option") == "RENT"
-        or (eq.get("gloves_size") and eq.get("gloves_size") != "None")
-    ) and eq.get("gloves_option") not in ("NONE", "OWN"):
-        gloves_size_label = eq.get("gloves_size") or "M"
-        p = float(items_pricing.get("gloves", 5.0))
-        if p >= 0:
-            candidate_rentals.append(
-                (
-                    "gloves",
-                    {
-                        "id": "rental_gloves",
-                        "title": f"Rental Dive Gloves ({gloves_size_label})",
-                        "quantity": 1,
-                        "amount": p,
-                        "price": int(round(p * 100)),
-                        "formatted": f"€{p:.2f}",
-                    },
-                )
-            )
+    gloves_rent = _is_sized_accessory_rent(eq, "gloves_option", "gloves_size")
+    _append_rental(
+        "gloves",
+        "rental_gloves",
+        f"Rental Dive Gloves ({eq.get('gloves_size') or 'M'})",
+        "gloves",
+        5.0,
+        requested=gloves_rent,
+    )
 
-    # 10. SMB & Spool
-    if (eq.get("rental_smb") or eq.get("smb_option") == "RENT") and eq.get(
-        "smb_option"
-    ) != "NONE":
-        p = float(items_pricing.get("smb", 5.0))
-        if p >= 0:
-            candidate_rentals.append(
-                (
-                    "smb",
-                    {
-                        "id": "rental_smb",
-                        "title": "Rental Surface Marker Buoy (SMB) & Spool",
-                        "quantity": 1,
-                        "amount": p,
-                        "price": int(round(p * 100)),
-                        "formatted": f"€{p:.2f}",
-                    },
-                )
-            )
+    # 10. SMB & Spool — exclude OWN / NONE
+    _append_rental(
+        "smb",
+        "rental_smb",
+        "Rental Surface Marker Buoy (SMB) & Spool",
+        "smb",
+        5.0,
+        requested=_is_accessory_rent(eq, "smb_option", "rental_smb"),
+    )
 
     # 11. DPV Underwater Scooter
-    if eq.get("rental_scooter"):
-        p = float(items_pricing.get("dpv_scooter", 40.0))
-        if p >= 0:
-            candidate_rentals.append(
-                (
-                    "dpv_scooter",
-                    {
-                        "id": "rental_scooter",
-                        "title": "DPV Underwater Scooter",
-                        "quantity": 1,
-                        "amount": p,
-                        "price": int(round(p * 100)),
-                        "formatted": f"€{p:.2f}",
-                    },
-                )
-            )
+    _append_rental(
+        "dpv_scooter",
+        "rental_scooter",
+        "DPV Underwater Scooter",
+        "dpv_scooter",
+        40.0,
+        requested=bool(eq.get("rental_scooter")),
+    )
 
     # 12. Stage Cylinder
-    if eq.get("stage_tank") and eq.get("stage_tank") != "None":
-        p = float(items_pricing.get("stage_tank", 20.0))
-        if p >= 0:
-            candidate_rentals.append(
-                (
-                    "stage_tank",
-                    {
-                        "id": "stage_cylinder",
-                        "title": f"Stage Cylinder ({eq.get('stage_tank')})",
-                        "quantity": 1,
-                        "amount": p,
-                        "price": int(round(p * 100)),
-                        "formatted": f"€{p:.2f}",
-                    },
-                )
-            )
+    _append_rental(
+        "stage_tank",
+        "stage_cylinder",
+        f"Stage Cylinder ({eq.get('stage_tank')})",
+        "stage_tank",
+        20.0,
+        requested=bool(eq.get("stage_tank") and eq.get("stage_tank") != "None"),
+    )
 
     # Partition into core (package items) vs auxiliary (unbundled items)
     core_rental_items: list[dict[str, Any]] = []
@@ -349,17 +349,17 @@ def compute_participant_octo_pricing(
     tank_surcharges = (
         pricing_config.get("tank_surcharges", {}) if pricing_config else {}
     )
-    selected_tank_id = str(eq.get("selected_tank_id") or "12")
-    tank_fee = float(tank_surcharges.get(selected_tank_id, 0.0) or 0.0)
+    tank_id = str(eq.get("selected_tank_id") or "12")
+    tank_fee = float(tank_surcharges.get(tank_id, 0.0) or 0.0)
     if tank_fee < 0:
         raise ValueError(
-            f"Selected cylinder '{selected_tank_id}' is not offered by this diving center."
+            f"Selected cylinder '{tank_id}' is not offered by this diving center."
         )
     if tank_fee > 0:
-        t_label = TANK_LABELS.get(selected_tank_id, f"{selected_tank_id}L Cylinder")
+        t_label = TANK_LABELS.get(tank_id, f"{tank_id}L Cylinder")
         upgrade_items.append(
             {
-                "id": f"tank_upgrade_{selected_tank_id}",
+                "id": f"tank_upgrade_{tank_id}",
                 "title": f"Cylinder Upgrade: {t_label}",
                 "category": "CYLINDER_UPGRADE",
                 "quantity": 1,
@@ -371,17 +371,17 @@ def compute_participant_octo_pricing(
 
     # 14. Breathing Gas Mix Surcharges (e.g. EAN32 Nitrox)
     gas_surcharges = pricing_config.get("gas_surcharges", {}) if pricing_config else {}
-    selected_gas_id = str(eq.get("selected_gas_mix_id") or "air").lower()
-    gas_fee = float(gas_surcharges.get(selected_gas_id, 0.0) or 0.0)
+    gas_id = str(eq.get("selected_gas_mix_id") or "air").lower()
+    gas_fee = float(gas_surcharges.get(gas_id, 0.0) or 0.0)
     if gas_fee < 0:
         raise ValueError(
-            f"Selected breathing gas '{selected_gas_id}' is not offered by this diving center."
+            f"Selected breathing gas '{gas_id}' is not offered by this diving center."
         )
     if gas_fee > 0:
-        g_label = GAS_LABELS.get(selected_gas_id, f"Gas: {selected_gas_id.upper()}")
+        g_label = GAS_LABELS.get(gas_id, f"Gas: {gas_id.upper()}")
         upgrade_items.append(
             {
-                "id": f"gas_upgrade_{selected_gas_id}",
+                "id": f"gas_upgrade_{gas_id}",
                 "title": f"Breathing Gas: {g_label}",
                 "category": "GAS_UPGRADE",
                 "quantity": 1,

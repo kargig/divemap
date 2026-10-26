@@ -650,12 +650,17 @@ def _recompute_booking_total(
             or {}
         )
         it_sizing.pop("is_rental_package", None)
-        pricing_calc = compute_participant_octo_pricing(
-            center_settings=settings,
-            unit=it.unit,
-            equipment_sizing=it_sizing,
-            currency=booking.currency or "EUR",
-        )
+        try:
+            pricing_calc = compute_participant_octo_pricing(
+                center_settings=settings,
+                unit=it.unit,
+                equipment_sizing=it_sizing,
+                currency=booking.currency or "EUR",
+                selected_tank_id=it.selected_tank_id or "12",
+                selected_gas_mix_id=it.selected_gas_mix_id or "air",
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e)) from e
         recomputed_total += pricing_calc["total_due"]
     if recomputed_total > 0:
         booking.total_amount = round(recomputed_total, 2)
@@ -1113,6 +1118,8 @@ def get_booking_voucher(
             unit=it.unit,
             equipment_sizing=sizing,
             currency=booking.currency or "EUR",
+            selected_tank_id=it.selected_tank_id or "12",
+            selected_gas_mix_id=it.selected_gas_mix_id or "air",
         )
         recomputed_total += pricing_calc["total_due"]
     recomputed_total = round(recomputed_total, 2)
@@ -1215,6 +1222,8 @@ def download_booking_voucher_pdf(
             unit=it.unit,
             equipment_sizing=sizing,
             currency=booking.currency or "EUR",
+            selected_tank_id=it.selected_tank_id or "12",
+            selected_gas_mix_id=it.selected_gas_mix_id or "air",
         )
         recomputed_total += pricing_calc["total_due"]
     recomputed_total = round(recomputed_total, 2)

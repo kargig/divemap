@@ -38,7 +38,10 @@ from app.services.booking_access_service import (
 from app.services.booking_medical_encryption_service import (
     BookingMedicalEncryptionService,
 )
-from app.services.booking_pricing_service import compute_participant_octo_pricing
+from app.services.booking_pricing_service import (
+    DEFAULT_PACKAGE_ITEMS,
+    compute_participant_octo_pricing,
+)
 from app.services.briefing_service import BriefingService
 from app.services.manifest_export_service import ManifestExportService
 from app.services.medical_audit_service import log_medical_access
@@ -520,9 +523,13 @@ def get_slot_manifest_data(
         if eq.get("rental_snorkel", False):
             snorkels_count += 1
 
-        # 2. Hood
-        if eq.get("hood_size") and eq.get("hood_size") != "None":
-            h_label = f"Size {eq.get('hood_size')}"
+        # 2. Hood — only count true rentals (not OWN / NONE)
+        hood_opt = eq.get("hood_option")
+        if hood_opt not in ("NONE", "OWN") and (
+            hood_opt == "RENT"
+            or (eq.get("hood_size") and eq.get("hood_size") != "None")
+        ):
+            h_label = f"Size {eq.get('hood_size') or 'M'}"
             hoods_summary[h_label] = hoods_summary.get(h_label, 0) + 1
 
         # 3. Regulator
@@ -542,9 +549,13 @@ def get_slot_manifest_data(
             bcd_label = f"{bcd_prefix} {eq.get('bcd_size')}"
             bcds_summary[bcd_label] = bcds_summary.get(bcd_label, 0) + 1
 
-        # 4. Gloves & Socks
-        if eq.get("gloves_size") and eq.get("gloves_size") != "None":
-            g_label = f"Size {eq.get('gloves_size')}"
+        # 4. Gloves & Socks — only count true rentals (not OWN / NONE)
+        gloves_opt = eq.get("gloves_option")
+        if gloves_opt not in ("NONE", "OWN") and (
+            gloves_opt == "RENT"
+            or (eq.get("gloves_size") and eq.get("gloves_size") != "None")
+        ):
+            g_label = f"Size {eq.get('gloves_size') or 'M'}"
             gloves_summary[g_label] = gloves_summary.get(g_label, 0) + 1
         if eq.get("rental_socks", False):
             socks_count += 1
@@ -580,7 +591,10 @@ def get_slot_manifest_data(
         # 6. DPV Scooter, Torches & Stage Tanks
         if eq.get("rental_scooter", False) or eq.get("has_scooter", False):
             scooters_count += 1
-        if eq.get("rental_torch", False) or eq.get("has_torch", False):
+        torch_opt = eq.get("torch_option")
+        if torch_opt not in ("NONE", "OWN") and (
+            torch_opt == "RENT" or eq.get("rental_torch", False)
+        ):
             torches_count += 1
         if (
             eq.get("rental_dive_computer", False)
@@ -588,9 +602,10 @@ def get_slot_manifest_data(
             or not eq.get("has_own_dive_computer", True)
         ):
             computers_count += 1
-        if (eq.get("rental_smb") or eq.get("smb_option") == "RENT") and eq.get(
-            "smb_option"
-        ) != "NONE":
+        smb_opt = eq.get("smb_option")
+        if smb_opt not in ("NONE", "OWN") and (
+            smb_opt == "RENT" or eq.get("rental_smb", False)
+        ):
             smbs_count += 1
         if eq.get("stage_tank") and eq.get("stage_tank") != "None":
             st_label = str(eq.get("stage_tank"))
@@ -615,6 +630,8 @@ def get_slot_manifest_data(
                 currency=center.booking_settings.default_currency
                 if center.booking_settings
                 else "EUR",
+                selected_tank_id=item.selected_tank_id or "12",
+                selected_gas_mix_id=item.selected_gas_mix_id or "air",
             )
         total_due = fin_data["total_due"]
         is_paid = b.payment_status in ("PAID_IN_FULL", "PAID_ONLINE", "PAID")
@@ -976,12 +993,17 @@ def add_walkin_participant(
             .filter(DivingCenterBookingSettings.diving_center_id == center_id)
             .first()
         )
-    pricing_calc = compute_participant_octo_pricing(
-        center_settings=settings,
-        unit=unit,
-        equipment_sizing=sizing,
-        currency=(settings.default_currency if settings else "EUR"),
-    )
+    try:
+        pricing_calc = compute_participant_octo_pricing(
+            center_settings=settings,
+            unit=unit,
+            equipment_sizing=sizing,
+            currency=(settings.default_currency if settings else "EUR"),
+            selected_tank_id=req.selected_tank_id or "12",
+            selected_gas_mix_id=req.selected_gas_mix_id or "air",
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     price = float(pricing_calc["total_due"])
     currency = settings.default_currency if settings else "EUR"
 
@@ -2333,15 +2355,6 @@ def export_port_authority_manifest(
         )
 
 
-DEFAULT_PACKAGE_ITEMS = [
-    "regulator",
-    "bcd",
-    "wetsuit",
-    "fins_boots",
-    "mask_snorkel",
-]
-
-
 class RentalPricingUpdateRequest(BaseModel):
     currency: str | None = "EUR"
     full_kit_package: float | None = 30.0
@@ -2451,16 +2464,37 @@ def update_center_rental_pricing(
         )
         db.add(settings)
 
+    if req.package_items is not None and len(req.package_items) == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="package_items cannot be empty; include at least one bundled kit item or omit the field to use defaults.",
+        )
+    package_items = (
+        list(req.package_items)
+        if req.package_items is not None
+        else list(DEFAULT_PACKAGE_ITEMS)
+    )
+    existing = dict(settings.rental_equipment_pricing or {})
     pricing = {
         "currency": req.currency or "EUR",
-        "full_kit_package": req.full_kit_package,
+        "full_kit_package": (
+            float(req.full_kit_package)
+            if req.full_kit_package is not None
+            else float(existing.get("full_kit_package", 30.0))
+        ),
         "pricing_mode": req.pricing_mode or "ITEMIZED_OR_PACKAGE",
-        "items": req.items or {},
-        "package_items": req.package_items
-        if req.package_items is not None
-        else DEFAULT_PACKAGE_ITEMS,
-        "tank_surcharges": req.tank_surcharges or {},
-        "gas_surcharges": req.gas_surcharges or {},
+        "items": req.items if req.items is not None else existing.get("items", {}),
+        "package_items": package_items,
+        "tank_surcharges": (
+            req.tank_surcharges
+            if req.tank_surcharges is not None
+            else existing.get("tank_surcharges", {})
+        ),
+        "gas_surcharges": (
+            req.gas_surcharges
+            if req.gas_surcharges is not None
+            else existing.get("gas_surcharges", {})
+        ),
     }
     settings.rental_equipment_pricing = pricing
     if req.default_valve_fitting is not None:

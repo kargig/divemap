@@ -22,6 +22,69 @@ except ImportError:
     REPORTLAB_AVAILABLE = False
 
 
+def format_accessory_checklist_labels(eq: dict[str, Any] | None) -> list[str]:
+    """
+    Build accessory checklist labels for equipment PDF rows.
+    Respects 3-way options (NONE | OWN | RENT); OWN+size must not show as Rent.
+    """
+    eq = eq or {}
+    acc_lines: list[str] = []
+
+    if eq.get("rental_dive_computer") or not eq.get("has_own_dive_computer", True):
+        acc_lines.append("<font color='#1E40AF'><b>Rent Computer</b></font>")
+    else:
+        acc_lines.append("Own Computer")
+
+    torch_opt = eq.get("torch_option")
+    if torch_opt not in ("NONE", "OWN") and (
+        torch_opt == "RENT" or eq.get("rental_torch")
+    ):
+        acc_lines.append("<font color='#1E40AF'><b>Rent Torch</b></font>")
+    elif torch_opt == "OWN" or eq.get("has_own_torch"):
+        acc_lines.append("Own Torch")
+
+    smb_opt = eq.get("smb_option")
+    if smb_opt not in ("NONE", "OWN") and (smb_opt == "RENT" or eq.get("rental_smb")):
+        acc_lines.append("<font color='#1E40AF'><b>Rent SMB</b></font>")
+    elif smb_opt == "OWN" or eq.get("has_own_smb"):
+        acc_lines.append("Own SMB")
+
+    hood_opt = eq.get("hood_option")
+    if hood_opt not in ("NONE", "OWN") and (
+        hood_opt == "RENT"
+        or (eq.get("hood_size") and eq.get("hood_size") != "None" and hood_opt is None)
+    ):
+        acc_lines.append(
+            f"<font color='#1E40AF'><b>Rent Hood ({eq.get('hood_size') or 'M'})</b></font>"
+        )
+    elif hood_opt == "OWN" or eq.get("has_own_hood"):
+        acc_lines.append("Own Hood")
+
+    gloves_opt = eq.get("gloves_option")
+    if gloves_opt not in ("NONE", "OWN") and (
+        gloves_opt == "RENT"
+        or (
+            eq.get("gloves_size")
+            and eq.get("gloves_size") != "None"
+            and gloves_opt is None
+        )
+    ):
+        acc_lines.append(
+            f"<font color='#1E40AF'><b>Rent Gloves ({eq.get('gloves_size') or 'M'})</b></font>"
+        )
+    elif gloves_opt == "OWN" or eq.get("has_own_gloves"):
+        acc_lines.append("Own Gloves")
+
+    if eq.get("rental_scooter"):
+        acc_lines.append("<font color='#D97706'><b>DPV Scooter</b></font>")
+    if eq.get("stage_tank") and eq.get("stage_tank") != "None":
+        acc_lines.append(
+            f"<font color='#7E22CE'><b>Stage: {eq.get('stage_tank')}</b></font>"
+        )
+
+    return acc_lines
+
+
 class ManifestExportService:
     """Generates official maritime Port Authority manifests in CSV and PDF formats, and emergency incident dossiers."""
 
@@ -1075,52 +1138,7 @@ class ManifestExportService:
             )
 
             # Tech / Accessories
-            acc_lines = []
-            if eq.get("rental_dive_computer") or not eq.get(
-                "has_own_dive_computer", True
-            ):
-                acc_lines.append("<font color='#1E40AF'><b>Rent Computer</b></font>")
-            else:
-                acc_lines.append("Own Computer")
-
-            if eq.get("torch_option") == "RENT" or eq.get("rental_torch"):
-                acc_lines.append("<font color='#1E40AF'><b>Rent Torch</b></font>")
-            elif eq.get("torch_option") == "OWN" or eq.get("has_own_torch"):
-                acc_lines.append("Own Torch")
-
-            if eq.get("smb_option") == "RENT" or eq.get("rental_smb"):
-                acc_lines.append("<font color='#1E40AF'><b>Rent SMB</b></font>")
-            elif eq.get("smb_option") == "OWN" or eq.get("has_own_smb"):
-                acc_lines.append("Own SMB")
-
-            if eq.get("hood_option") == "RENT" or (
-                eq.get("hood_size")
-                and eq.get("hood_size") != "None"
-                and eq.get("hood_option") != "NONE"
-            ):
-                acc_lines.append(
-                    f"<font color='#1E40AF'><b>Rent Hood ({eq.get('hood_size') or 'M'})</b></font>"
-                )
-            elif eq.get("hood_option") == "OWN" or eq.get("has_own_hood"):
-                acc_lines.append("Own Hood")
-
-            if eq.get("gloves_option") == "RENT" or (
-                eq.get("gloves_size")
-                and eq.get("gloves_size") != "None"
-                and eq.get("gloves_option") != "NONE"
-            ):
-                acc_lines.append(
-                    f"<font color='#1E40AF'><b>Rent Gloves ({eq.get('gloves_size') or 'M'})</b></font>"
-                )
-            elif eq.get("gloves_option") == "OWN" or eq.get("has_own_gloves"):
-                acc_lines.append("Own Gloves")
-            if eq.get("rental_scooter"):
-                acc_lines.append("<font color='#D97706'><b>DPV Scooter</b></font>")
-            if eq.get("stage_tank") and eq.get("stage_tank") != "None":
-                acc_lines.append(
-                    f"<font color='#7E22CE'><b>Stage: {eq.get('stage_tank')}</b></font>"
-                )
-
+            acc_lines = format_accessory_checklist_labels(eq)
             acc_cell = Paragraph(
                 "[ &nbsp; ] " + "<br/>[ &nbsp; ] ".join(acc_lines), cell_normal
             )

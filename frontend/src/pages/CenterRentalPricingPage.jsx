@@ -305,6 +305,10 @@ const CenterRentalPricingPage = () => {
 
   const handleSave = async e => {
     e.preventDefault();
+    if (!packageItems || packageItems.length === 0) {
+      toast.error('Select at least one item for the full kit package bundle.');
+      return;
+    }
     try {
       setSaving(true);
       const payload = {

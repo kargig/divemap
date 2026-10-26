@@ -42,6 +42,8 @@ import {
   saveBookingPreferencesToCookie,
   clearBookingPreferencesCookie,
 } from '../../utils/bookingCookies';
+import { buildEquipmentSizingPayload } from '../../utils/bookingEquipmentSizing';
+import { computeWizardRentalEstimate } from '../../utils/bookingRentalEstimate';
 import { getConsentStatus, setConsent } from '../../utils/consent';
 import { formatDate } from '../../utils/dateHelpers';
 import { decodeHtmlEntities } from '../../utils/htmlDecode';
@@ -250,12 +252,16 @@ const BookingWizard = () => {
           finSize,
           bootSize,
           shoeSizeEu,
-          rentalTorch,
+          rentalTorch: torchOption === 'RENT',
+          torchOption,
           rentalComputer,
-          hoodSize,
-          glovesSize,
-          rentalSmb,
-          hasOwnSmb,
+          hoodSize: hoodOption === 'RENT' ? hoodSize : 'None',
+          hoodOption,
+          glovesSize: glovesOption === 'RENT' ? glovesSize : 'None',
+          glovesOption,
+          rentalSmb: smbOption === 'RENT',
+          hasOwnSmb: smbOption === 'OWN',
+          smbOption,
           emergencyContactName,
           emergencyContactPhone,
           emergencyContactRelation,
@@ -303,12 +309,16 @@ const BookingWizard = () => {
           finSize,
           bootSize,
           shoeSizeEu,
-          rentalTorch,
+          rentalTorch: torchOption === 'RENT',
+          torchOption,
           rentalComputer,
-          hoodSize,
-          glovesSize,
-          rentalSmb,
-          hasOwnSmb,
+          hoodSize: hoodOption === 'RENT' ? hoodSize : 'None',
+          hoodOption,
+          glovesSize: glovesOption === 'RENT' ? glovesSize : 'None',
+          glovesOption,
+          rentalSmb: smbOption === 'RENT',
+          hasOwnSmb: smbOption === 'OWN',
+          smbOption,
           emergencyContactName,
           emergencyContactPhone,
           emergencyContactRelation,
@@ -360,7 +370,15 @@ const BookingWizard = () => {
     bootSize,
     shoeSizeEu,
     rentalTorch,
+    torchOption,
     rentalComputer,
+    hoodSize,
+    hoodOption,
+    glovesSize,
+    glovesOption,
+    rentalSmb,
+    hasOwnSmb,
+    smbOption,
     emergencyContactName,
     emergencyContactPhone,
     emergencyContactRelation,
@@ -396,9 +414,16 @@ const BookingWizard = () => {
       setRentalMask(true);
       setRentalRegulator(true);
       setRentalComputer(true);
-      setRentalTorch(true);
-      setRentalSmb(true);
+      // Accessories default to None (not needed) — use Rent Full Kit or toggles to rent
+      setRentalTorch(false);
+      setTorchOption('NONE');
+      setRentalSmb(false);
       setHasOwnSmb(false);
+      setSmbOption('NONE');
+      setHoodSize('None');
+      setHoodOption('NONE');
+      setGlovesSize('None');
+      setGlovesOption('NONE');
       setHasOwnLeadWeights(false);
     } else {
       setWetsuitSize('None');
@@ -409,10 +434,14 @@ const BookingWizard = () => {
       setRentalRegulator(false);
       setRentalComputer(false);
       setRentalTorch(false);
+      setTorchOption('NONE');
       setRentalSmb(false);
       setHasOwnSmb(true);
+      setSmbOption('OWN');
       setHoodSize('None');
+      setHoodOption('NONE');
       setGlovesSize('None');
+      setGlovesOption('NONE');
     }
   };
 
@@ -443,13 +472,15 @@ const BookingWizard = () => {
   };
 
   const handleSetAllRent = () => {
-    const pkgItems = contextData?.rental_pricing?.package_items || [
-      'regulator',
-      'bcd',
-      'wetsuit',
-      'fins_boots',
-      'mask_snorkel',
-    ];
+    const rawPkg = contextData?.rental_pricing?.package_items;
+    const pkgItems =
+      rawPkg && rawPkg.length > 0
+        ? rawPkg
+        : ['regulator', 'bcd', 'wetsuit', 'fins_boots', 'mask_snorkel'];
+    const offered = key => {
+      const rawPrice = contextData?.rental_pricing?.items?.[key];
+      return rawPrice === undefined || Number(rawPrice) >= 0;
+    };
     setWetsuitSize(activeProfile?.wetsuit_size || 'M');
     setBcdSize(activeProfile?.bcd_size || 'M');
     setFinSize(activeProfile?.fin_size || 'M');
@@ -458,30 +489,30 @@ const BookingWizard = () => {
     setRentalMask(true);
     setHasOwnLeadWeights(false);
 
-    // Only turn on optional accessories if the center manager has bundled them into the package!
-    setRentalComputer(pkgItems.includes('dive_computer'));
-    if (pkgItems.includes('dive_torch')) {
+    // Only rent optional accessories when bundled AND offered by the center
+    setRentalComputer(pkgItems.includes('dive_computer') && offered('dive_computer'));
+    if (pkgItems.includes('dive_torch') && offered('dive_torch')) {
       setRentalTorch(true);
       setTorchOption('RENT');
     } else {
       setRentalTorch(false);
       setTorchOption('NONE');
     }
-    if (pkgItems.includes('hood')) {
+    if (pkgItems.includes('hood') && offered('hood')) {
       setHoodSize('M');
       setHoodOption('RENT');
     } else {
       setHoodSize('None');
       setHoodOption('NONE');
     }
-    if (pkgItems.includes('gloves')) {
+    if (pkgItems.includes('gloves') && offered('gloves')) {
       setGlovesSize('M');
       setGlovesOption('RENT');
     } else {
       setGlovesSize('None');
       setGlovesOption('NONE');
     }
-    if (pkgItems.includes('smb')) {
+    if (pkgItems.includes('smb') && offered('smb')) {
       setRentalSmb(true);
       setHasOwnSmb(false);
       setSmbOption('RENT');
@@ -575,13 +606,28 @@ const BookingWizard = () => {
           );
 
           setRentalComputer(!primaryProf.has_own_dive_computer);
-          setRentalTorch(!primaryProf.has_own_torch);
-          const hasOwnS =
-            primaryProf.has_own_smb !== undefined ? Boolean(primaryProf.has_own_smb) : false;
-          setHasOwnSmb(hasOwnS);
-          setRentalSmb(!hasOwnS);
+          // 3-way accessories: own → OWN; otherwise leave NONE (do not invent Rent)
+          if (primaryProf.has_own_torch) {
+            setTorchOption('OWN');
+            setRentalTorch(false);
+          } else {
+            setTorchOption('NONE');
+            setRentalTorch(false);
+          }
+          if (primaryProf.has_own_smb) {
+            setSmbOption('OWN');
+            setHasOwnSmb(true);
+            setRentalSmb(false);
+          } else {
+            setSmbOption('NONE');
+            setHasOwnSmb(false);
+            setRentalSmb(false);
+          }
           if (primaryProf.hood_size) setHoodSize(primaryProf.hood_size);
           if (primaryProf.gloves_size) setGlovesSize(primaryProf.gloves_size);
+          // Keep hood/gloves option at NONE unless user explicitly rents
+          setHoodOption('NONE');
+          setGlovesOption('NONE');
           setHasOwnLeadWeights(Boolean(primaryProf.has_own_lead_weights));
 
           if (primaryProf.estimated_lead_kg) setLeadKg(primaryProf.estimated_lead_kg.toString());
@@ -617,12 +663,43 @@ const BookingWizard = () => {
           setFinSize('None');
           setBootSize('None');
           if (pg.shoe_size_eu) setShoeSizeEu(pg.shoe_size_eu.toString());
-          if (pg.rental_torch) setRentalTorch(pg.rental_torch);
           if (pg.rental_dive_computer) setRentalComputer(pg.rental_dive_computer);
-          if (pg.hood_size) setHoodSize(pg.hood_size);
-          if (pg.gloves_size) setGlovesSize(pg.gloves_size);
-          if (pg.rental_smb !== undefined) setRentalSmb(Boolean(pg.rental_smb));
-          if (pg.has_own_smb !== undefined) setHasOwnSmb(Boolean(pg.has_own_smb));
+          if (pg.torch_option) {
+            setTorchOption(pg.torch_option);
+            setRentalTorch(pg.torch_option === 'RENT');
+          } else if (pg.rental_torch) {
+            setTorchOption('RENT');
+            setRentalTorch(true);
+          } else if (pg.has_own_torch) {
+            setTorchOption('OWN');
+            setRentalTorch(false);
+          }
+          if (pg.hood_option) {
+            setHoodOption(pg.hood_option);
+            if (pg.hood_size) setHoodSize(pg.hood_size);
+          } else if (pg.hood_size) {
+            setHoodSize(pg.hood_size);
+            // Size alone does not imply rent; leave NONE until user chooses
+          }
+          if (pg.gloves_option) {
+            setGlovesOption(pg.gloves_option);
+            if (pg.gloves_size) setGlovesSize(pg.gloves_size);
+          } else if (pg.gloves_size) {
+            setGlovesSize(pg.gloves_size);
+          }
+          if (pg.smb_option) {
+            setSmbOption(pg.smb_option);
+            setRentalSmb(pg.smb_option === 'RENT');
+            setHasOwnSmb(pg.smb_option === 'OWN');
+          } else if (pg.rental_smb) {
+            setSmbOption('RENT');
+            setRentalSmb(true);
+            setHasOwnSmb(false);
+          } else if (pg.has_own_smb) {
+            setSmbOption('OWN');
+            setHasOwnSmb(true);
+            setRentalSmb(false);
+          }
           if (pg.estimated_lead_kg) setLeadKg(pg.estimated_lead_kg.toString());
           if (pg.emergency_contact_name) setEmergencyContactName(pg.emergency_contact_name);
           if (pg.emergency_contact_phone) setEmergencyContactPhone(pg.emergency_contact_phone);
@@ -684,14 +761,43 @@ const BookingWizard = () => {
           if (cookiePrefs.finSize) setFinSize(cookiePrefs.finSize);
           if (cookiePrefs.bootSize) setBootSize(cookiePrefs.bootSize);
           if (cookiePrefs.shoeSizeEu) setShoeSizeEu(cookiePrefs.shoeSizeEu.toString());
-          if (cookiePrefs.rentalTorch !== undefined)
-            setRentalTorch(Boolean(cookiePrefs.rentalTorch));
           if (cookiePrefs.rentalComputer !== undefined)
             setRentalComputer(Boolean(cookiePrefs.rentalComputer));
-          if (cookiePrefs.hoodSize) setHoodSize(cookiePrefs.hoodSize);
-          if (cookiePrefs.glovesSize) setGlovesSize(cookiePrefs.glovesSize);
-          if (cookiePrefs.rentalSmb !== undefined) setRentalSmb(Boolean(cookiePrefs.rentalSmb));
-          if (cookiePrefs.hasOwnSmb !== undefined) setHasOwnSmb(Boolean(cookiePrefs.hasOwnSmb));
+          if (cookiePrefs.torchOption) {
+            setTorchOption(cookiePrefs.torchOption);
+            setRentalTorch(cookiePrefs.torchOption === 'RENT');
+          } else if (cookiePrefs.rentalTorch !== undefined) {
+            const rent = Boolean(cookiePrefs.rentalTorch);
+            setRentalTorch(rent);
+            setTorchOption(rent ? 'RENT' : 'NONE');
+          }
+          if (cookiePrefs.hoodOption) {
+            setHoodOption(cookiePrefs.hoodOption);
+            if (cookiePrefs.hoodSize) setHoodSize(cookiePrefs.hoodSize);
+            else if (cookiePrefs.hoodOption !== 'RENT') setHoodSize('None');
+          } else if (cookiePrefs.hoodSize) {
+            setHoodSize(cookiePrefs.hoodSize);
+            setHoodOption(cookiePrefs.hoodSize !== 'None' ? 'RENT' : 'NONE');
+          }
+          if (cookiePrefs.glovesOption) {
+            setGlovesOption(cookiePrefs.glovesOption);
+            if (cookiePrefs.glovesSize) setGlovesSize(cookiePrefs.glovesSize);
+            else if (cookiePrefs.glovesOption !== 'RENT') setGlovesSize('None');
+          } else if (cookiePrefs.glovesSize) {
+            setGlovesSize(cookiePrefs.glovesSize);
+            setGlovesOption(cookiePrefs.glovesSize !== 'None' ? 'RENT' : 'NONE');
+          }
+          if (cookiePrefs.smbOption) {
+            setSmbOption(cookiePrefs.smbOption);
+            setRentalSmb(cookiePrefs.smbOption === 'RENT');
+            setHasOwnSmb(cookiePrefs.smbOption === 'OWN');
+          } else {
+            if (cookiePrefs.rentalSmb !== undefined) setRentalSmb(Boolean(cookiePrefs.rentalSmb));
+            if (cookiePrefs.hasOwnSmb !== undefined) setHasOwnSmb(Boolean(cookiePrefs.hasOwnSmb));
+            if (cookiePrefs.rentalSmb) setSmbOption('RENT');
+            else if (cookiePrefs.hasOwnSmb) setSmbOption('OWN');
+            else setSmbOption('NONE');
+          }
 
           // Emergency Contact from cookies
           if (cookiePrefs.emergencyContactName) {
@@ -851,12 +957,26 @@ const BookingWizard = () => {
     setBootSize(hasOwnB ? 'None' : prof.shoe_size_eu ? prof.shoe_size_eu.toString() : '43');
 
     setRentalComputer(!prof.has_own_dive_computer);
-    setRentalTorch(!prof.has_own_torch);
-    const hasOwnS = prof.has_own_smb !== undefined ? Boolean(prof.has_own_smb) : false;
-    setHasOwnSmb(hasOwnS);
-    setRentalSmb(!hasOwnS);
+    if (prof.has_own_torch) {
+      setTorchOption('OWN');
+      setRentalTorch(false);
+    } else {
+      setTorchOption('NONE');
+      setRentalTorch(false);
+    }
+    if (prof.has_own_smb) {
+      setSmbOption('OWN');
+      setHasOwnSmb(true);
+      setRentalSmb(false);
+    } else {
+      setSmbOption('NONE');
+      setHasOwnSmb(false);
+      setRentalSmb(false);
+    }
     if (prof.hood_size) setHoodSize(prof.hood_size);
     if (prof.gloves_size) setGlovesSize(prof.gloves_size);
+    setHoodOption('NONE');
+    setGlovesOption('NONE');
     setHasOwnLeadWeights(Boolean(prof.has_own_lead_weights));
 
     if (prof.estimated_lead_kg) setLeadKg(prof.estimated_lead_kg.toString());
@@ -897,215 +1017,29 @@ const BookingWizard = () => {
 
   // Dynamic Equipment Rental Calculation (Itemized vs Package)
   const rentalCalculation = useMemo(() => {
-    const pricing = contextData?.rental_pricing;
-    const basePrice = selectedUnit ? parseFloat(selectedUnit.retail_price) : 75;
-    if (!pricing || !pricing.items) {
-      return {
-        basePrice,
-        rentalItems: [],
-        totalRentalSurcharge: 0,
-        totalDue: basePrice,
-        isPackageApplied: false,
-        packageItems: ['regulator', 'bcd', 'wetsuit', 'fins_boots', 'mask_snorkel'],
-      };
-    }
-
-    const items = pricing.items;
-    const fullKitPackage = pricing.full_kit_package ?? 30.0;
-    const packageItems = pricing.package_items || [
-      'regulator',
-      'bcd',
-      'wetsuit',
-      'fins_boots',
-      'mask_snorkel',
-    ];
-    const isFullRentalUnit =
-      selectedUnitId === 'demo-unit-2' ||
-      selectedUnitId === 'certified-diver-full-rental' ||
-      selectedUnit?.title?.toLowerCase().includes('full');
-
-    // Collect all candidate rentals requested by the diver
-    const candidateRentals = [];
-
-    // 1. Wetsuit
-    if (wetsuitSize && wetsuitSize !== 'None' && items.wetsuit) {
-      candidateRentals.push({
-        key: 'wetsuit',
-        label: `Rental Wetsuit (${wetsuitSize})`,
-        price: items.wetsuit,
-      });
-    }
-
-    // 2. BCD
-    if (bcdSize && bcdSize !== 'None' && items.bcd) {
-      candidateRentals.push({
-        key: 'bcd',
-        label: `Rental BCD (${bcdSize})`,
-        price: items.bcd,
-      });
-    }
-
-    // 3. Fins & Boots
-    if (finSize && finSize !== 'None' && items.fins_boots) {
-      candidateRentals.push({
-        key: 'fins_boots',
-        label: `Rental Fins (${finSize})`,
-        price: items.fins_boots,
-      });
-    } else if (bootSize && bootSize !== 'None') {
-      candidateRentals.push({
-        key: 'fins_boots',
-        label: `Rental Booties (EU ${bootSize})`,
-        price: 5.0,
-      });
-    }
-
-    // 4. Regulator
-    if (rentalRegulator && items.regulator) {
-      candidateRentals.push({
-        key: 'regulator',
-        label: `Rental Regulator Set (${regulatorFitting || 'DIN'})`,
-        price: items.regulator,
-      });
-    }
-
-    // 5. Mask
-    if (rentalMask && (items.mask_snorkel || items.mask)) {
-      candidateRentals.push({
-        key: 'mask_snorkel',
-        label: 'Rental Diving Mask & Snorkel',
-        price: items.mask_snorkel || items.mask || 5.0,
-      });
-    }
-
-    // 6. Dive Computer
-    if (rentalComputer && items.dive_computer) {
-      candidateRentals.push({
-        key: 'dive_computer',
-        label: 'Rental Dive Computer',
-        price: items.dive_computer,
-      });
-    }
-
-    // 7. Torch
-    if (torchOption === 'RENT' && items.dive_torch) {
-      candidateRentals.push({
-        key: 'dive_torch',
-        label: 'Rental Primary Dive Torch',
-        price: items.dive_torch,
-      });
-    }
-
-    // 8. Hood
-    if (hoodOption === 'RENT' && hoodSize && hoodSize !== 'None' && items.hood) {
-      candidateRentals.push({
-        key: 'hood',
-        label: `Rental Thermal Hood (${hoodSize})`,
-        price: items.hood,
-      });
-    }
-
-    // 9. Gloves
-    if (glovesOption === 'RENT' && glovesSize && glovesSize !== 'None' && items.gloves) {
-      candidateRentals.push({
-        key: 'gloves',
-        label: `Rental Dive Gloves (${glovesSize})`,
-        price: items.gloves,
-      });
-    }
-
-    // 10. SMB
-    if (smbOption === 'RENT' && items.smb) {
-      candidateRentals.push({
-        key: 'smb',
-        label: 'Rental Surface Marker Buoy (SMB)',
-        price: items.smb,
-      });
-    }
-
-    // Partition into core (package items) vs auxiliary (unbundled items)
-    const coreItems = [];
-    const auxItems = [];
-
-    candidateRentals.forEach(item => {
-      if (packageItems.includes(item.key)) {
-        if (!isFullRentalUnit) {
-          coreItems.push(item);
-        }
-        // If isFullRentalUnit, covered by base ticket!
-      } else {
-        auxItems.push(item);
-      }
+    return computeWizardRentalEstimate({
+      rentalPricing: contextData?.rental_pricing,
+      selectedUnit,
+      selectedUnitId,
+      selectedTankId,
+      selectedGasMixId,
+      wetsuitSize,
+      bcdSize,
+      finSize,
+      bootSize,
+      rentalRegulator,
+      regulatorFitting,
+      rentalMask,
+      rentalComputer,
+      torchOption,
+      hoodOption,
+      hoodSize,
+      glovesOption,
+      glovesSize,
+      smbOption,
+      hasInsurance,
+      dailyInsurancePrice: contextData?.center_settings?.daily_insurance_price || 0,
     });
-
-    // 11. Upgrades & Extras (applies to both Own Gear and Full Rental)
-    const upgradeItems = [];
-
-    // Cylinder capacity upgrade
-    const tankSurcharges = pricing.tank_surcharges || {};
-    const tankFee = Number(tankSurcharges[selectedTankId] || 0);
-    if (tankFee > 0) {
-      const tankLabel = selectedTankId === '15' ? '15L Steel' : `${selectedTankId}L Cylinder`;
-      upgradeItems.push({
-        label: `Cylinder Upgrade: ${tankLabel}`,
-        price: tankFee,
-      });
-    }
-
-    // Breathing gas mix upgrade
-    const gasSurcharges = pricing.gas_surcharges || {};
-    const gasFee = Number(gasSurcharges[selectedGasMixId] || 0);
-    if (gasFee > 0) {
-      const gasLabel =
-        selectedGasMixId.toUpperCase() === 'EAN32'
-          ? 'Enriched Air (EAN32)'
-          : selectedGasMixId.toUpperCase() === 'EAN36'
-            ? 'Enriched Air (EAN36)'
-            : 'Custom Gas Blend';
-      upgradeItems.push({
-        label: `Breathing Gas: ${gasLabel}`,
-        price: gasFee,
-      });
-    }
-
-    // Daily insurance
-    const dailyInsFee =
-      hasInsurance === 'CENTER'
-        ? Number(contextData?.center_settings?.daily_insurance_price || 0)
-        : 0;
-    if (dailyInsFee > 0) {
-      upgradeItems.push({
-        label: 'Center Daily Dive Insurance',
-        price: dailyInsFee,
-      });
-    }
-
-    // Package cap logic for Own Gear divers
-    const coreSum = coreItems.reduce((sum, item) => sum + item.price, 0);
-    let totalCoreSurcharge = coreSum;
-    let isPackageApplied = isFullRentalUnit;
-
-    if (!isFullRentalUnit && coreSum >= fullKitPackage && fullKitPackage > 0) {
-      totalCoreSurcharge = fullKitPackage;
-      isPackageApplied = true;
-    }
-
-    const allDisplayItems = [...(isFullRentalUnit ? [] : coreItems), ...auxItems, ...upgradeItems];
-    const totalSurcharge =
-      (isFullRentalUnit ? 0 : totalCoreSurcharge) +
-      auxItems.reduce((sum, item) => sum + item.price, 0) +
-      upgradeItems.reduce((sum, item) => sum + item.price, 0);
-
-    return {
-      basePrice,
-      rentalItems: allDisplayItems,
-      totalRentalSurcharge: totalSurcharge,
-      totalDue: basePrice + totalSurcharge,
-      isPackageApplied,
-      coreSum,
-      fullKitPackage,
-      packageItems,
-    };
   }, [
     contextData,
     selectedUnit,
@@ -1120,14 +1054,11 @@ const BookingWizard = () => {
     regulatorFitting,
     rentalMask,
     rentalComputer,
-    rentalTorch,
     torchOption,
     hoodSize,
     hoodOption,
     glovesSize,
     glovesOption,
-    rentalSmb,
-    hasOwnSmb,
     smbOption,
     hasInsurance,
   ]);
@@ -1298,6 +1229,43 @@ const BookingWizard = () => {
     window.scrollTo({ top: 100, behavior: 'smooth' });
   };
 
+  // Single source of truth for hold + paperwork equipmentSizing (3-way options canonical)
+  const buildEquipmentSizing = (finalExpiryDate = '') =>
+    buildEquipmentSizingPayload({
+      wetsuitGender,
+      wetsuitSize,
+      wetsuitThickness,
+      bcdGender,
+      bcdSize,
+      finType,
+      finSize,
+      bootSize,
+      shoeSizeEu,
+      rentalRegulator,
+      rentalMask,
+      hasOwnLeadWeights,
+      selectedProfileId,
+      torchOption,
+      rentalComputer,
+      hoodOption,
+      hoodSize,
+      glovesOption,
+      glovesSize,
+      smbOption,
+      regulatorFitting,
+      weightSystem,
+      weightSystems,
+      secondaryNitroxCert,
+      leadKg,
+      hasInsurance,
+      insuranceProvider,
+      insurancePolicyNumber,
+      finalExpiryDate,
+      emergencyContactName,
+      emergencyContactPhone,
+      emergencyContactRelation,
+    });
+
   // Submit Booking
   const handleConfirmBooking = async () => {
     if (!validateStep1() || !validateStep2() || !validateStep3() || !validateStep4()) {
@@ -1314,6 +1282,7 @@ const BookingWizard = () => {
       const finalExpiryDate = (
         insuranceExpiryDate || (insuranceDateRef.current ? insuranceDateRef.current.value : '')
       ).trim();
+      const equipmentSizing = buildEquipmentSizing(finalExpiryDate);
 
       const holdPayload = {
         productId: contextData.product.id,
@@ -1333,57 +1302,7 @@ const BookingWizard = () => {
             certificationNumber: certNumber.trim() || undefined,
             selectedTankId: selectedTankId,
             selectedGasMixId: selectedGasMixId,
-            equipmentSizing: {
-              wetsuit_gender: wetsuitGender,
-              wetsuit_size: wetsuitSize === 'None' ? null : wetsuitSize,
-              wetsuit_thickness: wetsuitThickness,
-              bcd_gender: bcdGender,
-              bcd_size: bcdSize === 'None' ? null : bcdSize,
-              fin_type: finType,
-              fin_size: finSize === 'None' ? null : finSize,
-              boot_size: bootSize === 'None' ? null : bootSize,
-              rental_fins: finSize !== 'None',
-              has_own_fins: finSize === 'None',
-              rental_boots: bootSize !== 'None',
-              has_own_boots: bootSize === 'None',
-              shoe_size_eu: parseFloat(shoeSizeEu) || 43.0,
-              rental_regulator: rentalRegulator,
-              has_own_regulator: !rentalRegulator,
-              rental_mask: rentalMask,
-              has_own_mask: !rentalMask,
-              has_own_lead_weights: hasOwnLeadWeights,
-              selected_profile_id: selectedProfileId || undefined,
-              rental_torch: torchOption === 'RENT',
-              has_own_torch: torchOption === 'OWN',
-              torch_option: torchOption,
-              rental_dive_computer: rentalComputer,
-              has_own_dive_computer: !rentalComputer,
-              hood_size: hoodOption === 'RENT' && hoodSize !== 'None' ? hoodSize : null,
-              hood_option: hoodOption,
-              gloves_size: glovesOption === 'RENT' && glovesSize !== 'None' ? glovesSize : null,
-              gloves_option: glovesOption,
-              rental_smb: smbOption === 'RENT',
-              has_own_smb: smbOption === 'OWN',
-              smb_option: smbOption,
-              regulator_fitting: regulatorFitting,
-              weight_system: weightSystem,
-              weight_systems: weightSystems,
-              secondary_nitrox_cert: secondaryNitroxCert.trim() || undefined,
-              estimated_lead_kg: parseFloat(leadKg) || 5.0,
-              lead_kg: parseFloat(leadKg) || 5.0,
-              insurance_type: hasInsurance,
-              insurance_provider:
-                hasInsurance === 'OWN'
-                  ? insuranceProvider.trim() || undefined
-                  : 'Center Daily Coverage',
-              insurance_policy_number:
-                hasInsurance === 'OWN' ? insurancePolicyNumber.trim() || undefined : undefined,
-              insurance_expiry_date:
-                hasInsurance === 'OWN' ? finalExpiryDate || undefined : undefined,
-              emergency_contact_name: emergencyContactName.trim() || undefined,
-              emergency_contact_phone: emergencyContactPhone.trim() || undefined,
-              emergency_contact_relation: emergencyContactRelation.trim() || undefined,
-            },
+            equipmentSizing,
           },
         ],
         contact: {
@@ -1416,51 +1335,7 @@ const BookingWizard = () => {
         signatureName: waiverSignature.signatureName,
         selectedTankId: selectedTankId,
         selectedGasMixId: selectedGasMixId,
-        equipmentSizing: {
-          wetsuit_gender: wetsuitGender,
-          wetsuit_size: wetsuitSize === 'None' ? null : wetsuitSize,
-          wetsuit_thickness: wetsuitThickness,
-          bcd_gender: bcdGender,
-          bcd_size: bcdSize === 'None' ? null : bcdSize,
-          fin_type: finType,
-          fin_size: finSize === 'None' ? null : finSize,
-          boot_size: bootSize === 'None' ? null : bootSize,
-          rental_fins: finSize !== 'None',
-          has_own_fins: finSize === 'None',
-          rental_boots: bootSize !== 'None',
-          has_own_boots: bootSize === 'None',
-          shoe_size_eu: parseFloat(shoeSizeEu) || 43.0,
-          rental_regulator: rentalRegulator,
-          has_own_regulator: !rentalRegulator,
-          rental_mask: rentalMask,
-          has_own_mask: !rentalMask,
-          has_own_lead_weights: hasOwnLeadWeights,
-          selected_profile_id: selectedProfileId || undefined,
-          rental_torch: rentalTorch,
-          rental_dive_computer: rentalComputer,
-          has_own_dive_computer: !rentalComputer,
-          hood_size: hoodSize === 'None' ? null : hoodSize,
-          gloves_size: glovesSize === 'None' ? null : glovesSize,
-          rental_smb: rentalSmb,
-          has_own_smb: hasOwnSmb,
-          regulator_fitting: regulatorFitting,
-          weight_system: weightSystem,
-          weight_systems: weightSystems,
-          secondary_nitrox_cert: secondaryNitroxCert.trim() || undefined,
-          estimated_lead_kg: parseFloat(leadKg) || 5.0,
-          lead_kg: parseFloat(leadKg) || 5.0,
-          insurance_type: hasInsurance,
-          insurance_provider:
-            hasInsurance === 'OWN'
-              ? insuranceProvider.trim() || undefined
-              : 'Center Daily Coverage',
-          insurance_policy_number:
-            hasInsurance === 'OWN' ? insurancePolicyNumber.trim() || undefined : undefined,
-          insurance_expiry_date: hasInsurance === 'OWN' ? finalExpiryDate || undefined : undefined,
-          emergency_contact_name: emergencyContactName.trim() || undefined,
-          emergency_contact_phone: emergencyContactPhone.trim() || undefined,
-          emergency_contact_relation: emergencyContactRelation.trim() || undefined,
-        },
+        equipmentSizing,
       };
 
       if (!accessToken) {

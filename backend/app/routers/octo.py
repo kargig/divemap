@@ -465,12 +465,17 @@ def create_booking_hold(
         # Ignore client-controlled package flags; tier comes from DB unit only
         sizing = dict(item.equipmentSizing or {})
         sizing.pop("is_rental_package", None)
-        pricing_calc = compute_participant_octo_pricing(
-            center_settings=settings,
-            unit=unit,
-            equipment_sizing=sizing,
-            currency=currency,
-        )
+        try:
+            pricing_calc = compute_participant_octo_pricing(
+                center_settings=settings,
+                unit=unit,
+                equipment_sizing=sizing,
+                currency=currency,
+                selected_tank_id=item.selectedTankId or "12",
+                selected_gas_mix_id=item.selectedGasMixId or "air",
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e)) from e
         total_amount += pricing_calc["total_due"]
     total_amount = round(total_amount, 2)
 
