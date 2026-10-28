@@ -37,6 +37,7 @@ import ErrorPage from '../components/ErrorPage';
 import FuzzySearchInput from '../components/FuzzySearchInput';
 import HeroSection from '../components/HeroSection';
 import ImportDivesModal from '../components/ImportDivesModal';
+import LinkDiveSiteModal from '../components/LinkDiveSiteModal';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import MatchTypeBadge from '../components/MatchTypeBadge';
 import PageHeader from '../components/PageHeader';
@@ -128,6 +129,7 @@ const Dives = () => {
 
   const [filters, setFilters] = useState(getInitialFilters);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [linkingDive, setLinkingDive] = useState(null);
   const [debouncedSearchTerms, setDebouncedSearchTerms] = useState({
     search: getInitialFilters().search,
   });
@@ -897,6 +899,27 @@ const Dives = () => {
                                   @ {dive.dive_site.name}
                                 </span>
                               )}
+                              {!dive.dive_site && dive.unlinked_site_name && (
+                                <span className='inline-flex items-center gap-1.5 ml-1.5 text-xs sm:text-sm font-medium text-amber-700 dark:text-amber-400'>
+                                  <span>@ {dive.unlinked_site_name}</span>
+                                  <span className='px-1.5 py-0.5 text-[10px] sm:text-xs font-semibold rounded bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-dashed border-amber-400 dark:border-amber-600'>
+                                    Unlinked Site
+                                  </span>
+                                  {user && (user.id === dive.user_id || user.is_admin) && (
+                                    <button
+                                      type='button'
+                                      onClick={e => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setLinkingDive(dive);
+                                      }}
+                                      className='ml-1 px-1.5 py-0.5 text-[10px] sm:text-xs font-semibold rounded bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800/60 transition-colors'
+                                    >
+                                      Link Site
+                                    </button>
+                                  )}
+                                </span>
+                              )}
                             </h3>
 
                             {/* Meta Byline - Single line on mobile */}
@@ -1149,6 +1172,15 @@ const Dives = () => {
             actionLink='/dives/create'
             actionText='Add New Dive'
             message='We couldn’t find any dives matching your current filters. Try broadening your search or log a new adventure.'
+          />
+        )}
+
+        {linkingDive && (
+          <LinkDiveSiteModal
+            isOpen={true}
+            onClose={() => setLinkingDive(null)}
+            dive={linkingDive}
+            onSuccess={() => setLinkingDive(null)}
           />
         )}
       </div>

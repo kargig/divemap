@@ -1,5 +1,6 @@
 import logging
 import math
+import os
 
 import requests
 from sqlalchemy import func
@@ -45,7 +46,7 @@ def get_external_region_bounds(
 
         params = {"q": query, "format": "json", "limit": 1, "addressdetails": 1}
         headers = {
-            "User-Agent": "Divemap-Backend/1.0 (info@divemap.com)"  # Nominatim requires a User-Agent
+            "User-Agent": "Divemap-Backend/1.0 (info@divemap.blue)"  # Nominatim requires a User-Agent
         }
 
         response = requests.get(url, params=params, headers=headers, timeout=10.0)
@@ -119,36 +120,346 @@ def get_empirical_region_bounds(
         return None
 
 
-def get_location_info_from_coords(lat: float, lon: float) -> dict[str, str | None]:
+def clean_regional_unit(text: str | None) -> str | None:
+    """Strips verbose suffixes like 'Regional Unit' from administrative region names."""
+    if text:
+        if text.endswith(" Regional Unit"):
+            return text[: -len(" Regional Unit")].strip()
+        elif text.endswith("Regional Unit"):
+            return text[: -len("Regional Unit")].strip()
+        return text.strip()
+    return text
+
+
+def perform_reverse_geocode(latitude: float, longitude: float) -> dict[str, str | None]:
     """
-    Reverse geocodes coordinates to find country and region using Nominatim.
+    3-tier reverse geocoder resolving country, region, and city from coordinates:
+    Tier 1: Geoapify (if GEOAPIFY_KEY is set in environment)
+    Tier 2: Photon (Komoot)
+    Tier 3: OpenStreetMap Nominatim
     """
-    result = {"country": None, "region": None}
+    result = {
+        "country": None,
+        "region": None,
+        "county": None,
+        "state": None,
+        "city": None,
+        "suburb": None,
+    }
+
+    timeout_errors = []
+    connection_errors = []
+    attempts = 0
+
+    # 1. Tier 1: Geoapify
+    geoapify_key = os.getenv("GEOAPIFY_KEY")
+    if geoapify_key:
+        attempts += 1
+        try:
+            url = "https://api.geoapify.com/v1/geocode/reverse"
+            params = {
+                "lat": latitude,
+                "lon": longitude,
+                "apiKey": geoapify_key,
+                "lang": "en",
+            }
+            resp = requests.get(url, params=params, timeout=2.0)
+            if resp.status_code == 200:
+                data = resp.json()
+                features = data.get("features", [])
+                if features:
+                    props = features[0].get("properties", {})
+                    country = props.get("country")
+                    state = clean_regional_unit(props.get("state"))
+                    county = clean_regional_unit(props.get("county"))
+                    city = (
+                        props.get("city")
+                        or props.get("municipality")
+                        or props.get("town")
+                    )
+
+                    region = state or county or props.get("region")
+
+                    result.update(
+                        {
+                            "country": country,
+                            "region": region,
+                            "county": county,
+                            "state": state,
+                            "city": city,
+                            "suburb": props.get("suburb"),
+                        }
+                    )
+                    if result["country"]:
+                        logger.debug("Geoapify reverse geocoding succeeded")
+                        return result
+        except requests.exceptions.Timeout as e:
+            timeout_errors.append(e)
+            logger.warning("Geoapify reverse geocoding timed out")
+        except requests.exceptions.ConnectionError as e:
+            connection_errors.append(e)
+            logger.warning("Geoapify reverse geocoding connection error")
+        except Exception as e:
+            logger.warning(f"Geoapify reverse geocoding failed: {e}")
+
+    # 2. Tier 2: Photon (Komoot)
+    attempts += 1
+    try:
+        url = "https://photon.komoot.io/reverse"
+        params = {"lat": latitude, "lon": longitude, "lang": "en"}
+        headers = {"User-Agent": "Divemap-Backend/1.0 (info@divemap.blue)"}
+        resp = requests.get(url, params=params, headers=headers, timeout=2.0)
+        if resp.status_code == 200:
+            data = resp.json()
+            features = data.get("features", [])
+            if features:
+                props = features[0].get("properties", {})
+                country = props.get("country")
+                state = clean_regional_unit(props.get("state"))
+                county = clean_regional_unit(props.get("county"))
+                city = (
+                    props.get("city") or props.get("district") or props.get("locality")
+                )
+
+                region = state or county or props.get("region")
+
+                result.update(
+                    {
+                        "country": country,
+                        "region": region,
+                        "county": county,
+                        "state": state,
+                        "city": city,
+                    }
+                )
+                if result["country"]:
+                    logger.debug("Photon reverse geocoding succeeded")
+                    return result
+    except requests.exceptions.Timeout as e:
+        timeout_errors.append(e)
+        logger.warning("Photon reverse geocoding timed out")
+    except requests.exceptions.ConnectionError as e:
+        connection_errors.append(e)
+        logger.warning("Photon reverse geocoding connection error")
+    except Exception as e:
+        logger.warning(f"Photon reverse geocoding failed: {e}")
+
+    # 3. Tier 3: Nominatim (OpenStreetMap)
+    attempts += 1
     try:
         url = "https://nominatim.openstreetmap.org/reverse"
         params = {
-            "lat": lat,
-            "lon": lon,
+            "lat": latitude,
+            "lon": longitude,
             "format": "json",
-            "zoom": 5,  # City/Region level
+            "addressdetails": 1,
+            "zoom": 8,
+            "accept-language": "en",
         }
-        headers = {"User-Agent": "Divemap-Backend/1.0 (info@divemap.com)"}
-        response = requests.get(url, params=params, headers=headers, timeout=5.0)
-        response.raise_for_status()
-        data = response.json()
-        address = data.get("address", {})
+        headers = {"User-Agent": "Divemap-Backend/1.0 (info@divemap.blue)"}
+        resp = requests.get(url, params=params, headers=headers, timeout=6.0)
+        if resp.status_code == 200:
+            data = resp.json()
+            address = data.get("address", {})
 
-        result["country"] = address.get("country")
-        # Try to find the most relevant regional administrative level
-        result["region"] = (
-            address.get("state") or address.get("region") or address.get("county")
-        )
+            country = address.get("country")
+            county = clean_regional_unit(address.get("county"))
+            state_district = clean_regional_unit(address.get("state_district"))
+            state = clean_regional_unit(address.get("state"))
 
-        if result["country"]:
-            logger.info(f"Resolved location info from coords ({lat}, {lon}): {result}")
+            if county and state_district:
+                region = f"{county}, {state_district}"
+            else:
+                region = (
+                    state
+                    or clean_regional_unit(address.get("province"))
+                    or clean_regional_unit(address.get("region"))
+                    or county
+                )
+
+            city = (
+                address.get("city")
+                or address.get("town")
+                or address.get("village")
+                or address.get("municipality")
+            )
+
+            result.update(
+                {
+                    "country": country,
+                    "region": region,
+                    "county": county,
+                    "state": state,
+                    "city": city,
+                    "suburb": address.get("suburb"),
+                }
+            )
+            if result["country"]:
+                logger.debug("Nominatim reverse geocoding succeeded")
+                return result
+    except requests.exceptions.Timeout as e:
+        timeout_errors.append(e)
+        logger.warning("Nominatim reverse geocoding timed out")
+    except requests.exceptions.ConnectionError as e:
+        connection_errors.append(e)
+        logger.warning("Nominatim reverse geocoding connection error")
     except Exception as e:
-        logger.error(f"Error reverse geocoding coords ({lat}, {lon}): {e}")
+        logger.error(f"Nominatim reverse geocoding failed: {e}")
+
+    if attempts > 0 and len(timeout_errors) == attempts:
+        raise timeout_errors[0]
+    if attempts > 0 and len(connection_errors) == attempts:
+        raise connection_errors[0]
+
     return result
+
+
+def search_places(
+    query: str,
+    lat: float | None = None,
+    lon: float | None = None,
+    limit: int = 5,
+) -> list[dict]:
+    """
+    3-tier forward place search:
+    Tier 1: Geoapify Autocomplete (if GEOAPIFY_KEY is set in environment)
+    Tier 2: Photon (Komoot)
+    Tier 3: OpenStreetMap Nominatim
+    """
+    clean_q = (query or "").strip()
+    if not clean_q:
+        return []
+
+    # 1. Tier 1: Geoapify Autocomplete
+    geoapify_key = os.getenv("GEOAPIFY_KEY")
+    if geoapify_key:
+        try:
+            url = "https://api.geoapify.com/v1/geocode/autocomplete"
+            params = {
+                "text": clean_q,
+                "apiKey": geoapify_key,
+                "limit": limit,
+            }
+            if lat is not None and lon is not None:
+                params["bias"] = f"proximity:{lon},{lat}"
+
+            resp = requests.get(url, params=params, timeout=2.0)
+            if resp.status_code == 200:
+                data = resp.json()
+                features = data.get("features", [])
+                if features:
+                    results = []
+                    for f in features:
+                        p = f.get("properties", {})
+                        coords = f.get("geometry", {}).get("coordinates", [0, 0])
+                        results.append(
+                            {
+                                "display_name": p.get("formatted")
+                                or p.get("name")
+                                or clean_q,
+                                "name": p.get("name") or p.get("city") or clean_q,
+                                "latitude": coords[1],
+                                "longitude": coords[0],
+                                "country": p.get("country"),
+                                "region": clean_regional_unit(
+                                    p.get("state") or p.get("county")
+                                ),
+                                "type": p.get("result_type"),
+                            }
+                        )
+                    logger.debug(f"Geoapify place search found {len(results)} items")
+                    return results
+        except Exception as e:
+            logger.warning(f"Geoapify search failed: {e}")
+
+    # 2. Tier 2: Photon (Komoot)
+    try:
+        url = "https://photon.komoot.io/api/"
+        params = {"q": clean_q, "limit": limit, "lang": "en"}
+        if lat is not None and lon is not None:
+            params["lat"] = lat
+            params["lon"] = lon
+
+        headers = {"User-Agent": "Divemap-Backend/1.0 (info@divemap.blue)"}
+        resp = requests.get(url, params=params, headers=headers, timeout=2.0)
+        if resp.status_code == 200:
+            data = resp.json()
+            features = data.get("features", [])
+            if features:
+                results = []
+                for f in features:
+                    p = f.get("properties", {})
+                    coords = f.get("geometry", {}).get("coordinates", [0, 0])
+                    parts = [
+                        p.get("name"),
+                        p.get("city"),
+                        p.get("state"),
+                        p.get("country"),
+                    ]
+                    display_name = ", ".join(filter(None, parts))
+                    results.append(
+                        {
+                            "display_name": display_name,
+                            "name": p.get("name") or clean_q,
+                            "latitude": coords[1],
+                            "longitude": coords[0],
+                            "country": p.get("country"),
+                            "region": clean_regional_unit(
+                                p.get("state") or p.get("county")
+                            ),
+                            "type": p.get("type") or p.get("osm_value"),
+                        }
+                    )
+                logger.debug(f"Photon place search found {len(results)} items")
+                return results
+    except Exception as e:
+        logger.warning(f"Photon search failed: {e}")
+
+    # 3. Tier 3: Nominatim (OpenStreetMap)
+    try:
+        url = "https://nominatim.openstreetmap.org/search"
+        params = {
+            "q": clean_q,
+            "format": "json",
+            "limit": limit,
+            "addressdetails": 1,
+            "accept-language": "en",
+        }
+        headers = {"User-Agent": "Divemap-Backend/1.0 (info@divemap.blue)"}
+        resp = requests.get(url, params=params, headers=headers, timeout=6.0)
+        if resp.status_code == 200:
+            data = resp.json()
+            if isinstance(data, list) and data:
+                results = []
+                for d in data:
+                    addr = d.get("address", {})
+                    results.append(
+                        {
+                            "display_name": d.get("display_name"),
+                            "name": d.get("display_name", "").split(",")[0],
+                            "latitude": float(d["lat"]),
+                            "longitude": float(d["lon"]),
+                            "country": addr.get("country"),
+                            "region": clean_regional_unit(
+                                addr.get("state") or addr.get("county")
+                            ),
+                            "type": d.get("addresstype") or d.get("type"),
+                        }
+                    )
+                logger.debug(f"Nominatim place search found {len(results)} items")
+                return results
+    except Exception as e:
+        logger.error(f"Nominatim search failed: {e}")
+
+    return []
+
+
+def get_location_info_from_coords(lat: float, lon: float) -> dict[str, str | None]:
+    """
+    Reverse geocodes coordinates to find country and region using the 3-tier geocoder.
+    """
+    geo = perform_reverse_geocode(lat, lon)
+    return {"country": geo.get("country"), "region": geo.get("region")}
 
 
 def get_country_from_ip(ip: str) -> str | None:

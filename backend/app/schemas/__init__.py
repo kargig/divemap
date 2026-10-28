@@ -1259,6 +1259,7 @@ class DivingCenterResponseWithOrganizations(DivingCenterResponse):
 # Dive Schemas
 class DiveBase(BaseModel):
     dive_site_id: int | None = None
+    unlinked_site_name: str | None = Field(None, max_length=255)
     diving_center_id: int | None = None  # Link to diving center
     selected_route_id: int | None = None  # Selected dive route
     name: str | None = Field(None, max_length=255)  # Custom name/alias
@@ -1300,6 +1301,7 @@ class DiveCreate(DiveBase):
 
 class DiveUpdate(BaseModel):
     dive_site_id: int | None = None
+    unlinked_site_name: str | None = Field(None, max_length=255)
     diving_center_id: int | None = None  # Link to diving center
     selected_route_id: int | None = None  # Selected dive route
     name: str | None = Field(None, max_length=255)
@@ -1339,6 +1341,7 @@ class DiveResponse(DiveBase):
     id: int
     user_id: int
     dive_site_id: int | None = None
+    unlinked_site_name: str | None = None
     diving_center_id: int | None = None  # Link to diving center
     selected_route_id: int | None = None  # Selected dive route
     name: str | None = None

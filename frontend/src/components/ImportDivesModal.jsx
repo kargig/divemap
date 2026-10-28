@@ -31,6 +31,7 @@ import { TANK_SIZES } from '../utils/diveConstants';
 import DivingCenterSearchableDropdown from './DivingCenterSearchableDropdown';
 import FuzzySearchInput from './FuzzySearchInput';
 import GasTanksDisplay from './GasTanksDisplay';
+import QuickCreateDiveSiteModal from './QuickCreateDiveSiteModal';
 import Button from './ui/Button';
 import Modal from './ui/Modal';
 
@@ -41,6 +42,7 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
   const [parsedDives, setParsedDives] = useState([]);
   const [availableDiveSites, setAvailableDiveSites] = useState([]);
   const [availableDivingCenters, setAvailableDivingCenters] = useState([]);
+  const [quickCreateData, setQuickCreateData] = useState(null);
   const [currentStep, setCurrentStep] = useState('upload'); // 'upload', 'mapping', 'review', 'importing'
   const [isProcessing, setIsProcessing] = useState(false);
   const [diveSiteSearchStrings, setDiveSiteSearchStrings] = useState({});
@@ -357,6 +359,69 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
     handleDiveSiteSearchChange(index, site.name);
   };
 
+  const handleOpenQuickCreate = (index, dive) => {
+    const unmatchedName = dive.unmatched_dive_site?.name || '';
+    const matchingCount = parsedDives.filter(
+      d => !d.skip && d.unmatched_dive_site?.name === unmatchedName
+    ).length;
+
+    setQuickCreateData({
+      index,
+      initialData: {
+        name: unmatchedName,
+        latitude: dive.unmatched_dive_site?.latitude,
+        longitude: dive.unmatched_dive_site?.longitude,
+        country: dive.country || '',
+      },
+      matchingCount: matchingCount || 1,
+      unmatchedName,
+    });
+  };
+
+  const handleQuickCreateSuccess = (site, applyToAll) => {
+    // 1. Inject newly created/selected site into availableDiveSites state
+    setAvailableDiveSites(prev => [site, ...prev.filter(s => s.id !== site.id)]);
+
+    const targetIndices = new Set();
+    if (quickCreateData) {
+      parsedDives.forEach((d, i) => {
+        if (
+          i === quickCreateData.index ||
+          (applyToAll &&
+            quickCreateData.unmatchedName &&
+            d.unmatched_dive_site?.name === quickCreateData.unmatchedName)
+        ) {
+          targetIndices.add(i);
+        }
+      });
+    }
+
+    // 2. Update parsedDives
+    setParsedDives(prev =>
+      prev.map((d, i) => {
+        if (targetIndices.has(i)) {
+          return {
+            ...d,
+            dive_site_id: site.id,
+            unmatched_dive_site: null,
+          };
+        }
+        return d;
+      })
+    );
+
+    // 3. Update search strings
+    setDiveSiteSearchStrings(prev => {
+      const next = { ...prev };
+      targetIndices.forEach(idx => {
+        next[idx] = site.name;
+      });
+      return next;
+    });
+
+    setQuickCreateData(null);
+  };
+
   const handleDiveCenterChange = (index, centerId, centerName) => {
     setParsedDives(prev =>
       prev.map((dive, i) =>
@@ -592,33 +657,10 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
       return;
     }
 
-    const unresolvedDives = parsedDives.filter(
-      dive => !dive.skip && dive.unmatched_dive_site && !dive.dive_site_id
-    );
-    if (unresolvedDives.length > 0) {
-      toast.error(
-        `${unresolvedDives.length} dive(s) have unmatched dive sites. Please select dive sites or create new ones before importing.`
-      );
-      return;
-    }
-
-    const unresolvedProposedDives = parsedDives.filter(
-      dive => !dive.skip && dive.proposed_dive_sites && !dive.dive_site_id
-    );
-    if (unresolvedProposedDives.length > 0) {
-      toast.error(
-        `${unresolvedProposedDives.length} dive(s) have proposed dive sites but no selection. Please select one of the proposed sites or choose a different one.`
-      );
-      return;
-    }
-
-    const filteredDives = parsedDives.filter(
-      dive =>
-        !dive.skip && !dive.unmatched_dive_site && !(dive.proposed_dive_sites && !dive.dive_site_id)
-    );
+    const filteredDives = parsedDives.filter(dive => !dive.skip);
 
     if (filteredDives.length === 0) {
-      toast.error('No dives to import after filtering out unmatched dive sites and skipped dives');
+      toast.error('No dives selected for import');
       return;
     }
 
@@ -632,6 +674,14 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
         existing_dive_id,
         ...cleanDive
       } = dive;
+
+      if (!dive.dive_site_id) {
+        if (dive.unmatched_dive_site?.name) {
+          cleanDive.unlinked_site_name = dive.unmatched_dive_site.name;
+        } else if (dive.proposed_dive_sites?.[0]?.original_name) {
+          cleanDive.unlinked_site_name = dive.proposed_dive_sites[0].original_name;
+        }
+      }
 
       // Keep profile_data for the backend to save/update
       if (dive.profile_data) {
@@ -1021,10 +1071,10 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                           {dive.unmatched_dive_site ? (
                             <div className='space-y-2'>
                               <div className='flex items-center gap-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md'>
-                                <AlertCircle size={16} className='text-yellow-600' />
+                                <AlertCircle size={16} className='text-yellow-600 shrink-0' />
                                 <span className='text-sm text-yellow-800'>
                                   <strong>{dive.unmatched_dive_site.name}</strong> not found in
-                                  database
+                                  database (will import as unlinked dive if left unselected)
                                 </span>
                               </div>
                               <div className='flex flex-col gap-2 w-full'>
@@ -1041,21 +1091,12 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                                     />
                                   </div>
                                   <button
-                                    onClick={() => {
-                                      const site = dive.unmatched_dive_site;
-                                      const url = site?.latitude
-                                        ? `/dive-sites/create?lat=${site.latitude}&lng=${site.longitude}`
-                                        : '/dive-sites/create';
-                                      window.open(url, '_blank');
-                                    }}
+                                    type='button'
+                                    onClick={() => handleOpenQuickCreate(index, dive)}
                                     className='px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors h-10 shrink-0 w-full sm:w-auto text-center flex items-center justify-center font-semibold'
-                                    title={
-                                      dive.unmatched_dive_site?.latitude
-                                        ? 'Create new site with GPS coordinates from file'
-                                        : 'Create new site'
-                                    }
+                                    title='Quick create dive site'
                                   >
-                                    Create New
+                                    Quick Create
                                   </button>
                                 </div>
                               </div>
@@ -1203,18 +1244,7 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                 {isProcessing ? (
                   'Importing...'
                 ) : (
-                  <>
-                    Import{' '}
-                    {
-                      parsedDives.filter(
-                        dive =>
-                          !dive.unmatched_dive_site &&
-                          !(dive.proposed_dive_sites && !dive.dive_site_id) &&
-                          !dive.skip
-                      ).length
-                    }{' '}
-                    Dives
-                  </>
+                  <>Import {parsedDives.filter(dive => !dive.skip).length} Dives</>
                 )}
               </Button>
             </div>
@@ -1229,6 +1259,16 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
           </div>
         )}
       </div>
+
+      {quickCreateData && (
+        <QuickCreateDiveSiteModal
+          isOpen={true}
+          onClose={() => setQuickCreateData(null)}
+          initialData={quickCreateData.initialData}
+          matchingCount={quickCreateData.matchingCount}
+          onSuccess={handleQuickCreateSuccess}
+        />
+      )}
     </Modal>
   );
 };

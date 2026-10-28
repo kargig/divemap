@@ -3,7 +3,6 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-import orjson
 import requests
 from fastapi import (
     APIRouter,
@@ -608,192 +607,39 @@ async def reverse_geocode(
     latitude: float = Query(..., ge=-90, le=90),
     longitude: float = Query(..., ge=-180, le=180),
     debug: bool = Query(
-        False, description="Enable debug logging for Nominatim API calls"
+        False, description="Enable debug logging for geocoding API calls"
     ),
     db: Session = Depends(get_db),
 ):
     """
-    Get country, region, and city suggestions based on coordinates using OpenStreetMap Nominatim API
+    Get country, region, and city suggestions based on coordinates using 3-tier geocoder (Geoapify -> Photon -> Nominatim).
     """
+    from app.geo_utils import perform_reverse_geocode
+
     try:
-        # Use OpenStreetMap Nominatim API for reverse geocoding
-        url = "https://nominatim.openstreetmap.org/reverse"
-        params = {
-            "lat": latitude,
-            "lon": longitude,
-            "format": "json",
-            "addressdetails": 1,
-            "zoom": 10,  # Get more detailed results
-            "accept-language": "en",  # Request English language results
-        }
-
-        # Add User-Agent header as required by Nominatim
-        headers = {"User-Agent": "Divemap/1.0 (https://github.com/kargig/divemap)"}
-
-        response = requests.get(url, params=params, headers=headers, timeout=15)
-
-        # Log the response for debugging
-        if debug:
-            logger.debug(f"🔍 Nominatim API Request: URL={url}, Parameters={params}")
-
-        response.raise_for_status()
-
-        data = response.json()
-
-        if debug:
-            logger.debug(
-                f"📡 Nominatim API Response: Status={response.status_code}, Content={orjson.dumps(data).decode('utf-8')}"
-            )
-
-        address = data.get("address", {})
-
-        # Extract country, region, and city information
-        country = address.get("country")
-
-        # Helper function to clean "Regional Unit" from text
-        # Only remove "Regional Unit" if it appears at the end, keep it if it appears at the beginning
-        def clean_regional_unit(text):
-            if text:
-                # Remove " Regional Unit" only if it appears at the end
-                if text.endswith(" Regional Unit"):
-                    return text[: -len(" Regional Unit")].strip()
-                # Remove "Regional Unit" only if it appears at the end (no leading space)
-                elif text.endswith("Regional Unit"):
-                    return text[: -len("Regional Unit")].strip()
-                return text
-            return text
-
-        # Helper function to clean "Municipal Unit" and "Municipality" from text
-        def clean_municipal_suffixes(text):
-            if text:
-                # Remove " Municipal Unit" if it appears at the end
-                if text.endswith(" Municipal Unit"):
-                    return text[: -len(" Municipal Unit")].strip()
-                # Remove "Municipal Unit" if it appears at the end (no leading space)
-                elif text.endswith("Municipal Unit"):
-                    return text[: -len("Municipal Unit")].strip()
-                # Remove "Municipality" if it appears at the end
-                elif text.endswith(" Municipality"):
-                    return text[: -len(" Municipality")].strip()
-                # Remove "Municipality" if it appears at the end (no leading space)
-                elif text.endswith("Municipality"):
-                    return text[: -len("Municipality")].strip()
-                # Remove "Municipality of " if it appears at the beginning
-                elif text.startswith("Municipality of "):
-                    return text[len("Municipality of ") :].strip()
-                # Remove "Municipal Unit of " if it appears at the beginning
-                elif text.startswith("Municipal Unit of "):
-                    return text[len("Municipal Unit of ") :].strip()
-                return text
-            return text
-
-        # Get and clean county and state_district fields
-        county = clean_regional_unit(address.get("county"))
-        state_district = clean_regional_unit(address.get("state_district"))
-
-        if county and state_district:
-            region = f"{county}, {state_district}"
-        else:
-            # Fallback to previous priority order, also cleaning "Regional Unit"
-            region = (
-                clean_regional_unit(address.get("state"))
-                or clean_regional_unit(address.get("province"))
-                or clean_regional_unit(address.get("region"))
-                or county  # county alone if no state_district
-            )
-
-        # Clean up "Regional Unit of" prefix from the final region
-        if region and region.startswith("Regional Unit of "):
-            region = region[len("Regional Unit of ") :]
-
-        # Extract city information with fallback hierarchy
-        city_raw = (
-            address.get("city")
-            or address.get("town")
-            or address.get("village")
-            or address.get("hamlet")
-            or address.get("suburb")
-            or address.get("neighbourhood")
-            or address.get("municipality")  # Add municipality as fallback
-            or ""
-        )
-
-        # Clean up municipal suffixes from the city field
-        city = clean_municipal_suffixes(city_raw)
-
-        # Log the extracted data
-        if debug:
-            print("📍 Extracted Location Data:")
-            print(f"   Country: '{country}'")
-            print(f"   Region: '{region}'")
-            print(f"   City: '{city}'")
-            print(f"   Full Address: '{data.get('display_name', '')}'")
-            print(
-                f"   Raw Address Object: {orjson.dumps(address, option=orjson.OPT_INDENT_2).decode('utf-8')}"
-            )
-
-            # Show which region fields were found and used
-            print("   Region Field Analysis:")
-            print(f"     county: '{address.get('county')}' → cleaned: '{county}'")
-            print(
-                f"     state_district: '{address.get('state_district')}' → cleaned: '{state_district}'"
-            )
-            print(
-                f"     state: '{address.get('state')}' → cleaned: '{clean_regional_unit(address.get('state'))}'"
-            )
-            print(
-                f"     province: '{address.get('province')}' → cleaned: '{clean_regional_unit(address.get('province'))}'"
-            )
-            print(
-                f"     region: '{address.get('region')}' → cleaned: '{clean_regional_unit(address.get('region'))}'"
-            )
-            if county and state_district:
-                print(f"     → Using concatenated: '{county}, {state_district}'")
-            else:
-                print(f"     → Using fallback: '{region}'")
-
-            # Show which city fields were found and used
-            print("   City Field Analysis:")
-            print(f"     city: '{address.get('city')}'")
-            print(f"     town: '{address.get('town')}'")
-            print(f"     village: '{address.get('village')}'")
-            print(f"     hamlet: '{address.get('hamlet')}'")
-            print(f"     suburb: '{address.get('suburb')}'")
-            print(f"     neighbourhood: '{address.get('neighbourhood')}'")
-            print(f"     municipality: '{address.get('municipality')}'")
-            print(f"     Raw city value: '{city_raw}'")
-            print(f"     Cleaned city value: '{city}'")
-            print(f"     → Using: '{city}'")
-
-        return {
-            "country": country,
-            "region": region,
-            "city": city,
-            "full_address": data.get("display_name", ""),
-        }
-
+        data = perform_reverse_geocode(latitude, longitude)
     except requests.exceptions.Timeout:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Geocoding service timeout. Please try again later.",
         )
     except requests.exceptions.ConnectionError:
-        # Fallback to basic location detection based on coordinates
         if debug:
-            print("❌ OpenStreetMap API unavailable, using fallback location detection")
-        fallback_result = get_fallback_location(latitude, longitude, debug)
-        return fallback_result
-    except requests.RequestException as e:
-        # Fallback to basic location detection based on coordinates
-        if debug:
-            print(f"❌ OpenStreetMap API error: {e}, using fallback location detection")
-        fallback_result = get_fallback_location(latitude, longitude, debug)
-        return fallback_result
+            print("❌ Geocoding API unavailable, using fallback location detection")
+        return get_fallback_location(latitude, longitude, debug)
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Unexpected error during geocoding: {str(e)}",
-        )
+        logger.error(f"Reverse geocoding error: {e}")
+        return get_fallback_location(latitude, longitude, debug)
+
+    return {
+        "country": data.get("country"),
+        "region": data.get("region"),
+        "city": data.get("city"),
+        "full_address": data.get("city")
+        or data.get("region")
+        or data.get("country")
+        or f"Coordinates: {latitude}, {longitude}",
+    }
 
 
 def get_fallback_location(latitude: float, longitude: float, debug: bool = False):

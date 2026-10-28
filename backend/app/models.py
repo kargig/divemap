@@ -1130,6 +1130,9 @@ class Dive(Base):
     dive_site_id = Column(
         Integer, ForeignKey("dive_sites.id", ondelete="SET NULL"), nullable=True
     )
+    unlinked_site_name = Column(
+        String(255), nullable=True, index=True
+    )  # Free-text site name when not linked to a dive site
     diving_center_id = Column(
         Integer, ForeignKey("diving_centers.id", ondelete="SET NULL"), nullable=True
     )  # Link to diving center
