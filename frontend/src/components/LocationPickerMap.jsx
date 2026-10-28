@@ -15,6 +15,7 @@ import {
 } from 'react-leaflet';
 
 import api from '../api';
+import { createUserTargetPinIcon, createNearbySiteIcon } from '../utils/mapPins';
 
 import MapLayersPanel from './MapLayersPanel';
 import Modal from './ui/Modal';
@@ -27,41 +28,11 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-// Distinct Blue pin for the user's draggable target dive site
-const USER_PIN_ICON = L.divIcon({
-  className: 'custom-user-pin-marker',
-  html: `
-    <div style="position: relative; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
-      <span style="position: absolute; width: 32px; height: 32px; border-radius: 9999px; background-color: rgba(37, 99, 235, 0.35); animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></span>
-      <div style="width: 24px; height: 24px; border-radius: 9999px; background-color: #2563eb; border: 2.5px solid white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4); display: flex; align-items: center; justify-content: center; color: white;">
-        <svg style="width: 14px; height: 14px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 21s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 7.2c0 7.3-8 11.8-8 11.8z"/>
-          <circle cx="12" cy="10" r="3" fill="currentColor"/>
-        </svg>
-      </div>
-    </div>
-  `,
-  iconSize: [32, 32],
-  iconAnchor: [16, 28],
-  popupAnchor: [0, -28],
-});
+// Distinct pin based on sticker #16 for the user's draggable target dive site
+const USER_PIN_ICON = createUserTargetPinIcon();
 
-// Distinct Amber pin for existing nearby dive sites
-const NEARBY_SITE_ICON = L.divIcon({
-  className: 'custom-nearby-pin-marker',
-  html: `
-    <div style="position: relative; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">
-      <div style="width: 22px; height: 22px; border-radius: 9999px; background-color: #f59e0b; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: white;">
-        <svg style="width: 12px; height: 12px;" fill="currentColor" viewBox="0 0 20 20">
-          <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
-        </svg>
-      </div>
-    </div>
-  `,
-  iconSize: [28, 28],
-  iconAnchor: [14, 24],
-  popupAnchor: [0, -24],
-});
+// Distinct Amber dive flag pin for existing nearby dive sites
+const NEARBY_SITE_ICON = createNearbySiteIcon();
 
 const SATELLITE_LAYER = {
   id: 'satellite',
@@ -476,7 +447,7 @@ const LocationPickerMap = ({
               dragend: handleMarkerDragEnd,
             }}
           >
-            <Tooltip direction='top' offset={[0, -28]} permanent={false}>
+            <Tooltip direction='top' offset={[0, -48]} permanent={false}>
               <span className='font-semibold text-xs text-blue-700'>
                 New Site Pin (Drag to move)
               </span>
@@ -491,7 +462,7 @@ const LocationPickerMap = ({
               position={[site.latitude, site.longitude]}
               icon={NEARBY_SITE_ICON}
             >
-              <Tooltip direction='top' offset={[0, -24]} permanent={false}>
+              <Tooltip direction='top' offset={[0, -37]} permanent={false}>
                 <span className='font-semibold text-xs text-amber-800 dark:text-amber-300'>
                   {site.name}
                 </span>

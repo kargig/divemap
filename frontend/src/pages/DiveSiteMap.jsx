@@ -14,6 +14,7 @@ import MapLayersPanel from '../components/MapLayersPanel';
 import SEO from '../components/SEO';
 import { getRouteTypeColor } from '../utils/colorPalette';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
+import { createDiveSiteIcon } from '../utils/mapPins';
 import { getSmartRouteColor, calculateRouteBearings, formatBearing } from '../utils/routeUtils';
 import { slugify, getDiveSiteSlug } from '../utils/slugify';
 
@@ -311,30 +312,6 @@ const DiveSiteMap = () => {
       enabled: !!id,
     }
   );
-
-  // Create custom Leaflet icon (SVG diver flag)
-  const createDiveSiteIcon = (isMain = false) => {
-    const size = isMain ? 32 : 24;
-    const border = isMain
-      ? '<rect x="1.5" y="1.5" width="21" height="21" fill="none" stroke="#f59e0b" stroke-width="3" rx="3" ry="3"/>'
-      : '';
-    const svg = `
-      <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        ${border}
-        <rect x="2" y="2" width="20" height="20" fill="#dc2626" stroke="white" stroke-width="1.5" rx="2" ry="2"/>
-        <path d="M2 2 L22 22" stroke="white" stroke-width="3" stroke-linecap="round"/>
-        <circle cx="6" cy="6" r="1" fill="white"/>
-        <circle cx="18" cy="18" r="1" fill="white"/>
-      </svg>
-    `;
-    const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-    return new Icon({
-      iconUrl: dataUrl,
-      iconSize: [size, size],
-      iconAnchor: [size / 2, size / 2],
-      popupAnchor: [0, -size / 2],
-    });
-  };
 
   // (Cluster styling removed; simple markers are used for main and nearby sites)
 

@@ -60,6 +60,7 @@ import Button from '../components/ui/Button';
 import DifficultyBadge from '../components/ui/DifficultyBadge';
 import { useAuth } from '../contexts/AuthContext';
 import { formatDate } from '../utils/dateHelpers';
+import { createDiveSiteIcon } from '../utils/mapPins';
 import { getTagColor } from '../utils/tagHelpers';
 
 // Fix Leaflet marker icons
@@ -699,6 +700,7 @@ const UserListDetail = () => {
                   <Marker
                     key={item.id}
                     position={[Number(item.dive_site.latitude), Number(item.dive_site.longitude)]}
+                    icon={createDiveSiteIcon()}
                     eventHandlers={{
                       click: () => setActiveSiteId(item.dive_site.id),
                     }}

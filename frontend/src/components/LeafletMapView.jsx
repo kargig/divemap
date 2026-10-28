@@ -14,6 +14,7 @@ import api from '../api';
 import { useTheme } from '../contexts/ThemeContext';
 import { formatDate } from '../utils/dateHelpers';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
+import { generateDivePinSvg } from '../utils/mapPins';
 import { getTagColor } from '../utils/tagHelpers';
 import {
   getSuitabilityColor,
@@ -859,111 +860,93 @@ const LeafletMapView = ({
   // Create custom icons for different entity types
   const createEntityIcon = useCallback(
     (entityType, isCluster = false, count = 1, suitability = null, tripDate = null) => {
-      const size = isCluster ? Math.min(24 + count * 2, 48) : 24;
-      const borderWidth = suitability ? 4 : 0; // 4px colored border for suitability - increased for better visibility
       const borderColor = suitability ? getSuitabilityColor(suitability) : null;
+      const hasBaseDisc = Boolean(entityType === 'dive_site' && borderColor);
+
+      const width = isCluster ? Math.min(26 + count * 2, 44) : hasBaseDisc ? 34 : 28;
+      const height = hasBaseDisc ? Math.round(width * (56 / 44)) : Math.round(width * (48 / 36));
+      const anchorY = hasBaseDisc ? Math.round(height * (49 / 56)) : height;
 
       let svg = '';
 
       switch (entityType) {
         case 'dive_site':
-          // Scuba flag (diver down flag) - red rectangle with white diagonal stripe
-          // Add colored border if suitability is available
-          // Use a white outline around the colored border for better visibility
-          svg = `
-            <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              ${
-                borderColor
-                  ? `
-                <!-- White outline for better contrast -->
-                <rect x="0" y="0" width="24" height="24" fill="white" stroke="white" stroke-width="${borderWidth + 1}"/>
-                <!-- Colored border -->
-                <rect x="0.5" y="0.5" width="23" height="23" fill="${borderColor}" stroke="${borderColor}" stroke-width="${borderWidth}" stroke-opacity="1"/>
-              `
-                  : ''
-              }
-              <!-- Red rectangle background -->
-              <rect x="${borderColor ? borderWidth + 0.5 : 2}" y="${borderColor ? borderWidth + 0.5 : 2}" width="${borderColor ? 24 - (borderWidth + 0.5) * 2 : 20}" height="${borderColor ? 24 - (borderWidth + 0.5) * 2 : 20}" fill="#dc2626" stroke="white" stroke-width="1"/>
-              <!-- White diagonal stripe from top-left to bottom-right -->
-              <path d="M${borderColor ? borderWidth + 0.5 : 2} ${borderColor ? borderWidth + 0.5 : 2} L${borderColor ? 24 - (borderWidth + 0.5) : 22} ${borderColor ? 24 - (borderWidth + 0.5) : 22}" stroke="white" stroke-width="3" stroke-linecap="round"/>
-              <!-- Optional: Add small white dots for bubbles -->
-              <circle cx="${borderColor ? 6 + borderWidth + 0.5 : 6}" cy="${borderColor ? 6 + borderWidth + 0.5 : 6}" r="1" fill="white"/>
-              <circle cx="${borderColor ? 18 - (borderWidth + 0.5) : 18}" cy="${borderColor ? 18 - (borderWidth + 0.5) : 18}" r="1" fill="white"/>
-            </svg>
-          `;
+          svg = generateDivePinSvg({
+            width,
+            height,
+            flagColor: '#dc2626',
+            outerBorderColor: '#0f172a',
+            baseDiscColor: borderColor,
+            isTransparentHole: true,
+          });
           break;
         case 'dive':
-          // Scuba flag (diver down flag) - red rectangle with white diagonal stripe
-          svg = `
-          <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <!-- Red rectangle background -->
-            <rect x="2" y="2" width="20" height="20" fill="#dc2626" stroke="white" stroke-width="1"/>
-            <!-- White diagonal stripe from top-left to bottom-right -->
-            <path d="M2 2 L22 22" stroke="white" stroke-width="3" stroke-linecap="round"/>
-            <!-- Optional: Add small white dots for bubbles -->
-            <circle cx="6" cy="6" r="1" fill="white"/>
-            <circle cx="18" cy="18" r="1" fill="white"/>
-          </svg>
-        `;
+          svg = generateDivePinSvg({
+            width,
+            height,
+            flagColor: '#dc2626',
+            outerBorderColor: '#0f172a',
+            isTransparentHole: true,
+          });
           break;
         case 'diving_center':
-          // Blue square with "DC" text for diving centers
-          svg = `
-          <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <!-- Blue rectangle background -->
-            <rect x="2" y="2" width="20" height="20" fill="#0072B2" stroke="white" stroke-width="1"/>
-            <!-- White "DC" text -->
-            <text x="12" y="16" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="10" font-weight="bold">DC</text>
-          </svg>
-        `;
+          svg = generateDivePinSvg({
+            width,
+            height,
+            isSolidColor: true,
+            solidFill: '#0284c7',
+            outerBorderColor: '#0f172a',
+            badgeText: 'DC',
+            badgeFill: '#ffffff',
+            badgeTextColor: '#0284c7',
+          });
           break;
         case 'dive_trip': {
-          // Trip icon with status-based color
-          let baseColor = '#0072B2'; // Default blue for scheduled
+          let baseColor = '#0072B2';
           if (tripDate) {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const tDate = new Date(tripDate);
             if (tDate < today) {
-              baseColor = '#6b7280'; // Gray for past trips
+              baseColor = '#6b7280';
             } else if (tDate.getTime() === today.getTime()) {
-              baseColor = '#f59e0b'; // Orange/Yellow for today
+              baseColor = '#f59e0b';
             } else {
-              baseColor = '#10b981'; // Green for future
+              baseColor = '#10b981';
             }
           }
 
-          svg = `
-          <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <!-- Background circle -->
-            <circle cx="12" cy="12" r="10" fill="${baseColor}" stroke="white" stroke-width="2"/>
-            <!-- Diver silhouette -->
-            <circle cx="12" cy="9" r="2" fill="white"/>
-            <path d="M8 15 Q12 19 16 15" stroke="white" stroke-width="2" fill="none"/>
-            <!-- Flag -->
-            <rect x="15" y="7" width="4" height="3" fill="white" rx="1"/>
-            <line x1="15" y1="7" x2="15" y2="10" stroke="white" stroke-width="1"/>
-          </svg>
-        `;
+          svg = generateDivePinSvg({
+            width,
+            height,
+            isSolidColor: true,
+            solidFill: baseColor,
+            outerBorderColor: '#0f172a',
+            diverSilhouette: true,
+            badgeFill: '#ffffff',
+          });
           break;
         }
         default:
-          // Default gray circle
-          svg = `
-          <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="12" r="10" fill="#6b7280" stroke="white" stroke-width="2"/>
-            <text x="12" y="16" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="10" font-weight="bold">?</text>
-          </svg>
-        `;
+          svg = generateDivePinSvg({
+            width,
+            height,
+            isSolidColor: true,
+            solidFill: '#6b7280',
+            outerBorderColor: '#0f172a',
+            badgeText: '?',
+            badgeFill: '#ffffff',
+            badgeTextColor: '#6b7280',
+          });
       }
 
       const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 
       return new Icon({
         iconUrl: dataUrl,
-        iconSize: [size, size],
-        iconAnchor: [size / 2, size / 2],
-        popupAnchor: [0, -size / 2],
+        iconSize: [width, height],
+        iconAnchor: [Math.round(width / 2), anchorY],
+        popupAnchor: [0, -height],
       });
     },
     []

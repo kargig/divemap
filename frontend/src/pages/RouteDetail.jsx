@@ -36,6 +36,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { CHART_COLORS, getRouteTypeColor } from '../utils/colorPalette';
 import { formatDate } from '../utils/dateHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
+import { createDiveSiteIcon } from '../utils/mapPins';
 import { MARKER_TYPES } from '../utils/markerTypes';
 import { getRouteTypeLabel, calculateRouteBearings, formatBearing } from '../utils/routeUtils';
 import { slugify, getDiveSiteSlug } from '../utils/slugify';
@@ -399,7 +400,11 @@ const RouteDisplay = ({ route, diveSite, showBearings, onToggleBearings }) => {
 
         {/* Dive site marker */}
         {diveSite && (
-          <Marker position={[diveSite.latitude, diveSite.longitude]} zIndexOffset={1000}>
+          <Marker
+            position={[diveSite.latitude, diveSite.longitude]}
+            icon={createDiveSiteIcon()}
+            zIndexOffset={1000}
+          >
             <Popup>
               <div className='text-center'>
                 <h3 className='font-semibold text-gray-800'>{diveSite.name}</h3>

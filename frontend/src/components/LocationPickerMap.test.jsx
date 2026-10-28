@@ -47,23 +47,23 @@ vi.mock('react-leaflet', () => ({
   },
 }));
 
-vi.mock('leaflet', () => ({
-  default: {
-    Icon: {
-      Default: {
-        prototype: {},
-        mergeOptions: vi.fn(),
-      },
+vi.mock('leaflet', () => {
+  const MockIcon = vi.fn(function (options) {
+    this.options = options;
+  });
+  MockIcon.Default = {
+    prototype: {},
+    mergeOptions: vi.fn(),
+  };
+
+  return {
+    default: {
+      Icon: MockIcon,
+      divIcon: vi.fn(() => ({})),
     },
-    divIcon: vi.fn(() => ({})),
-  },
-  Icon: {
-    Default: {
-      prototype: {},
-      mergeOptions: vi.fn(),
-    },
-  },
-}));
+    Icon: MockIcon,
+  };
+});
 
 vi.mock('../api', () => ({
   default: {

@@ -2,11 +2,12 @@ import L, { Icon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Maximize2, X, Layers } from 'lucide-react';
 import PropTypes from 'prop-types';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 
 import MapLayersPanel from '../components/MapLayersPanel';
 import { useTheme } from '../contexts/ThemeContext';
+import { createDiveSiteIcon } from '../utils/mapPins';
 
 import Modal from './ui/Modal';
 
@@ -96,6 +97,8 @@ const MiniMap = ({
     }
   }, [isMaximized]);
 
+  const diveSiteIcon = useMemo(() => createDiveSiteIcon(), []);
+
   if (isMaximized) {
     return (
       <Modal
@@ -113,7 +116,7 @@ const MiniMap = ({
           >
             <TileLayer attribution={selectedLayer?.attribution || ''} url={selectedLayer?.url} />
             <Recenter lat={latitude} lng={longitude} zoom={12} />
-            <Marker position={[latitude, longitude]} />
+            <Marker position={[latitude, longitude]} icon={diveSiteIcon} />
           </MapContainer>
         </div>
       </Modal>
@@ -150,7 +153,7 @@ const MiniMap = ({
         >
           <TileLayer attribution={selectedLayer?.attribution || ''} url={selectedLayer?.url} />
           <Recenter lat={latitude} lng={longitude} zoom={isExpanded ? 12 : 10} />
-          <Marker position={[latitude, longitude]} />
+          <Marker position={[latitude, longitude]} icon={diveSiteIcon} />
         </MapContainer>
       </div>
       <MapLayersPanel

@@ -94,6 +94,7 @@ React application built with Vite, Tailwind CSS, and OpenLayers.
 - `services/`: Frontend-specific service logic (Notification permissions, PWA lifecycle).
 - `utils/`: Helpers and validation:
   - `formHelpers.js`: **CRITICAL:** Zod schemas for all forms.
+  - `mapPins.js`: Shared Leaflet SVG pin generator (dive flag pins, nearby, centers, user target).
   - `physics.js`: Frontend parity for dive physics calculations.
   - `windSuitabilityHelpers.js`: Real-time wind impact visualization logic.
   - `routeCompression.js`: Optimizing GPS tracks for storage/display.

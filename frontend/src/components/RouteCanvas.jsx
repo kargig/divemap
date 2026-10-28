@@ -34,6 +34,7 @@ import api from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { getRouteTypeColor } from '../utils/colorPalette';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
+import { createDiveSiteIcon } from '../utils/mapPins';
 import { MARKER_TYPES } from '../utils/markerTypes';
 import {
   extractYouTubeVideoId,
@@ -649,7 +650,10 @@ const DrawingMap = ({
         />
 
         {diveSite && (
-          <Marker position={[parseFloat(diveSite.latitude), parseFloat(diveSite.longitude)]}>
+          <Marker
+            position={[parseFloat(diveSite.latitude), parseFloat(diveSite.longitude)]}
+            icon={createDiveSiteIcon()}
+          >
             <Popup>
               <div className='text-center'>
                 <h3 className='font-semibold text-lg'>{diveSite.name}</h3>
