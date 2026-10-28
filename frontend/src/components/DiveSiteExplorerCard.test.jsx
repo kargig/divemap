@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from 'react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect } from 'vitest';
 
-import DiveSiteExplorerCard from '../DiveSiteExplorerCard';
+import DiveSiteExplorerCard from './DiveSiteExplorerCard';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false } },

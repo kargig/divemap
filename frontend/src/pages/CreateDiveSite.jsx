@@ -8,8 +8,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 
 import api from '../api';
-import { FormField } from '../components/forms/FormField';
+import FormField from '../components/forms/FormField';
 import TagSelection from '../components/forms/TagSelection';
+import LocationPickerMap from '../components/LocationPickerMap';
 import SEO from '../components/SEO';
 import Button from '../components/ui/Button';
 import MarkdownEditor from '../components/ui/MarkdownEditor';
@@ -70,10 +71,12 @@ const CreateDiveSite = () => {
 
   const formData = watch();
 
-  // Pre-fill latitude and longitude from query parameters (e.g. from Garmin FIT import)
+  // Pre-fill name, latitude and longitude from query parameters (e.g. from dive log import)
   useEffect(() => {
+    const nameParam = searchParams.get('name');
     const lat = searchParams.get('lat');
     const lng = searchParams.get('lng');
+    if (nameParam) setValue('name', nameParam, { shouldValidate: true });
     if (lat) setValue('latitude', lat, { shouldValidate: true });
     if (lng) setValue('longitude', lng, { shouldValidate: true });
   }, [searchParams, setValue]);
@@ -98,25 +101,6 @@ const CreateDiveSite = () => {
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [nearbySites, setNearbySites] = useState([]);
   const [pendingSubmitData, setPendingSubmitData] = useState(null);
-
-  // Background proximity check
-  const { data: backgroundNearbySites } = useQuery(
-    ['check-proximity', formData.latitude, formData.longitude],
-    async () => {
-      if (!formData.latitude || !formData.longitude) return [];
-      const lat = parseFloat(formData.latitude);
-      const lng = parseFloat(formData.longitude);
-      if (isNaN(lat) || isNaN(lng)) return [];
-      const res = await api.get('/api/v1/dive-sites/check-proximity', {
-        params: { lat, lng, radius_m: 50 },
-      });
-      return res.data;
-    },
-    {
-      enabled: !!formData.latitude && !!formData.longitude,
-      staleTime: 30000,
-    }
-  );
 
   // Automatic Location and Shore Detection
   useEffect(() => {
@@ -650,44 +634,32 @@ const CreateDiveSite = () => {
                     )}
                   </FormField>
                 </div>
-              </div>
 
-              {/* Background Proximity Hint */}
-              {backgroundNearbySites && backgroundNearbySites.length > 0 && !showDuplicateModal && (
-                <div className='bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md'>
-                  <div className='flex'>
-                    <div className='flex-shrink-0'>
-                      <svg
-                        className='h-5 w-5 text-yellow-400'
-                        viewBox='0 0 20 20'
-                        fill='currentColor'
-                      >
-                        <path
-                          fillRule='evenodd'
-                          d='M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z'
-                          clipRule='evenodd'
-                        />
-                      </svg>
-                    </div>
-                    <div className='ml-3'>
-                      <p className='text-sm text-yellow-700'>
-                        <strong className='font-medium text-yellow-800'>Did you know?</strong> There
-                        are already dive sites right here:
-                        <ul className='list-disc pl-5 mt-1'>
-                          {backgroundNearbySites.map(site => (
-                            <li key={site.id}>
-                              {site.name} ({site.distance_m}m away)
-                            </li>
-                          ))}
-                        </ul>
-                        <span className='block mt-2 font-medium'>
-                          Consider adding a new Dive Route to an existing site instead.
-                        </span>
-                      </p>
-                    </div>
-                  </div>
+                <div className='col-span-full'>
+                  <label className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'>
+                    Pin Location on Map
+                  </label>
+                  <LocationPickerMap
+                    latitude={formData.latitude}
+                    longitude={formData.longitude}
+                    country={formData.country}
+                    region={formData.region}
+                    initialSearchQuery={formData.name || ''}
+                    autoSearchOnMount={!formData.latitude && !formData.longitude && !!formData.name}
+                    height='h-64 sm:h-80'
+                    onChange={({ lat, lng }) => {
+                      setValue('latitude', lat.toFixed(6));
+                      setValue('longitude', lng.toFixed(6));
+                      trigger(['latitude', 'longitude']);
+                    }}
+                    onLocationResolved={({ country: resCountry, region: resRegion }) => {
+                      if (resCountry) setValue('country', resCountry, { shouldValidate: true });
+                      if (resRegion) setValue('region', resRegion, { shouldValidate: true });
+                    }}
+                    onSelectNearbySite={site => navigate(`/dive-sites/${site.id}`)}
+                  />
                 </div>
-              )}
+              </div>
 
               {/* Location Suggestion Button */}
               <div className='flex justify-end'>

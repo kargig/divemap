@@ -58,6 +58,11 @@ async def confirm_import_dives(
             # Create/Update data
             dive_create = DiveCreate(
                 dive_site_id=dive_data.get("dive_site_id"),
+                unlinked_site_name=(
+                    dive_data.get("unlinked_site_name")
+                    if not dive_data.get("dive_site_id")
+                    else None
+                ),
                 diving_center_id=dive_data.get("diving_center_id"),
                 name=dive_data.get("name"),
                 is_private=dive_data.get("is_private", False),
@@ -138,6 +143,10 @@ async def confirm_import_dives(
                 else:
                     if original_dive_name:
                         dive.name = f"Dive - {dive.dive_date} - {original_dive_name}"
+                    elif dive.unlinked_site_name:
+                        dive.name = (
+                            f"Dive - {dive.dive_date} - {dive.unlinked_site_name}"
+                        )
                     else:
                         dive.name = f"Dive - {dive.dive_date}"
 
@@ -239,7 +248,8 @@ async def confirm_import_dives(
                     "name": dive.name,
                     "dive_date": dive.dive_date.isoformat() if dive.dive_date else None,
                     "dive_site_id": dive.dive_site_id,
-                    "dive_site_name": dive_site_name,
+                    "dive_site_name": dive_site_name or dive.unlinked_site_name,
+                    "unlinked_site_name": dive.unlinked_site_name,
                 }
             )
 

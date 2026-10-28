@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import DiveSiteSpecsCard from '../DiveSiteSpecsCard';
+import DiveSiteSpecsCard from './DiveSiteSpecsCard';
 
 describe('DiveSiteSpecsCard', () => {
   const mockDiveSite = {

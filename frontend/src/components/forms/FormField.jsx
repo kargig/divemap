@@ -42,3 +42,5 @@ FormField.propTypes = {
   className: PropTypes.string,
   required: PropTypes.bool,
 };
+
+export default FormField;

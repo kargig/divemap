@@ -53,6 +53,7 @@ import DiveSidebar from '../components/DiveSidebar';
 import GasTanksDisplay from '../components/GasTanksDisplay';
 import Lightbox from '../components/Lightbox/Lightbox';
 import ReactImage from '../components/Lightbox/ReactImage';
+import LinkDiveSiteModal from '../components/LinkDiveSiteModal';
 import MultiPhotoUploadModal from '../components/MultiPhotoUploadModal';
 import RateLimitError from '../components/RateLimitError';
 import SEO from '../components/SEO';
@@ -107,6 +108,7 @@ const DiveDetail = () => {
   const [activeMediaTab, setActiveMediaTab] = useState('photos');
   const [profileHasDeco, setProfileHasDeco] = useState(undefined);
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
 
   const [routeMapViewport, setRouteMapViewport] = useState({
     center: [38.1158243, 23.2146529], // Default to Psatha dive site coordinates
@@ -641,8 +643,29 @@ const DiveDetail = () => {
           </button>
           <div className='min-w-0 flex-1'>
             <h1 className='text-2xl sm:text-3xl lg:text-4xl font-display font-bold text-gray-900 dark:text-slate-100 break-words leading-tight'>
-              {dive.name || `Dive at ${dive.dive_site?.name || 'Unnamed Site'}`}
+              {dive.name ||
+                `Dive at ${dive.dive_site?.name || dive.unlinked_site_name || 'Unnamed Site'}`}
             </h1>
+
+            {/* Unlinked Site Badge & Link Action */}
+            {!dive.dive_site && dive.unlinked_site_name && (
+              <div className='flex items-center gap-2 mt-2 flex-wrap'>
+                <div className='inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 rounded-lg border border-dashed border-amber-400 dark:border-amber-600 text-xs sm:text-sm font-medium'>
+                  <MapPin size={14} className='text-amber-600' />
+                  <span>@ {dive.unlinked_site_name}</span>
+                  <span className='font-semibold'>(Unlinked Site)</span>
+                  {(user?.id === dive?.user_id || user?.is_admin) && (
+                    <button
+                      type='button'
+                      onClick={() => setIsLinkModalOpen(true)}
+                      className='ml-1 px-2 py-0.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold transition-colors'
+                    >
+                      Link Site
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Privacy Status and Created By */}
             <div className='flex items-center gap-2 mt-2 flex-wrap'>
@@ -1359,6 +1382,18 @@ const DiveDetail = () => {
           diveId={dive.id}
           onUploadSuccess={() => {
             queryClient.invalidateQueries(['dive-media', id]);
+            queryClient.invalidateQueries(['dive', id]);
+          }}
+        />
+      )}
+
+      {dive && isLinkModalOpen && (
+        <LinkDiveSiteModal
+          isOpen={true}
+          onClose={() => setIsLinkModalOpen(false)}
+          dive={dive}
+          onSuccess={() => {
+            setIsLinkModalOpen(false);
             queryClient.invalidateQueries(['dive', id]);
           }}
         />

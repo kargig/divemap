@@ -6,8 +6,6 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
-import orjson
-import requests
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -846,60 +844,21 @@ def search_dive_sites_with_fuzzy(
 
 
 def _perform_reverse_geocode(latitude: float, longitude: float) -> dict | None:
-    """Internal helper to perform reverse geocoding without requiring a Request object."""
+    """Internal helper to perform reverse geocoding via 3-tier geocoder."""
     try:
-        import requests
+        from app.geo_utils import perform_reverse_geocode
 
-        # Use OpenStreetMap Nominatim API for reverse geocoding
-        url = "https://nominatim.openstreetmap.org/reverse"
-        params = {
-            "lat": latitude,
-            "lon": longitude,
-            "format": "json",
-            "addressdetails": 1,
-            "zoom": 8,
-            "accept-language": "en",
-        }
-
-        headers = {"User-Agent": "Divemap/1.0 (https://github.com/kargig/divemap)"}
-
-        response = requests.get(url, params=params, headers=headers, timeout=10)
-        if response.status_code != 200:
-            return None
-
-        data = response.json()
-        address = data.get("address", {})
-
-        # Extract country and region information
-        country = address.get("country")
-
-        def clean_regional_unit(text):
-            if text:
-                if text.endswith(" Regional Unit"):
-                    return text[: -len(" Regional Unit")].strip()
-                elif text.endswith("Regional Unit"):
-                    return text[: -len("Regional Unit")].strip()
-                return text
-            return text
-
-        county = clean_regional_unit(address.get("county"))
-        state_district = clean_regional_unit(address.get("state_district"))
-
-        if county and state_district:
-            region = f"{county}, {state_district}"
-        else:
-            region = (
-                clean_regional_unit(address.get("state"))
-                or clean_regional_unit(address.get("province"))
-                or clean_regional_unit(address.get("region"))
-                or county
-            )
-
-        return {
-            "country": country,
-            "region": region,
-            "full_address": data.get("display_name", ""),
-        }
+        res = perform_reverse_geocode(latitude, longitude)
+        if res and res.get("country"):
+            return {
+                "country": res.get("country"),
+                "region": res.get("region"),
+                "full_address": res.get("city")
+                or res.get("region")
+                or res.get("country")
+                or "",
+            }
+        return None
     except Exception as e:
         logger.error(f"Internal geocoding error: {e}")
         return None
@@ -966,134 +925,45 @@ async def reverse_geocode(
     latitude: float = Query(..., ge=-90, le=90),
     longitude: float = Query(..., ge=-180, le=180),
     debug: bool = Query(
-        False, description="Enable debug logging for Nominatim API calls"
+        False, description="Enable debug logging for geocoding API calls"
     ),
     db: Session = Depends(get_db),
 ):
     """
-    Get country and region suggestions based on coordinates using OpenStreetMap Nominatim API
+    Get country and region suggestions based on coordinates using 3-tier geocoder (Geoapify -> Photon -> Nominatim)
     """
-    try:
-        # Use OpenStreetMap Nominatim API for reverse geocoding
-        url = "https://nominatim.openstreetmap.org/reverse"
-        params = {
-            "lat": latitude,
-            "lon": longitude,
-            "format": "json",
-            "addressdetails": 1,
-            "zoom": 8,  # Get more detailed results
-            "accept-language": "en",  # Request English language results
-        }
+    from app.geo_utils import perform_reverse_geocode
 
-        # Add User-Agent header as required by Nominatim
-        headers = {"User-Agent": "Divemap/1.0 (https://github.com/kargig/divemap)"}
+    data = perform_reverse_geocode(latitude, longitude)
+    return {
+        "country": data.get("country"),
+        "region": data.get("region"),
+        "city": data.get("city"),
+        "county": data.get("county"),
+        "state": data.get("state"),
+        "full_address": data.get("city")
+        or data.get("region")
+        or data.get("country")
+        or "",
+    }
 
-        response = requests.get(url, params=params, headers=headers, timeout=15)
 
-        # Log the response for debugging
-        if debug:
-            logger.debug(f"🔍 Nominatim API Request: URL={url}, Parameters={params}")
+@router.get("/search-places")
+@skip_rate_limit_for_admin("120/minute")
+async def search_places_endpoint(
+    request: Request,
+    q: str = Query(..., min_length=1),
+    latitude: float | None = Query(None, ge=-90, le=90),
+    longitude: float | None = Query(None, ge=-180, le=180),
+    limit: int = Query(5, ge=1, le=10),
+    db: Session = Depends(get_db),
+):
+    """
+    Forward geocode place search using 3-tier geocoder (Geoapify -> Photon -> Nominatim)
+    """
+    from app.geo_utils import search_places
 
-        response.raise_for_status()
-
-        data = response.json()
-
-        if debug:
-            logger.debug(
-                f"📡 Nominatim API Response: Status={response.status_code}, Content={orjson.dumps(data).decode('utf-8')}"
-            )
-
-        address = data.get("address", {})
-
-        # Extract country and region information
-        country = address.get("country")
-
-        # Helper function to clean "Regional Unit" from text
-        # Only remove "Regional Unit" if it appears at the end, keep it if it appears at the beginning
-        def clean_regional_unit(text):
-            if text:
-                # Remove " Regional Unit" only if it appears at the end
-                if text.endswith(" Regional Unit"):
-                    return text[: -len(" Regional Unit")].strip()
-                # Remove "Regional Unit" only if it appears at the end (no leading space)
-                elif text.endswith("Regional Unit"):
-                    return text[: -len("Regional Unit")].strip()
-                return text
-            return text
-
-        # Get and clean county and state_district fields
-        county = clean_regional_unit(address.get("county"))
-        state_district = clean_regional_unit(address.get("state_district"))
-
-        if county and state_district:
-            region = f"{county}, {state_district}"
-        else:
-            # Fallback to previous priority order, also cleaning "Regional Unit"
-            region = (
-                clean_regional_unit(address.get("state"))
-                or clean_regional_unit(address.get("province"))
-                or clean_regional_unit(address.get("region"))
-                or county  # county alone if no state_district
-            )
-
-        # Log the extracted data
-        if debug:
-            print("📍 Extracted Location Data:")
-            print(f"   Country: '{country}'")
-            print(f"   Region: '{region}'")
-            print(f"   Full Address: '{data.get('display_name', '')}'")
-            print(
-                f"   Raw Address Object: {orjson.dumps(address, option=orjson.OPT_INDENT_2).decode('utf-8')}"
-            )
-
-            # Show which region fields were found and used
-            print("   Region Field Analysis:")
-            print(f"     county: '{address.get('county')}' → cleaned: '{county}'")
-            print(
-                f"     state_district: '{address.get('state_district')}' → cleaned: '{state_district}'"
-            )
-            print(
-                f"     state: '{address.get('state')}' → cleaned: '{clean_regional_unit(address.get('state'))}'"
-            )
-            print(
-                f"     province: '{address.get('province')}' → cleaned: '{clean_regional_unit(address.get('province'))}'"
-            )
-            print(
-                f"     region: '{address.get('region')}' → cleaned: '{clean_regional_unit(address.get('region'))}'"
-            )
-            if county and state_district:
-                print(f"     → Using concatenated: '{county}, {state_district}'")
-            else:
-                print(f"     → Using fallback: '{region}'")
-
-        return {
-            "country": country,
-            "region": region,
-            "full_address": data.get("display_name", ""),
-        }
-
-    except requests.exceptions.Timeout:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Geocoding service timeout. Please try again later.",
-        )
-    except requests.exceptions.ConnectionError:
-        # Fallback to basic location detection based on coordinates
-        if debug:
-            print("❌ OpenStreetMap API unavailable, using fallback location detection")
-        fallback_result = get_fallback_location(latitude, longitude, debug)
-        return fallback_result
-    except requests.RequestException as e:
-        # Fallback to basic location detection based on coordinates
-        if debug:
-            print(f"❌ OpenStreetMap API error: {e}, using fallback location detection")
-        fallback_result = get_fallback_location(latitude, longitude, debug)
-        return fallback_result
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Unexpected error during geocoding: {str(e)}",
-        )
+    return search_places(query=q, lat=latitude, lon=longitude, limit=limit)
 
 
 def get_fallback_location(latitude: float, longitude: float, debug: bool = False):

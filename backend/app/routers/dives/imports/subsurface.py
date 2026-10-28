@@ -427,14 +427,15 @@ def convert_to_divemap_format(
             if extradata.get("key") == "Deco model":
                 dive_info_parts.append(f"Deco Model: {extradata['value']}")
 
-    for weight in weights:
-        weight_info = []
-        if weight.get("weight"):
-            weight_info.append(weight["weight"])
-        if weight.get("description"):
-            weight_info.append(weight["description"])
-        if weight_info:
-            dive_info_parts.append(f"Weight: {' - '.join(weight_info)}")
+    if weights:
+        for weight in weights:
+            weight_info = []
+            if weight.get("weight"):
+                weight_info.append(weight["weight"])
+            if weight.get("description"):
+                weight_info.append(weight["description"])
+            if weight_info:
+                dive_info_parts.append(f"Weight: {' - '.join(weight_info)}")
 
     max_depth = 0.0
     average_depth = 0.0
@@ -461,9 +462,28 @@ def convert_to_divemap_format(
             if match.get("match_type") == "similarity":
                 proposed_sites = match.get("proposed_sites")
         else:
+            gps_val = dive_sites[divesiteid].get("gps")
+            lat = None
+            lng = None
+            if gps_val and isinstance(gps_val, str):
+                parts = [
+                    p.strip() for p in gps_val.replace(",", " ").split() if p.strip()
+                ]
+                if len(parts) >= 2:
+                    try:
+                        p_lat = float(parts[0])
+                        p_lng = float(parts[1])
+                        if -90 <= p_lat <= 90 and -180 <= p_lng <= 180:
+                            lat = p_lat
+                            lng = p_lng
+                    except ValueError:
+                        pass
+
             unmatched_dive_site = {
                 "name": site_name,
-                "gps": dive_sites[divesiteid].get("gps"),
+                "gps": gps_val,
+                "latitude": lat,
+                "longitude": lng,
             }
 
     gas_bottles_used = create_structured_gas_data(cylinders, events=events)

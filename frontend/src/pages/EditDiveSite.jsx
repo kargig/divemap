@@ -35,6 +35,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
 import { FormField } from '../components/forms/FormField';
 import TagSelection from '../components/forms/TagSelection';
+import LocationPickerMap from '../components/LocationPickerMap';
 import SEO from '../components/SEO';
 import MarkdownEditor from '../components/ui/MarkdownEditor';
 import UploadPhotosComponent from '../components/UploadPhotosComponent';
@@ -1514,6 +1515,29 @@ const EditDiveSite = () => {
                         />
                       )}
                     </FormField>
+                  </div>
+
+                  <div className='col-span-full'>
+                    <label className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'>
+                      Pin Location on Map
+                    </label>
+                    <LocationPickerMap
+                      latitude={formData.latitude}
+                      longitude={formData.longitude}
+                      country={formData.country}
+                      region={formData.region}
+                      height='h-64 sm:h-80'
+                      onChange={({ lat, lng }) => {
+                        setValue('latitude', lat.toFixed(6));
+                        setValue('longitude', lng.toFixed(6));
+                        trigger(['latitude', 'longitude']);
+                      }}
+                      onLocationResolved={({ country: resCountry, region: resRegion }) => {
+                        if (resCountry) setValue('country', resCountry, { shouldValidate: true });
+                        if (resRegion) setValue('region', resRegion, { shouldValidate: true });
+                      }}
+                      onSelectNearbySite={site => window.open(`/dive-sites/${site.id}`, '_blank')}
+                    />
                   </div>
                 </div>
 
