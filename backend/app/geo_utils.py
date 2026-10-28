@@ -46,7 +46,7 @@ def get_external_region_bounds(
 
         params = {"q": query, "format": "json", "limit": 1, "addressdetails": 1}
         headers = {
-            "User-Agent": "Divemap-Backend/1.0 (info@divemap.com)"  # Nominatim requires a User-Agent
+            "User-Agent": "Divemap-Backend/1.0 (info@divemap.blue)"  # Nominatim requires a User-Agent
         }
 
         response = requests.get(url, params=params, headers=headers, timeout=10.0)
@@ -147,9 +147,14 @@ def perform_reverse_geocode(latitude: float, longitude: float) -> dict[str, str 
         "suburb": None,
     }
 
+    timeout_errors = []
+    connection_errors = []
+    attempts = 0
+
     # 1. Tier 1: Geoapify
     geoapify_key = os.getenv("GEOAPIFY_KEY")
     if geoapify_key:
+        attempts += 1
         try:
             url = "https://api.geoapify.com/v1/geocode/reverse"
             params = {
@@ -158,7 +163,7 @@ def perform_reverse_geocode(latitude: float, longitude: float) -> dict[str, str 
                 "apiKey": geoapify_key,
                 "lang": "en",
             }
-            resp = requests.get(url, params=params, timeout=5.0)
+            resp = requests.get(url, params=params, timeout=2.0)
             if resp.status_code == 200:
                 data = resp.json()
                 features = data.get("features", [])
@@ -186,19 +191,24 @@ def perform_reverse_geocode(latitude: float, longitude: float) -> dict[str, str 
                         }
                     )
                     if result["country"]:
-                        logger.info(
-                            f"Geoapify reverse geocoded ({latitude}, {longitude}): {result}"
-                        )
+                        logger.debug("Geoapify reverse geocoding succeeded")
                         return result
+        except requests.exceptions.Timeout as e:
+            timeout_errors.append(e)
+            logger.warning("Geoapify reverse geocoding timed out")
+        except requests.exceptions.ConnectionError as e:
+            connection_errors.append(e)
+            logger.warning("Geoapify reverse geocoding connection error")
         except Exception as e:
             logger.warning(f"Geoapify reverse geocoding failed: {e}")
 
     # 2. Tier 2: Photon (Komoot)
+    attempts += 1
     try:
         url = "https://photon.komoot.io/reverse"
         params = {"lat": latitude, "lon": longitude, "lang": "en"}
-        headers = {"User-Agent": "Divemap-Backend/1.0 (info@divemap.com)"}
-        resp = requests.get(url, params=params, headers=headers, timeout=5.0)
+        headers = {"User-Agent": "Divemap-Backend/1.0 (info@divemap.blue)"}
+        resp = requests.get(url, params=params, headers=headers, timeout=2.0)
         if resp.status_code == 200:
             data = resp.json()
             features = data.get("features", [])
@@ -223,14 +233,19 @@ def perform_reverse_geocode(latitude: float, longitude: float) -> dict[str, str 
                     }
                 )
                 if result["country"]:
-                    logger.info(
-                        f"Photon reverse geocoded ({latitude}, {longitude}): {result}"
-                    )
+                    logger.debug("Photon reverse geocoding succeeded")
                     return result
+    except requests.exceptions.Timeout as e:
+        timeout_errors.append(e)
+        logger.warning("Photon reverse geocoding timed out")
+    except requests.exceptions.ConnectionError as e:
+        connection_errors.append(e)
+        logger.warning("Photon reverse geocoding connection error")
     except Exception as e:
         logger.warning(f"Photon reverse geocoding failed: {e}")
 
     # 3. Tier 3: Nominatim (OpenStreetMap)
+    attempts += 1
     try:
         url = "https://nominatim.openstreetmap.org/reverse"
         params = {
@@ -241,7 +256,7 @@ def perform_reverse_geocode(latitude: float, longitude: float) -> dict[str, str 
             "zoom": 8,
             "accept-language": "en",
         }
-        headers = {"User-Agent": "Divemap-Backend/1.0 (info@divemap.com)"}
+        headers = {"User-Agent": "Divemap-Backend/1.0 (info@divemap.blue)"}
         resp = requests.get(url, params=params, headers=headers, timeout=6.0)
         if resp.status_code == 200:
             data = resp.json()
@@ -280,12 +295,21 @@ def perform_reverse_geocode(latitude: float, longitude: float) -> dict[str, str 
                 }
             )
             if result["country"]:
-                logger.info(
-                    f"Nominatim reverse geocoded ({latitude}, {longitude}): {result}"
-                )
+                logger.debug("Nominatim reverse geocoding succeeded")
                 return result
+    except requests.exceptions.Timeout as e:
+        timeout_errors.append(e)
+        logger.warning("Nominatim reverse geocoding timed out")
+    except requests.exceptions.ConnectionError as e:
+        connection_errors.append(e)
+        logger.warning("Nominatim reverse geocoding connection error")
     except Exception as e:
         logger.error(f"Nominatim reverse geocoding failed: {e}")
+
+    if attempts > 0 and len(timeout_errors) == attempts:
+        raise timeout_errors[0]
+    if attempts > 0 and len(connection_errors) == attempts:
+        raise connection_errors[0]
 
     return result
 
@@ -319,7 +343,7 @@ def search_places(
             if lat is not None and lon is not None:
                 params["bias"] = f"proximity:{lon},{lat}"
 
-            resp = requests.get(url, params=params, timeout=5.0)
+            resp = requests.get(url, params=params, timeout=2.0)
             if resp.status_code == 200:
                 data = resp.json()
                 features = data.get("features", [])
@@ -343,9 +367,7 @@ def search_places(
                                 "type": p.get("result_type"),
                             }
                         )
-                    logger.info(
-                        f"Geoapify place search for '{clean_q}' found {len(results)} items"
-                    )
+                    logger.debug(f"Geoapify place search found {len(results)} items")
                     return results
         except Exception as e:
             logger.warning(f"Geoapify search failed: {e}")
@@ -358,8 +380,8 @@ def search_places(
             params["lat"] = lat
             params["lon"] = lon
 
-        headers = {"User-Agent": "Divemap-Backend/1.0 (info@divemap.com)"}
-        resp = requests.get(url, params=params, headers=headers, timeout=5.0)
+        headers = {"User-Agent": "Divemap-Backend/1.0 (info@divemap.blue)"}
+        resp = requests.get(url, params=params, headers=headers, timeout=2.0)
         if resp.status_code == 200:
             data = resp.json()
             features = data.get("features", [])
@@ -388,9 +410,7 @@ def search_places(
                             "type": p.get("type") or p.get("osm_value"),
                         }
                     )
-                logger.info(
-                    f"Photon place search for '{clean_q}' found {len(results)} items"
-                )
+                logger.debug(f"Photon place search found {len(results)} items")
                 return results
     except Exception as e:
         logger.warning(f"Photon search failed: {e}")
@@ -405,7 +425,7 @@ def search_places(
             "addressdetails": 1,
             "accept-language": "en",
         }
-        headers = {"User-Agent": "Divemap-Backend/1.0 (info@divemap.com)"}
+        headers = {"User-Agent": "Divemap-Backend/1.0 (info@divemap.blue)"}
         resp = requests.get(url, params=params, headers=headers, timeout=6.0)
         if resp.status_code == 200:
             data = resp.json()
@@ -426,9 +446,7 @@ def search_places(
                             "type": d.get("addresstype") or d.get("type"),
                         }
                     )
-                logger.info(
-                    f"Nominatim place search for '{clean_q}' found {len(results)} items"
-                )
+                logger.debug(f"Nominatim place search found {len(results)} items")
                 return results
     except Exception as e:
         logger.error(f"Nominatim search failed: {e}")

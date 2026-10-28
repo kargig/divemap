@@ -292,6 +292,38 @@ const LocationPickerMap = ({
     [onChange]
   );
 
+  // Handle selecting a geocoded search result
+  const handleSelectSearchResult = useCallback(
+    item => {
+      const lat = parseFloat(item.lat);
+      const lon = parseFloat(item.lon);
+      if (!isNaN(lat) && !isNaN(lon)) {
+        const isCountryOrRegion = item.addresstype === 'country' || item.type === 'administrative';
+        const targetZoom = isCountryOrRegion ? 6 : 14;
+        setTargetView({
+          center: [lat, lon],
+          zoom: targetZoom,
+          id: Date.now(),
+        });
+        setShowSearchDropdown(false);
+        setSearchQuery(item.display_name.split(',')[0]);
+        if (onChange) {
+          onChange({
+            lat: parseFloat(lat.toFixed(6)),
+            lng: parseFloat(lon.toFixed(6)),
+          });
+        }
+        if (onLocationResolved && (item.country || item.region)) {
+          onLocationResolved({
+            country: item.country || '',
+            region: item.region || '',
+          });
+        }
+      }
+    },
+    [onChange, onLocationResolved]
+  );
+
   // Geocoding place search via backend (which handles 3-tier fallback: Geoapify -> Photon -> Nominatim)
   const executeSearch = useCallback(
     async (rawQuery, isAuto = false) => {
@@ -353,7 +385,7 @@ const LocationPickerMap = ({
         setIsSearching(false);
       }
     },
-    [hasValidCoords, parsedLat, parsedLng]
+    [hasValidCoords, parsedLat, parsedLng, handleSelectSearchResult]
   );
 
   const handleSearch = e => {
@@ -368,34 +400,6 @@ const LocationPickerMap = ({
       executeSearch(initialSearchQuery, true);
     }
   }, [autoSearchOnMount, initialSearchQuery, hasValidCoords, executeSearch]);
-
-  const handleSelectSearchResult = item => {
-    const lat = parseFloat(item.lat);
-    const lon = parseFloat(item.lon);
-    if (!isNaN(lat) && !isNaN(lon)) {
-      const isCountryOrRegion = item.addresstype === 'country' || item.type === 'administrative';
-      const targetZoom = isCountryOrRegion ? 6 : 14;
-      setTargetView({
-        center: [lat, lon],
-        zoom: targetZoom,
-        id: Date.now(),
-      });
-      setShowSearchDropdown(false);
-      setSearchQuery(item.display_name.split(',')[0]);
-      if (onChange) {
-        onChange({
-          lat: parseFloat(lat.toFixed(6)),
-          lng: parseFloat(lon.toFixed(6)),
-        });
-      }
-      if (onLocationResolved && (item.country || item.region)) {
-        onLocationResolved({
-          country: item.country || '',
-          region: item.region || '',
-        });
-      }
-    }
-  };
 
   const renderMapContent = (isModal = false) => (
     <div

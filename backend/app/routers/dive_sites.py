@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
+import requests
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -934,7 +935,21 @@ async def reverse_geocode(
     """
     from app.geo_utils import perform_reverse_geocode
 
-    data = perform_reverse_geocode(latitude, longitude)
+    try:
+        data = perform_reverse_geocode(latitude, longitude)
+    except requests.exceptions.Timeout:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Geocoding service timeout. Please try again later.",
+        )
+    except requests.exceptions.ConnectionError:
+        if debug:
+            print("❌ Geocoding API unavailable, using fallback location detection")
+        return get_fallback_location(latitude, longitude, debug)
+    except Exception as e:
+        logger.error(f"Reverse geocoding error: {e}")
+        return get_fallback_location(latitude, longitude, debug)
+
     return {
         "country": data.get("country"),
         "region": data.get("region"),
@@ -944,7 +959,7 @@ async def reverse_geocode(
         "full_address": data.get("city")
         or data.get("region")
         or data.get("country")
-        or "",
+        or f"Coordinates: {latitude}, {longitude}",
     }
 
 
