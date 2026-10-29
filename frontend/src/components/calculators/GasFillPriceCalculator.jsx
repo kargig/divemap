@@ -87,15 +87,17 @@ const GasFillPriceCalculator = () => {
   }, [JSON.stringify(values)]);
 
   return (
-    <div className='bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden flex flex-col h-full'>
-      <div className='p-4 border-b border-gray-100 bg-emerald-50/30'>
+    <div className='bg-white dark:bg-slate-800 rounded-xl shadow-md border border-gray-200 dark:border-slate-700 overflow-hidden flex flex-col h-full'>
+      <div className='p-4 border-b border-gray-100 dark:border-slate-700 bg-emerald-50/30 dark:bg-slate-900/60'>
         <div className='flex items-center space-x-2 sm:space-x-3'>
           <div className='p-1.5 bg-emerald-600 rounded text-white hidden sm:block'>
             <Coins className='h-5 w-5 sm:h-6 sm:w-6' />
           </div>
-          <h2 className='text-base sm:text-xl font-bold text-gray-900'>Gas Fill Price</h2>
+          <h2 className='text-base sm:text-xl font-bold text-gray-900 dark:text-slate-100'>
+            Gas Fill Price
+          </h2>
         </div>
-        <p className='mt-1 text-xs sm:text-sm text-gray-600 hidden sm:block'>
+        <p className='mt-1 text-xs sm:text-sm text-gray-600 dark:text-slate-400 hidden sm:block'>
           Estimate the cost of a gas fill based on component prices.
         </p>
       </div>
@@ -105,7 +107,7 @@ const GasFillPriceCalculator = () => {
           <div>
             <label
               htmlFor='tankSize'
-              className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
+              className='block text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1 sm:mb-2'
             >
               Cylinder Size (L)
             </label>
@@ -120,7 +122,7 @@ const GasFillPriceCalculator = () => {
                   setValue('pressure', tank.defaultPressure);
                 }
               }}
-              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-xs sm:text-sm'
+              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-xs sm:text-sm'
             >
               {TANK_SIZES.map(t => (
                 <option key={t.id} value={t.size}>
@@ -136,7 +138,7 @@ const GasFillPriceCalculator = () => {
           <div>
             <label
               htmlFor='pressure'
-              className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
+              className='block text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1 sm:mb-2'
             >
               Fill Pressure (bar)
             </label>
@@ -146,7 +148,7 @@ const GasFillPriceCalculator = () => {
               min='0'
               max='400'
               {...register('pressure', { valueAsNumber: true })}
-              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-xs sm:text-sm'
+              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-xs sm:text-sm'
             />
             {errors.pressure && (
               <p className='text-red-500 text-xs mt-1'>{errors.pressure.message}</p>
@@ -155,7 +157,7 @@ const GasFillPriceCalculator = () => {
         </div>
 
         <div>
-          <label className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'>
+          <label className='block text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1 sm:mb-2'>
             Target Gas Mix
           </label>
           <Controller
@@ -170,7 +172,7 @@ const GasFillPriceCalculator = () => {
           <div>
             <label
               htmlFor='o2Price'
-              className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
+              className='block text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1 sm:mb-2'
             >
               O<sub>2</sub> Price (€/Liter)
             </label>
@@ -180,7 +182,7 @@ const GasFillPriceCalculator = () => {
               step='0.01'
               min='0'
               {...register('o2Price', { valueAsNumber: true })}
-              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-xs sm:text-sm'
+              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-xs sm:text-sm'
             />
             {errors.o2Price && (
               <p className='text-red-500 text-xs mt-1'>{errors.o2Price.message}</p>
@@ -189,7 +191,7 @@ const GasFillPriceCalculator = () => {
           <div>
             <label
               htmlFor='hePrice'
-              className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
+              className='block text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1 sm:mb-2'
             >
               He Price (€/Liter)
             </label>
@@ -199,7 +201,7 @@ const GasFillPriceCalculator = () => {
               step='0.01'
               min='0'
               {...register('hePrice', { valueAsNumber: true })}
-              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-xs sm:text-sm'
+              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-xs sm:text-sm'
             />
             {errors.hePrice && (
               <p className='text-red-500 text-xs mt-1'>{errors.hePrice.message}</p>
@@ -210,15 +212,15 @@ const GasFillPriceCalculator = () => {
         <div className='flex justify-end'>
           <button
             onClick={() => setShowDetails(!showDetails)}
-            className='text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition-colors'
+            className='text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors'
           >
             {showDetails ? 'Hide Calculations' : 'Show Calculations'}
           </button>
         </div>
 
         {showDetails && (
-          <div className='p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-2 text-xs font-mono text-gray-600 animate-in fade-in slide-in-from-top-1 duration-200'>
-            <div className='flex justify-between font-bold text-gray-700 border-b border-gray-200 pb-1 mb-1'>
+          <div className='p-4 bg-gray-50 dark:bg-slate-900/60 rounded-xl border border-gray-100 dark:border-slate-700 space-y-2 text-xs font-mono text-gray-600 dark:text-slate-300 animate-in fade-in slide-in-from-top-1 duration-200'>
+            <div className='flex justify-between font-bold text-gray-700 dark:text-slate-200 border-b border-gray-200 dark:border-slate-700 pb-1 mb-1'>
               <span>Volume Analysis</span>
             </div>
             <div className='flex justify-between'>
@@ -228,7 +230,7 @@ const GasFillPriceCalculator = () => {
             <div className='flex justify-between'>
               <div className='flex flex-col'>
                 <span>Total Helium Needed:</span>
-                <span className='text-[10px] text-gray-400 font-normal'>
+                <span className='text-[10px] text-gray-400 dark:text-slate-500 font-normal'>
                   ({values.tankSize}L × {values.pressure}bar × {values.gas.he}%)
                 </span>
               </div>
@@ -239,27 +241,27 @@ const GasFillPriceCalculator = () => {
                 <span>
                   Total O<sub>2</sub> Needed:
                 </span>
-                <span className='text-[10px] text-gray-400 font-normal'>
+                <span className='text-[10px] text-gray-400 dark:text-slate-500 font-normal'>
                   ({values.tankSize}L × {values.pressure}bar × {values.gas.o2}%)
                 </span>
               </div>
               <span className='self-end'>{results.totalO2.toFixed(1)} L</span>
             </div>
 
-            <div className='flex justify-between font-bold text-gray-700 border-b border-gray-200 pb-1 mb-1 mt-3'>
+            <div className='flex justify-between font-bold text-gray-700 dark:text-slate-200 border-b border-gray-200 dark:border-slate-700 pb-1 mb-1 mt-3'>
               <span>Partial Pressure Blending</span>
             </div>
             <div className='flex justify-between'>
               <span>Top-up Air (21%) Volume:</span>
               <span>{results.airVolume.toFixed(1)} L</span>
             </div>
-            <div className='flex justify-between text-gray-500 pl-2'>
+            <div className='flex justify-between text-gray-500 dark:text-slate-400 pl-2'>
               <span>
                 ↳ Provides O<sub>2</sub>:
               </span>
               <span>{results.airO2Liters.toFixed(1)} L</span>
             </div>
-            <div className='flex justify-between font-bold text-emerald-700'>
+            <div className='flex justify-between font-bold text-emerald-700 dark:text-emerald-400'>
               <span>
                 Added Pure O<sub>2</sub>:
               </span>
@@ -268,28 +270,32 @@ const GasFillPriceCalculator = () => {
           </div>
         )}
 
-        <div className='mt-1 sm:mt-2 p-3 sm:p-6 bg-emerald-50 rounded-2xl border border-emerald-100 flex flex-col items-center justify-center text-center'>
-          <span className='text-xs sm:text-sm uppercase tracking-wider font-bold text-emerald-800 mb-1 sm:mb-2'>
+        <div className='mt-1 sm:mt-2 p-3 sm:p-6 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl border border-emerald-100 dark:border-emerald-900 flex flex-col items-center justify-center text-center'>
+          <span className='text-xs sm:text-sm uppercase tracking-wider font-bold text-emerald-800 dark:text-emerald-200 mb-1 sm:mb-2'>
             Estimated Cost
           </span>
-          <div className='text-3xl sm:text-4xl font-black text-emerald-600 mb-2 sm:mb-4'>
+          <div className='text-3xl sm:text-4xl font-black text-emerald-600 dark:text-emerald-400 mb-2 sm:mb-4'>
             €{results.totalCost.toFixed(2)}
           </div>
 
-          <div className='w-full grid grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm border-t border-emerald-200 pt-2 sm:pt-4'>
+          <div className='w-full grid grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm border-t border-emerald-200 dark:border-emerald-800 pt-2 sm:pt-4'>
             <div className='flex flex-col items-center'>
-              <span className='font-bold text-emerald-700'>
+              <span className='font-bold text-emerald-700 dark:text-emerald-300'>
                 O<sub>2</sub> Cost
               </span>
-              <span className='text-gray-600'>€{results.o2Cost.toFixed(2)}</span>
-              <span className='text-[10px] text-gray-400'>
+              <span className='text-gray-600 dark:text-slate-300'>
+                €{results.o2Cost.toFixed(2)}
+              </span>
+              <span className='text-[10px] text-gray-400 dark:text-slate-500'>
                 ({results.addedO2.toFixed(0)}L added)
               </span>
             </div>
-            <div className='flex flex-col items-center border-l border-emerald-200'>
-              <span className='font-bold text-emerald-700'>He Cost</span>
-              <span className='text-gray-600'>€{results.heCost.toFixed(2)}</span>
-              <span className='text-[10px] text-gray-400'>
+            <div className='flex flex-col items-center border-l border-emerald-200 dark:border-emerald-800'>
+              <span className='font-bold text-emerald-700 dark:text-emerald-300'>He Cost</span>
+              <span className='text-gray-600 dark:text-slate-300'>
+                €{results.heCost.toFixed(2)}
+              </span>
+              <span className='text-[10px] text-gray-400 dark:text-slate-500'>
                 ({results.totalHe.toFixed(0)}L total)
               </span>
             </div>
@@ -297,8 +303,8 @@ const GasFillPriceCalculator = () => {
         </div>
       </div>
 
-      <div className='p-3 sm:p-4 bg-gray-50 border-t border-gray-100 text-xs text-gray-500 flex items-start'>
-        <Info className='h-4 w-4 mr-2 text-gray-400 flex-shrink-0' />
+      <div className='p-3 sm:p-4 bg-gray-50 dark:bg-slate-900/60 border-t border-gray-100 dark:border-slate-700 text-xs text-gray-500 dark:text-slate-400 flex items-start'>
+        <Info className='h-4 w-4 mr-2 text-gray-400 dark:text-slate-500 flex-shrink-0' />
         <p>
           Calculation assumes <b>Partial Pressure Blending</b> (topping up with Air). You only pay
           for Helium and the <i>added</i> Oxygen required above what air provides. Service/blending

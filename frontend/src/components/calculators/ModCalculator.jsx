@@ -63,17 +63,17 @@ const ModCalculator = () => {
   };
 
   return (
-    <div className='bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden flex flex-col h-full'>
-      <div className='p-4 border-b border-gray-100 bg-blue-50/30'>
+    <div className='bg-white dark:bg-slate-800 rounded-xl shadow-md border border-gray-200 dark:border-slate-700 overflow-hidden flex flex-col h-full'>
+      <div className='p-4 border-b border-gray-100 dark:border-slate-700 bg-blue-50/30 dark:bg-slate-900/60'>
         <div className='flex items-center space-x-2 sm:space-x-3'>
           <div className='p-1.5 bg-blue-600 rounded text-white hidden sm:block'>
             <Gauge className='h-5 w-5 sm:h-6 sm:w-6' />
           </div>
-          <h2 className='text-base sm:text-xl font-bold text-gray-900'>
+          <h2 className='text-base sm:text-xl font-bold text-gray-900 dark:text-slate-100'>
             Maximum Operating Depth (MOD)
           </h2>
         </div>
-        <p className='mt-1 text-xs sm:text-sm text-gray-600 hidden sm:block'>
+        <p className='mt-1 text-xs sm:text-sm text-gray-600 dark:text-slate-400 hidden sm:block'>
           Calculate the maximum depth for a given gas mixture and partial pressure of oxygen.
         </p>
       </div>
@@ -81,7 +81,13 @@ const ModCalculator = () => {
       <div className='p-4 flex-grow space-y-4'>
         <div className='flex justify-end'>
           <div className='flex items-center space-x-2 text-xs sm:text-sm'>
-            <span className={!isAdvanced ? 'font-bold text-blue-600' : 'text-gray-500'}>
+            <span
+              className={
+                !isAdvanced
+                  ? 'font-bold text-blue-600 dark:text-sky-400'
+                  : 'text-gray-500 dark:text-slate-400'
+              }
+            >
               Standard (Nitrox)
             </span>
             <button
@@ -94,23 +100,29 @@ const ModCalculator = () => {
                 }
               }}
               className={`relative inline-flex h-6 w-11 !min-h-0 !p-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                isAdvanced ? 'bg-blue-600' : 'bg-gray-200'
+                isAdvanced ? 'bg-blue-600' : 'bg-gray-200 dark:bg-slate-700'
               }`}
             >
               <span
                 className={`${
                   isAdvanced ? 'translate-x-6' : 'translate-x-1'
-                } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+                } inline-block h-4 w-4 transform rounded-full bg-white dark:bg-slate-200 transition-transform`}
               />
             </button>
-            <span className={isAdvanced ? 'font-bold text-blue-600' : 'text-gray-500'}>
+            <span
+              className={
+                isAdvanced
+                  ? 'font-bold text-blue-600 dark:text-sky-400'
+                  : 'text-gray-500 dark:text-slate-400'
+              }
+            >
               Advanced (Trimix)
             </span>
           </div>
         </div>
 
         <div>
-          <label className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'>
+          <label className='block text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1 sm:mb-2'>
             Gas Mixture (
             {isAdvanced ? (
               <span>
@@ -131,16 +143,16 @@ const ModCalculator = () => {
                 step='1'
                 value={gas?.o2 || 21}
                 onChange={handleSliderChange}
-                className='w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600'
+                className='w-full h-2 bg-gray-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600'
               />
-              <div className='flex justify-between text-xs text-gray-500 font-medium'>
+              <div className='flex justify-between text-xs text-gray-500 dark:text-slate-400 font-medium'>
                 <span>Air (21%)</span>
                 <span>
                   O<sub>2</sub> (100%)
                 </span>
               </div>
               <div className='flex justify-center'>
-                <div className='bg-blue-50 text-blue-800 px-3 py-1 sm:px-4 sm:py-2 rounded-lg font-bold text-lg sm:text-xl shadow-sm border border-blue-100'>
+                <div className='bg-blue-50 dark:bg-blue-950/50 text-blue-800 dark:text-blue-200 px-3 py-1 sm:px-4 sm:py-2 rounded-lg font-bold text-lg sm:text-xl shadow-sm border border-blue-100 dark:border-blue-900'>
                   {gas?.o2 === 21 ? 'Air' : `EAN${gas?.o2}`}
                 </div>
               </div>
@@ -158,7 +170,7 @@ const ModCalculator = () => {
         <div>
           <label
             htmlFor='modPO2'
-            className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
+            className='block text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1 sm:mb-2'
           >
             Max pO<sub>2</sub> (bar)
           </label>
@@ -170,7 +182,7 @@ const ModCalculator = () => {
                 className={`py-1.5 px-2 sm:py-2 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all ${
                   parseFloat(pO2) === val
                     ? 'bg-blue-600 text-white shadow-sm'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
                 }`}
               >
                 {val} bar
@@ -178,7 +190,7 @@ const ModCalculator = () => {
             ))}
           </div>
           {errors.pO2 && <p className='text-red-500 text-xs mt-1'>{errors.pO2.message}</p>}
-          <p className='mt-2 text-xs text-gray-500'>
+          <p className='mt-2 text-xs text-gray-500 dark:text-slate-400'>
             1.4 bar is recommended for recreational diving, 1.6 bar for deco.
           </p>
         </div>
@@ -186,15 +198,15 @@ const ModCalculator = () => {
         <div className='flex justify-end'>
           <button
             onClick={() => setShowDetails(!showDetails)}
-            className='text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors'
+            className='text-xs font-semibold text-blue-600 dark:text-sky-400 hover:text-blue-700 dark:hover:text-sky-300 transition-colors'
           >
             {showDetails ? 'Hide Calculations' : 'Show Calculations'}
           </button>
         </div>
 
         {showDetails && gas && (
-          <div className='p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-2 text-xs font-mono text-gray-600 animate-in fade-in slide-in-from-top-1 duration-200'>
-            <div className='flex justify-between font-bold text-gray-700 border-b border-gray-200 pb-1 mb-1'>
+          <div className='p-4 bg-gray-50 dark:bg-slate-900/60 rounded-xl border border-gray-100 dark:border-slate-700 space-y-2 text-xs font-mono text-gray-600 dark:text-slate-300 animate-in fade-in slide-in-from-top-1 duration-200'>
+            <div className='flex justify-between font-bold text-gray-700 dark:text-slate-200 border-b border-gray-200 dark:border-slate-700 pb-1 mb-1'>
               <span>1. Max Ambient Pressure</span>
             </div>
             <div className='flex justify-between'>
@@ -210,25 +222,25 @@ const ModCalculator = () => {
               </span>
             </div>
 
-            <div className='flex justify-between font-bold text-gray-700 border-b border-gray-200 pb-1 mb-1 mt-3'>
+            <div className='flex justify-between font-bold text-gray-700 dark:text-slate-200 border-b border-gray-200 dark:border-slate-700 pb-1 mb-1 mt-3'>
               <span>2. Maximum Depth</span>
             </div>
             <div className='flex justify-between'>
               <span>Formula:</span>
               <span>(ATA - {SURFACE_PRESSURE_BAR}) * 10</span>
             </div>
-            <div className='text-[10px] text-gray-400 italic text-right mb-1'>
+            <div className='text-[10px] text-gray-400 dark:text-slate-500 italic text-right mb-1'>
               * {SURFACE_PRESSURE_BAR} bar is Standard Surface Pressure (1 atm), used for precise
               depth calculation.
             </div>
-            <div className='flex justify-between font-bold text-blue-600'>
+            <div className='flex justify-between font-bold text-blue-600 dark:text-sky-400'>
               <span>Result:</span>
               <span>{result.mod.toFixed(1)} m</span>
             </div>
 
             {result.fHe > 0 && (
               <>
-                <div className='flex justify-between font-bold text-gray-700 border-b border-gray-200 pb-1 mb-1 mt-3'>
+                <div className='flex justify-between font-bold text-gray-700 dark:text-slate-200 border-b border-gray-200 dark:border-slate-700 pb-1 mb-1 mt-3'>
                   <span>3. Equivalent Narcotic Depth</span>
                 </div>
                 <div className='flex justify-between'>
@@ -243,7 +255,7 @@ const ModCalculator = () => {
                     ({result.mod.toFixed(1)}m + 10) * (1 - {result.fHe.toFixed(2)}) - 10
                   </span>
                 </div>
-                <div className='flex justify-between font-bold text-purple-600'>
+                <div className='flex justify-between font-bold text-purple-600 dark:text-purple-400'>
                   <span>END at MOD:</span>
                   <span>{result.end.toFixed(1)} m</span>
                 </div>
@@ -252,23 +264,25 @@ const ModCalculator = () => {
           </div>
         )}
 
-        <div className='mt-1 sm:mt-2 p-3 sm:p-6 bg-blue-50 rounded-2xl border border-blue-100 flex flex-col items-center justify-center text-center'>
-          <span className='text-xs sm:text-sm uppercase tracking-wider font-bold text-blue-800 mb-1'>
+        <div className='mt-1 sm:mt-2 p-3 sm:p-6 bg-blue-50 dark:bg-blue-950/40 rounded-2xl border border-blue-100 dark:border-blue-900 flex flex-col items-center justify-center text-center'>
+          <span className='text-xs sm:text-sm uppercase tracking-wider font-bold text-blue-800 dark:text-blue-200 mb-1'>
             Max Operating Depth
           </span>
           <div className='flex items-baseline'>
-            <span className='text-3xl sm:text-5xl font-black text-blue-600'>
+            <span className='text-3xl sm:text-5xl font-black text-blue-600 dark:text-sky-400'>
               {result.mod.toFixed(1)}
             </span>
-            <span className='ml-1 sm:ml-2 text-lg sm:text-xl font-bold text-blue-400'>m</span>
+            <span className='ml-1 sm:ml-2 text-lg sm:text-xl font-bold text-blue-400 dark:text-sky-300'>
+              m
+            </span>
           </div>
           {result.fHe > 0 && (
-            <div className='mt-2 text-xs sm:text-sm font-medium text-purple-700'>
+            <div className='mt-2 text-xs sm:text-sm font-medium text-purple-700 dark:text-purple-300'>
               END at limit: {result.end.toFixed(1)}m
             </div>
           )}
           {result.mod > 60 && !result.fHe && (
-            <div className='mt-2 sm:mt-3 flex items-center text-amber-600 bg-amber-50 px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-medium border border-amber-100'>
+            <div className='mt-2 sm:mt-3 flex items-center text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-medium border border-amber-100 dark:border-amber-900/60'>
               <AlertTriangle className='h-3 w-3 mr-1' />
               Warning: Exceeds 60m on Air/Nitrox
             </div>
@@ -276,8 +290,8 @@ const ModCalculator = () => {
         </div>
       </div>
 
-      <div className='p-3 sm:p-4 bg-gray-50 border-t border-gray-100 text-xs text-gray-500 flex items-start'>
-        <Info className='h-4 w-4 mr-2 text-gray-400 flex-shrink-0' />
+      <div className='p-3 sm:p-4 bg-gray-50 dark:bg-slate-900/60 border-t border-gray-100 dark:border-slate-700 text-xs text-gray-500 dark:text-slate-400 flex items-start'>
+        <Info className='h-4 w-4 mr-2 text-gray-400 dark:text-slate-500 flex-shrink-0' />
         <p>
           Formula: MOD = (pO<sub>2</sub>_max / fO<sub>2</sub> - {SURFACE_PRESSURE_BAR}) * 10.
           {result.fHe > 0 ? (

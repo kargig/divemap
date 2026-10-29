@@ -1201,11 +1201,15 @@ const EditDiveSite = () => {
 
   if (!canEdit) {
     return (
-      <div className='min-h-screen bg-gray-50 py-8'>
+      <div className='min-h-screen bg-gray-50 dark:bg-slate-900 py-8'>
         <div className='max-w-4xl mx-auto'>
-          <div className='bg-white rounded-lg shadow-md p-6'>
-            <h1 className='text-2xl font-bold text-gray-900 mb-4'>Access Denied</h1>
-            <p className='text-gray-600'>You don&apos;t have permission to edit this dive site.</p>
+          <div className='bg-white dark:bg-slate-800 rounded-lg shadow-md border border-gray-100 dark:border-slate-700 p-6'>
+            <h1 className='text-2xl font-bold text-gray-900 dark:text-slate-100 mb-4'>
+              Access Denied
+            </h1>
+            <p className='text-gray-600 dark:text-slate-400'>
+              You don&apos;t have permission to edit this dive site.
+            </p>
           </div>
         </div>
       </div>
@@ -1214,15 +1218,15 @@ const EditDiveSite = () => {
 
   if (isLoading) {
     return (
-      <div className='min-h-screen bg-gray-50 py-8'>
+      <div className='min-h-screen bg-gray-50 dark:bg-slate-900 py-8'>
         <div className='max-w-4xl mx-auto'>
-          <div className='bg-white rounded-lg shadow-md p-6'>
+          <div className='bg-white dark:bg-slate-800 rounded-lg shadow-md border border-gray-100 dark:border-slate-700 p-6'>
             <div className='animate-pulse'>
-              <div className='h-8 bg-gray-200 rounded w-1/4 mb-4'></div>
+              <div className='h-8 bg-gray-200 dark:bg-slate-700 rounded w-1/4 mb-4'></div>
               <div className='space-y-3'>
-                <div className='h-4 bg-gray-200 rounded'></div>
-                <div className='h-4 bg-gray-200 rounded w-5/6'></div>
-                <div className='h-4 bg-gray-200 rounded w-4/6'></div>
+                <div className='h-4 bg-gray-200 dark:bg-slate-700 rounded'></div>
+                <div className='h-4 bg-gray-200 dark:bg-slate-700 rounded w-5/6'></div>
+                <div className='h-4 bg-gray-200 dark:bg-slate-700 rounded w-4/6'></div>
               </div>
             </div>
           </div>
@@ -1331,12 +1335,12 @@ const EditDiveSite = () => {
 
                   {/* Add Alias Form */}
                   {showAliasForm && (
-                    <div className='bg-gray-50 p-4 rounded-md mb-4'>
+                    <div className='bg-gray-50 dark:bg-slate-900/60 p-4 rounded-md mb-4 border border-gray-100 dark:border-slate-700'>
                       <div className='space-y-4'>
                         <div>
                           <label
                             htmlFor='new_alias_name'
-                            className='block text-sm font-medium text-gray-700 mb-1'
+                            className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
                           >
                             Alias Name *
                           </label>
@@ -1346,7 +1350,7 @@ const EditDiveSite = () => {
                             value={newAlias.alias}
                             onChange={e => setNewAlias({ ...newAlias, alias: e.target.value })}
                             required
-                            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                            className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                           />
                         </div>
                         <div className='flex space-x-2'>

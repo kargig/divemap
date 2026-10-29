@@ -25,7 +25,7 @@ const Modal = ({
         <Dialog.Content
           {...(!description ? { 'aria-describedby': undefined } : {})}
           {...(!title ? { 'aria-labelledby': undefined } : {})}
-          className={`fixed left-[50%] top-[50%] z-[10001] translate-x-[-50%] translate-y-[-50%] bg-white shadow-xl duration-200 p-6 sm:rounded-lg ${className}`}
+          className={`fixed left-[50%] top-[50%] z-[10001] translate-x-[-50%] translate-y-[-50%] bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 border border-transparent dark:border-slate-700 shadow-xl duration-200 p-6 sm:rounded-lg ${className}`}
           onPointerDownOutside={e => {
             if (preventOutsideClick) {
               e.preventDefault();
@@ -34,7 +34,9 @@ const Modal = ({
         >
           <div className='flex items-center justify-between mb-0'>
             {title && (
-              <Dialog.Title className='text-lg font-semibold text-gray-900'>{title}</Dialog.Title>
+              <Dialog.Title className='text-lg font-semibold text-gray-900 dark:text-slate-100'>
+                {title}
+              </Dialog.Title>
             )}
             {showCloseButton && (
               <Dialog.Close asChild>
@@ -42,13 +44,13 @@ const Modal = ({
                   className='absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground'
                   aria-label='Close'
                 >
-                  <X className='h-5 w-5 text-gray-500 hover:text-gray-700' />
+                  <X className='h-5 w-5 text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200' />
                 </button>
               </Dialog.Close>
             )}
           </div>
           {description && (
-            <Dialog.Description className='text-sm text-gray-500 mb-4'>
+            <Dialog.Description className='text-sm text-gray-500 dark:text-slate-400 mb-4'>
               {description}
             </Dialog.Description>
           )}

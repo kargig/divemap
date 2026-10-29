@@ -223,15 +223,17 @@ const TankBuoyancy = () => {
   };
 
   return (
-    <div className='bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden flex flex-col'>
-      <div className='p-4 border-b border-gray-100 bg-sky-50/30'>
+    <div className='bg-white dark:bg-slate-800 rounded-xl shadow-md border border-gray-200 dark:border-slate-700 overflow-hidden flex flex-col'>
+      <div className='p-4 border-b border-gray-100 dark:border-slate-700 bg-sky-50/30 dark:bg-slate-900/60'>
         <div className='flex items-center space-x-2 sm:space-x-3'>
           <div className='p-1.5 bg-sky-600 rounded text-white hidden sm:block'>
             <Anchor className='h-5 w-5 sm:h-6 sm:w-6' />
           </div>
-          <h2 className='text-base sm:text-xl font-bold text-gray-900'>Tank Buoyancy Calculator</h2>
+          <h2 className='text-base sm:text-xl font-bold text-gray-900 dark:text-slate-100'>
+            Tank Buoyancy Calculator
+          </h2>
         </div>
-        <p className='mt-1 text-xs sm:text-sm text-gray-600 hidden sm:block'>
+        <p className='mt-1 text-xs sm:text-sm text-gray-600 dark:text-slate-400 hidden sm:block'>
           Calculate the buoyancy characteristics of your scuba cylinder(s) to perfect your
           weighting.
         </p>
@@ -240,24 +242,27 @@ const TankBuoyancy = () => {
       <div className='p-4 flex-grow space-y-4'>
         {/* Tank Config */}
         <div>
-          <label className='block text-sm font-semibold text-gray-700 mb-2'>
+          <label className='block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2'>
             Cylinder Configuration
           </label>
           <GasTanksInput value={gasConfig} onChange={setGasConfig} showSwitchMode={false} />
         </div>
 
         {/* Environment */}
-        <div className='flex flex-wrap items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 gap-3'>
+        <div className='flex flex-wrap items-center justify-between p-3 bg-gray-50 dark:bg-slate-900/60 rounded-lg border border-gray-200 dark:border-slate-700 gap-3'>
           <div className='flex items-center gap-4'>
             <div>
-              <label htmlFor='tankWaterType' className='text-sm font-semibold text-gray-700 mr-2'>
+              <label
+                htmlFor='tankWaterType'
+                className='text-sm font-semibold text-gray-700 dark:text-slate-300 mr-2'
+              >
                 Water:
               </label>
               <select
                 id='tankWaterType'
                 value={waterTypeIdx}
                 onChange={e => setWaterTypeIdx(parseInt(e.target.value))}
-                className='text-sm border-gray-300 rounded-md focus:ring-sky-500 focus:border-sky-500 py-1'
+                className='text-sm border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:ring-sky-500 focus:border-sky-500 py-1'
               >
                 {WATER_TYPES.map((type, idx) => (
                   <option key={idx} value={idx}>
@@ -272,11 +277,11 @@ const TankBuoyancy = () => {
                 type='checkbox'
                 checked={includeValve}
                 onChange={e => setIncludeValve(e.target.checked)}
-                className='w-4 h-4 text-sky-600 border-gray-300 rounded focus:ring-sky-500 cursor-pointer'
+                className='w-4 h-4 text-sky-600 border-gray-300 dark:border-slate-600 rounded focus:ring-sky-500 cursor-pointer'
               />
               <label
                 htmlFor='includeValve'
-                className='ml-2 text-sm font-medium text-gray-700 select-none cursor-pointer'
+                className='ml-2 text-sm font-medium text-gray-700 dark:text-slate-300 select-none cursor-pointer'
               >
                 Include Valve(s)
               </label>
@@ -284,7 +289,7 @@ const TankBuoyancy = () => {
           </div>
           <button
             onClick={() => setShowDetails(!showDetails)}
-            className='text-xs font-semibold text-sky-600 hover:text-sky-700 transition-colors'
+            className='text-xs font-semibold text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 transition-colors'
           >
             {showDetails ? 'Hide Calculations' : 'Show Calculations'}
           </button>
@@ -293,19 +298,24 @@ const TankBuoyancy = () => {
         {showDetails && (
           <div className='space-y-4 animate-in fade-in slide-in-from-top-1 duration-200'>
             {result.tankBreakdown.map((item, idx) => (
-              <div key={idx} className='p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-4'>
-                <div className='flex justify-between items-center border-b border-gray-200 pb-2'>
-                  <span className='text-sm font-bold text-gray-900'>{item.name}</span>
-                  <span className='text-[10px] uppercase tracking-wider font-bold text-gray-400 bg-white px-2 py-0.5 rounded border border-gray-100'>
+              <div
+                key={idx}
+                className='p-4 bg-gray-50 dark:bg-slate-900/60 rounded-xl border border-gray-100 dark:border-slate-700 space-y-4'
+              >
+                <div className='flex justify-between items-center border-b border-gray-200 dark:border-slate-700 pb-2'>
+                  <span className='text-sm font-bold text-gray-900 dark:text-slate-100'>
+                    {item.name}
+                  </span>
+                  <span className='text-[10px] uppercase tracking-wider font-bold text-gray-400 dark:text-slate-400 bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-gray-100 dark:border-slate-700'>
                     {item.type}
                   </span>
                 </div>
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6 text-xs font-mono text-gray-600'>
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6 text-xs font-mono text-gray-600 dark:text-slate-300'>
                   {/* Volume Section */}
                   <div className='space-y-2'>
-                    <h5 className='font-bold text-gray-700 border-b border-gray-200 pb-1.5 flex justify-between items-center'>
+                    <h5 className='font-bold text-gray-700 dark:text-slate-200 border-b border-gray-200 dark:border-slate-700 pb-1.5 flex justify-between items-center'>
                       <span>Displacement / Volume</span>
-                      <span className='text-[10px] font-normal text-gray-400 italic hidden sm:inline'>
+                      <span className='text-[10px] font-normal text-gray-400 dark:text-slate-500 italic hidden sm:inline'>
                         Total = Metal + Valve + Internal
                       </span>
                     </h5>
@@ -322,7 +332,7 @@ const TankBuoyancy = () => {
                         <span>Internal Tank Volume:</span>
                         <span>{item.data.currentLiters.toFixed(1)} L</span>
                       </div>
-                      <div className='flex justify-between font-bold text-gray-800 border-t border-gray-200 pt-1 mt-1'>
+                      <div className='flex justify-between font-bold text-gray-800 dark:text-slate-100 border-t border-gray-200 dark:border-slate-700 pt-1 mt-1'>
                         <span>Total Displacement:</span>
                         <span>{item.data.totalDisplacedVolume.toFixed(3)} L</span>
                       </div>
@@ -331,7 +341,7 @@ const TankBuoyancy = () => {
 
                   {/* Weight Section */}
                   <div className='space-y-2'>
-                    <h5 className='font-bold text-gray-700 border-b border-gray-200 pb-1.5'>
+                    <h5 className='font-bold text-gray-700 dark:text-slate-200 border-b border-gray-200 dark:border-slate-700 pb-1.5'>
                       Weight Breakdown
                     </h5>
                     <div className='space-y-1'>
@@ -349,8 +359,8 @@ const TankBuoyancy = () => {
                           <span>{item.data.totalManifoldWeight.toFixed(2)} kg</span>
                         </div>
                       )}
-                      <div className='border-t border-gray-200 my-1'></div>
-                      <div className='flex justify-between font-bold text-gray-800'>
+                      <div className='border-t border-gray-200 dark:border-slate-700 my-1'></div>
+                      <div className='flex justify-between font-bold text-gray-800 dark:text-slate-100'>
                         <span>Total Weight (Empty):</span>
                         <span>{item.data.weightEmpty.toFixed(2)} kg</span>
                       </div>
@@ -359,7 +369,7 @@ const TankBuoyancy = () => {
 
                   {/* Gas Section */}
                   <div className='space-y-2'>
-                    <h5 className='font-bold text-gray-700 border-b border-gray-200 pb-1.5'>
+                    <h5 className='font-bold text-gray-700 dark:text-slate-200 border-b border-gray-200 dark:border-slate-700 pb-1.5'>
                       Gas Characteristics
                     </h5>
                     <div className='space-y-1'>
@@ -371,8 +381,8 @@ const TankBuoyancy = () => {
                         <span>Gas Weight (Full):</span>
                         <span>{item.data.gasWeightFull.toFixed(2)} kg</span>
                       </div>
-                      <div className='border-t border-gray-200 my-1'></div>
-                      <div className='flex justify-between font-bold'>
+                      <div className='border-t border-gray-200 dark:border-slate-700 my-1'></div>
+                      <div className='flex justify-between font-bold text-gray-800 dark:text-slate-100'>
                         <span>Total Weight (Full):</span>
                         <span>{item.data.weightFull.toFixed(2)} kg</span>
                       </div>
@@ -381,9 +391,9 @@ const TankBuoyancy = () => {
 
                   {/* Forces Section */}
                   <div className='space-y-2'>
-                    <h5 className='font-bold text-gray-700 border-b border-gray-200 pb-1.5 flex justify-between items-center'>
+                    <h5 className='font-bold text-gray-700 dark:text-slate-200 border-b border-gray-200 dark:border-slate-700 pb-1.5 flex justify-between items-center'>
                       <span>Forces & Buoyancy</span>
-                      <span className='text-[10px] font-normal text-gray-400 italic hidden sm:inline'>
+                      <span className='text-[10px] font-normal text-gray-400 dark:text-slate-500 italic hidden sm:inline'>
                         Force = Displacement × Water Density
                       </span>
                     </h5>
@@ -392,25 +402,31 @@ const TankBuoyancy = () => {
                         <span>Water Density:</span>
                         <span>{item.data.waterDensity.toFixed(3)} kg/L</span>
                       </div>
-                      <div className='flex justify-between font-bold text-sky-700'>
+                      <div className='flex justify-between font-bold text-sky-700 dark:text-sky-400'>
                         <span>Buoyant Force:</span>
                         <span>{item.data.buoyantForce.toFixed(3)} kg</span>
                       </div>
-                      <div className='border-t border-gray-200 my-1'></div>
-                      <div className='flex justify-between font-bold'>
+                      <div className='border-t border-gray-200 dark:border-slate-700 my-1'></div>
+                      <div className='flex justify-between font-bold text-gray-800 dark:text-slate-100'>
                         <span>Buoyancy (Empty):</span>
                         <span
                           className={
-                            item.data.buoyancyEmpty > 0 ? 'text-amber-600' : 'text-sky-700'
+                            item.data.buoyancyEmpty > 0
+                              ? 'text-amber-600 dark:text-amber-400'
+                              : 'text-sky-700 dark:text-sky-400'
                           }
                         >
                           {formatNum(item.data.buoyancyEmpty)} kg
                         </span>
                       </div>
-                      <div className='flex justify-between font-bold'>
+                      <div className='flex justify-between font-bold text-gray-800 dark:text-slate-100'>
                         <span>Buoyancy (Full):</span>
                         <span
-                          className={item.data.buoyancyFull > 0 ? 'text-amber-600' : 'text-sky-700'}
+                          className={
+                            item.data.buoyancyFull > 0
+                              ? 'text-amber-600 dark:text-amber-400'
+                              : 'text-sky-700 dark:text-sky-400'
+                          }
                         >
                           {formatNum(item.data.buoyancyFull)} kg
                         </span>
@@ -427,58 +443,58 @@ const TankBuoyancy = () => {
         <div className='mt-8 grid grid-cols-1 md:grid-cols-3 gap-4'>
           {/* Full Tank */}
           <div
-            className={`p-4 rounded-xl border flex flex-col items-center justify-center text-center ${result.buoyancyFull > 0 ? 'bg-amber-50 border-amber-200' : 'bg-sky-50 border-sky-200'}`}
+            className={`p-4 rounded-xl border flex flex-col items-center justify-center text-center ${result.buoyancyFull > 0 ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900' : 'bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-900'}`}
           >
-            <span className='text-xs uppercase tracking-wider font-bold text-gray-500 mb-1'>
+            <span className='text-xs uppercase tracking-wider font-bold text-gray-500 dark:text-slate-400 mb-1'>
               Start (Full)
             </span>
             <div className='flex items-baseline'>
               <span
-                className={`text-3xl font-black ${result.buoyancyFull > 0 ? 'text-amber-600' : 'text-sky-700'}`}
+                className={`text-3xl font-black ${result.buoyancyFull > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-sky-700 dark:text-sky-400'}`}
               >
                 {formatNum(result.buoyancyFull)}
               </span>
-              <span className='ml-1 text-sm font-bold text-gray-400'>kg</span>
+              <span className='ml-1 text-sm font-bold text-gray-400 dark:text-slate-500'>kg</span>
             </div>
           </div>
 
           {/* Reserve Pressure */}
           <div
-            className={`p-4 rounded-xl border flex flex-col items-center justify-center text-center ${result.buoyancyReserve > 0 ? 'bg-amber-50 border-amber-200' : 'bg-sky-50 border-sky-200'}`}
+            className={`p-4 rounded-xl border flex flex-col items-center justify-center text-center ${result.buoyancyReserve > 0 ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900' : 'bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-900'}`}
           >
-            <span className='text-xs uppercase tracking-wider font-bold text-gray-500 mb-1'>
+            <span className='text-xs uppercase tracking-wider font-bold text-gray-500 dark:text-slate-400 mb-1'>
               Reserve (End)
             </span>
             <div className='flex items-baseline'>
               <span
-                className={`text-3xl font-black ${result.buoyancyReserve > 0 ? 'text-amber-600' : 'text-sky-700'}`}
+                className={`text-3xl font-black ${result.buoyancyReserve > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-sky-700 dark:text-sky-400'}`}
               >
                 {formatNum(result.buoyancyReserve)}
               </span>
-              <span className='ml-1 text-sm font-bold text-gray-400'>kg</span>
+              <span className='ml-1 text-sm font-bold text-gray-400 dark:text-slate-500'>kg</span>
             </div>
           </div>
 
           {/* Empty Tank */}
           <div
-            className={`p-4 rounded-xl border flex flex-col items-center justify-center text-center ${result.buoyancyEmpty > 0 ? 'bg-red-50 border-red-200' : 'bg-emerald-50 border-emerald-200'}`}
+            className={`p-4 rounded-xl border flex flex-col items-center justify-center text-center ${result.buoyancyEmpty > 0 ? 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-900' : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900'}`}
           >
-            <span className='text-xs uppercase tracking-wider font-bold text-gray-500 mb-1'>
+            <span className='text-xs uppercase tracking-wider font-bold text-gray-500 dark:text-slate-400 mb-1'>
               Empty (0 bar)
             </span>
             <div className='flex items-baseline'>
               <span
-                className={`text-3xl font-black ${result.buoyancyEmpty > 0 ? 'text-red-600' : 'text-emerald-600'}`}
+                className={`text-3xl font-black ${result.buoyancyEmpty > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}
               >
                 {formatNum(result.buoyancyEmpty)}
               </span>
-              <span className='ml-1 text-sm font-bold text-gray-400'>kg</span>
+              <span className='ml-1 text-sm font-bold text-gray-400 dark:text-slate-500'>kg</span>
             </div>
           </div>
         </div>
 
         {result.buoyancyEmpty > 0 && (
-          <div className='flex items-start p-3 bg-red-50 rounded-lg border border-red-100 text-sm text-red-700'>
+          <div className='flex items-start p-3 bg-red-50 dark:bg-red-950/40 rounded-lg border border-red-100 dark:border-red-900 text-sm text-red-700 dark:text-red-300'>
             <AlertTriangle className='h-5 w-5 mr-2 flex-shrink-0' />
             <p>
               <strong>Warning:</strong> Your rig becomes positively buoyant (
@@ -488,7 +504,7 @@ const TankBuoyancy = () => {
           </div>
         )}
 
-        <div className='text-xs text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-100'>
+        <div className='text-xs text-gray-500 dark:text-slate-400 bg-gray-50 dark:bg-slate-900/60 p-3 rounded-lg border border-gray-100 dark:border-slate-700'>
           <p>
             <strong>Total Gas Mass (Full):</strong> {result.totalGasWeight.toFixed(2)} kg
           </p>
@@ -498,8 +514,8 @@ const TankBuoyancy = () => {
         </div>
       </div>
 
-      <div className='p-4 bg-gray-50 border-t border-gray-100 text-xs text-gray-500 flex items-start'>
-        <Info className='h-4 w-4 mr-2 text-gray-400 flex-shrink-0' />
+      <div className='p-4 bg-gray-50 dark:bg-slate-900/60 border-t border-gray-100 dark:border-slate-700 text-xs text-gray-500 dark:text-slate-400 flex items-start'>
+        <Info className='h-4 w-4 mr-2 text-gray-400 dark:text-slate-500 flex-shrink-0' />
         <p>
           Buoyancy calculated using Archimedes principle. Values represent total system buoyancy
           (Back Gas + Stages).
@@ -507,11 +523,11 @@ const TankBuoyancy = () => {
       </div>
 
       {/* Detailed Formulas Section */}
-      <div className='border-t border-gray-200'>
+      <div className='border-t border-gray-200 dark:border-slate-700'>
         <details className='group'>
-          <summary className='flex justify-between items-center font-medium cursor-pointer list-none p-4 bg-gray-50 hover:bg-gray-100 transition-colors'>
-            <span className='text-sm text-gray-700 font-semibold flex items-center gap-2'>
-              <Info className='h-4 w-4 text-sky-600' />
+          <summary className='flex justify-between items-center font-medium cursor-pointer list-none p-4 bg-gray-50 dark:bg-slate-800/80 hover:bg-gray-100 dark:hover:bg-slate-750 transition-colors'>
+            <span className='text-sm text-gray-700 dark:text-slate-300 font-semibold flex items-center gap-2'>
+              <Info className='h-4 w-4 text-sky-600 dark:text-sky-400' />
               View Calculation Formulas
             </span>
             <span className='transition group-open:rotate-180'>
@@ -530,20 +546,20 @@ const TankBuoyancy = () => {
               </svg>
             </span>
           </summary>
-          <div className='text-gray-600 text-xs p-6 bg-white space-y-6 animate-in slide-in-from-top-2 duration-200'>
+          <div className='text-gray-600 dark:text-slate-400 text-xs p-6 bg-white dark:bg-slate-800 space-y-6 animate-in slide-in-from-top-2 duration-200'>
             <div>
-              <h4 className='font-bold text-gray-900 mb-1 text-sm'>
+              <h4 className='font-bold text-gray-900 dark:text-slate-100 mb-1 text-sm'>
                 1. Displacement (Archimedes' Principle)
               </h4>
               <p className='mb-2'>
                 The upward force is equal to the weight of the water displaced by the object's total
                 volume.
               </p>
-              <div className='bg-gray-50 p-3 rounded-lg font-mono text-sky-800 border border-gray-100'>
+              <div className='bg-gray-50 dark:bg-slate-900/60 p-3 rounded-lg font-mono text-sky-800 dark:text-sky-300 border border-gray-100 dark:border-slate-700'>
                 <p>Total Volume = Metal Vol + Valve Vol + Internal Vol</p>
                 <p className='mt-1'>Buoyant Force = Total Volume × Water Density</p>
               </div>
-              <ul className='mt-2 list-disc pl-4 space-y-1 text-gray-500'>
+              <ul className='mt-2 list-disc pl-4 space-y-1 text-gray-500 dark:text-slate-400'>
                 <li>Metal Vol = Tank Weight / Metal Density (Steel: 7.9, Alu: 2.7)</li>
                 <li>Valve Vol = Valve Weight / Steel Density</li>
                 <li>Internal Vol = Tank Water Capacity (Liters)</li>
@@ -551,9 +567,11 @@ const TankBuoyancy = () => {
             </div>
 
             <div>
-              <h4 className='font-bold text-gray-900 mb-1 text-sm'>2. Weights</h4>
+              <h4 className='font-bold text-gray-900 dark:text-slate-100 mb-1 text-sm'>
+                2. Weights
+              </h4>
               <p className='mb-2'>The downward force of gravity acting on the rig.</p>
-              <div className='bg-gray-50 p-3 rounded-lg font-mono text-sky-800 border border-gray-100'>
+              <div className='bg-gray-50 dark:bg-slate-900/60 p-3 rounded-lg font-mono text-sky-800 dark:text-sky-300 border border-gray-100 dark:border-slate-700'>
                 <p>Weight (Empty) = Tank + Valve + Manifold</p>
                 <p className='mt-1'>Weight (Full) = Weight (Empty) + Gas Weight</p>
                 <p className='mt-1'>Gas Weight = Internal Vol × Pressure × Gas Density</p>
@@ -561,11 +579,13 @@ const TankBuoyancy = () => {
             </div>
 
             <div>
-              <h4 className='font-bold text-gray-900 mb-1 text-sm'>3. Net Buoyancy</h4>
+              <h4 className='font-bold text-gray-900 dark:text-slate-100 mb-1 text-sm'>
+                3. Net Buoyancy
+              </h4>
               <p className='mb-2'>
                 The actual force you feel (Positive = Floats, Negative = Sinks).
               </p>
-              <div className='bg-gray-50 p-3 rounded-lg font-mono text-sky-800 border border-gray-100'>
+              <div className='bg-gray-50 dark:bg-slate-900/60 p-3 rounded-lg font-mono text-sky-800 dark:text-sky-300 border border-gray-100 dark:border-slate-700'>
                 <p>Buoyancy (Empty) = Buoyant Force - Weight (Empty)</p>
                 <p className='mt-1'>Buoyancy (Full) = Buoyant Force - Weight (Full)</p>
               </div>

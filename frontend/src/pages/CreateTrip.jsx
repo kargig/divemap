@@ -195,9 +195,13 @@ const CreateTrip = () => {
   if (!user) {
     return (
       <div className='max-w-6xl mx-auto py-8'>
-        <div className='bg-white rounded-lg shadow-md p-6 text-center'>
-          <h2 className='text-xl font-semibold text-gray-900 mb-4'>Access Denied</h2>
-          <p className='text-gray-600 mb-4'>You must be logged in to create dive trips.</p>
+        <div className='bg-white dark:bg-slate-800 rounded-lg shadow-md border border-gray-100 dark:border-slate-700 p-6 text-center'>
+          <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4'>
+            Access Denied
+          </h2>
+          <p className='text-gray-600 dark:text-slate-400 mb-4'>
+            You must be logged in to create dive trips.
+          </p>
           <Button onClick={() => navigate('/login')} variant='primary' size='lg'>
             Go to Login
           </Button>
@@ -209,9 +213,11 @@ const CreateTrip = () => {
   if (!canCreateTrips) {
     return (
       <div className='max-w-6xl mx-auto py-8'>
-        <div className='bg-white rounded-lg shadow-md p-6 text-center'>
-          <h2 className='text-xl font-semibold text-gray-900 mb-4'>Access Denied</h2>
-          <p className='text-gray-600 mb-4'>
+        <div className='bg-white dark:bg-slate-800 rounded-lg shadow-md border border-gray-100 dark:border-slate-700 p-6 text-center'>
+          <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4'>
+            Access Denied
+          </h2>
+          <p className='text-gray-600 dark:text-slate-400 mb-4'>
             You must be an admin, moderator, or own an approved diving center to create dive trips.
           </p>
           <button
@@ -231,7 +237,7 @@ const CreateTrip = () => {
         title='Publish a Dive Trip | Divemap'
         description='Create and publish a new scuba diving trip or excursion to the Divemap community.'
       />
-      <div className='max-w-6xl mx-auto py-8'>
+      <div className='max-w-6xl mx-auto py-4 sm:py-8'>
         {/* Back Button */}
         <button
           onClick={() => {
@@ -242,27 +248,29 @@ const CreateTrip = () => {
               navigate('/dive-trips');
             }
           }}
-          className='flex items-center space-x-2 text-blue-600 hover:text-blue-800 mb-6 transition-colors'
+          className='flex items-center space-x-2 text-blue-600 dark:text-sky-400 hover:text-blue-800 dark:hover:text-sky-300 mb-6 transition-colors'
         >
           <ArrowLeft className='w-4 h-4' />
           <span>Back to Trips</span>
         </button>
 
         <div className='mb-8'>
-          <h1 className='text-3xl font-bold text-gray-900'>Create Dive Trip</h1>
-          <p className='text-gray-600 mt-2'>Upload newsletter or create a dive trip manually</p>
+          <h1 className='text-3xl font-bold text-gray-900 dark:text-slate-100'>Create Dive Trip</h1>
+          <p className='text-gray-600 dark:text-slate-400 mt-2'>
+            Upload newsletter or create a dive trip manually
+          </p>
         </div>
 
         {/* Tab Navigation */}
-        <div className='bg-white rounded-lg shadow-md mb-6'>
-          <div className='border-b border-gray-200'>
+        <div className='bg-white dark:bg-slate-800 rounded-lg shadow-md border border-gray-100 dark:border-slate-700 mb-6'>
+          <div className='border-b border-gray-200 dark:border-slate-700'>
             <nav className='flex space-x-8 px-6'>
               <button
                 onClick={() => handleTabChange('newsletter')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
                   activeTab === 'newsletter'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-blue-500 text-blue-600 dark:text-sky-400'
+                    : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:border-gray-300 dark:hover:border-slate-600'
                 }`}
               >
                 <UploadIcon className='w-4 h-4' />
@@ -272,8 +280,8 @@ const CreateTrip = () => {
                 onClick={() => handleTabChange('form')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
                   activeTab === 'form'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-blue-500 text-blue-600 dark:text-sky-400'
+                    : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:border-gray-300 dark:hover:border-slate-600'
                 }`}
               >
                 <FileEdit className='w-4 h-4' />

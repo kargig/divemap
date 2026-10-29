@@ -279,7 +279,7 @@ const GasTanksInput = ({ value, onChange, error, showSwitchMode = true }) => {
         <textarea
           value={value || ''}
           onChange={e => onChange(e.target.value)}
-          className='w-full border border-gray-300 rounded-md px-3 py-2'
+          className='w-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-md px-3 py-2'
           rows='3'
           placeholder='e.g., 12L aluminum tank, 200 bar...'
         />
@@ -288,7 +288,7 @@ const GasTanksInput = ({ value, onChange, error, showSwitchMode = true }) => {
             <button
               type='button'
               onClick={switchToStructured}
-              className='text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1'
+              className='text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center gap-1'
             >
               <RefreshCw size={14} />
               Switch to Tank Selector
@@ -305,11 +305,11 @@ const GasTanksInput = ({ value, onChange, error, showSwitchMode = true }) => {
     <div className='space-y-3 sm:space-y-4'>
       {showSwitchMode && (
         <div className='flex justify-between items-center mb-2'>
-          <h3 className='font-medium text-gray-700'>Gas Configuration</h3>
+          <h3 className='font-medium text-gray-700 dark:text-slate-300'>Gas Configuration</h3>
           <button
             type='button'
             onClick={switchToSimple}
-            className='text-xs text-gray-500 hover:text-gray-700 underline'
+            className='text-xs text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 underline'
           >
             Switch to free-form text
           </button>
@@ -317,18 +317,23 @@ const GasTanksInput = ({ value, onChange, error, showSwitchMode = true }) => {
       )}
 
       {/* Back Gas Section */}
-      <div className='bg-white p-3 rounded shadow-sm border border-gray-200'>
-        <h4 className='text-sm font-semibold text-gray-800 mb-2 border-b pb-1'>Back Gas</h4>
+      <div className='bg-white dark:bg-slate-800 p-3 rounded shadow-sm border border-gray-200 dark:border-slate-700'>
+        <h4 className='text-sm font-semibold text-gray-800 dark:text-slate-200 mb-2 border-b border-gray-100 dark:border-slate-700 pb-1'>
+          Back Gas
+        </h4>
         <div className='grid grid-cols-1 md:grid-cols-12 gap-3 items-start'>
           <div className='md:col-span-4'>
-            <label htmlFor='back-gas-tank' className='block text-xs font-medium text-gray-500 mb-1'>
+            <label
+              htmlFor='back-gas-tank'
+              className='block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1'
+            >
               Cylinder
             </label>
             <select
               id='back-gas-tank'
               value={structuredData.back_gas.tank}
               onChange={e => updateBackGas('tank', e.target.value)}
-              className='w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border'
+              className='w-full rounded-md border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border'
               aria-label='Back gas cylinder'
             >
               {TANK_SIZES.map(t => (
@@ -343,7 +348,7 @@ const GasTanksInput = ({ value, onChange, error, showSwitchMode = true }) => {
             <div>
               <label
                 htmlFor='back-gas-start'
-                className='block text-xs font-medium text-gray-500 mb-1'
+                className='block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1'
               >
                 Start (bar)
               </label>
@@ -358,14 +363,14 @@ const GasTanksInput = ({ value, onChange, error, showSwitchMode = true }) => {
                     e.target.value === '' ? '' : parseInt(e.target.value) || 0
                   )
                 }
-                className='w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border'
+                className='w-full rounded-md border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border'
                 aria-label='Back gas start pressure'
               />
             </div>
             <div>
               <label
                 htmlFor='back-gas-end'
-                className='block text-xs font-medium text-gray-500 mb-1'
+                className='block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1'
               >
                 End (bar)
               </label>
@@ -380,14 +385,16 @@ const GasTanksInput = ({ value, onChange, error, showSwitchMode = true }) => {
                     e.target.value === '' ? '' : parseInt(e.target.value) || 0
                   )
                 }
-                className='w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border'
+                className='w-full rounded-md border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border'
                 aria-label='Back gas end pressure'
               />
             </div>
           </div>
 
           <div className='md:col-span-4'>
-            <label className='block text-xs font-medium text-gray-500 mb-1'>Gas Mix</label>
+            <label className='block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1'>
+              Gas Mix
+            </label>
             <GasMixInput
               value={structuredData.back_gas.gas}
               onChange={val => updateBackGas('gas', val)}
@@ -401,18 +408,18 @@ const GasTanksInput = ({ value, onChange, error, showSwitchMode = true }) => {
         {structuredData.stages.map((stage, idx) => (
           <div
             key={stage.id || idx}
-            className='bg-white p-3 rounded shadow-sm border border-gray-200 relative'
+            className='bg-white dark:bg-slate-800 p-3 rounded shadow-sm border border-gray-200 dark:border-slate-700 relative'
           >
             <button
               type='button'
               onClick={() => removeStage(idx)}
-              className='absolute top-2 right-2 text-gray-400 hover:text-red-500'
+              className='absolute top-2 right-2 text-gray-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400'
               title='Remove Stage'
             >
               <Trash2 size={16} />
             </button>
 
-            <h4 className='text-sm font-semibold text-gray-800 mb-2 border-b pb-1 pr-6'>
+            <h4 className='text-sm font-semibold text-gray-800 dark:text-slate-200 mb-2 border-b border-gray-100 dark:border-slate-700 pb-1 pr-6'>
               Stage {idx + 1}
             </h4>
 
@@ -420,7 +427,7 @@ const GasTanksInput = ({ value, onChange, error, showSwitchMode = true }) => {
               <div className='md:col-span-4'>
                 <label
                   htmlFor={`stage-${idx}-tank`}
-                  className='block text-xs font-medium text-gray-500 mb-1'
+                  className='block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1'
                 >
                   Cylinder
                 </label>
@@ -428,7 +435,7 @@ const GasTanksInput = ({ value, onChange, error, showSwitchMode = true }) => {
                   id={`stage-${idx}-tank`}
                   value={stage.tank}
                   onChange={e => updateStage(idx, 'tank', e.target.value)}
-                  className='w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border'
+                  className='w-full rounded-md border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border'
                   aria-label={`Stage ${idx + 1} cylinder`}
                 >
                   <optgroup label='Stage Tanks'>
@@ -452,7 +459,7 @@ const GasTanksInput = ({ value, onChange, error, showSwitchMode = true }) => {
                 <div>
                   <label
                     htmlFor={`stage-${idx}-start`}
-                    className='block text-xs font-medium text-gray-500 mb-1'
+                    className='block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1'
                   >
                     Start (bar)
                   </label>
@@ -468,14 +475,14 @@ const GasTanksInput = ({ value, onChange, error, showSwitchMode = true }) => {
                         e.target.value === '' ? '' : parseInt(e.target.value) || 0
                       )
                     }
-                    className='w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border'
+                    className='w-full rounded-md border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border'
                     aria-label={`Stage ${idx + 1} start pressure`}
                   />
                 </div>
                 <div>
                   <label
                     htmlFor={`stage-${idx}-end`}
-                    className='block text-xs font-medium text-gray-500 mb-1'
+                    className='block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1'
                   >
                     End (bar)
                   </label>
@@ -491,14 +498,16 @@ const GasTanksInput = ({ value, onChange, error, showSwitchMode = true }) => {
                         e.target.value === '' ? '' : parseInt(e.target.value) || 0
                       )
                     }
-                    className='w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border'
+                    className='w-full rounded-md border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border'
                     aria-label={`Stage ${idx + 1} end pressure`}
                   />
                 </div>
               </div>
 
               <div className='md:col-span-4'>
-                <label className='block text-xs font-medium text-gray-500 mb-1'>Gas Mix</label>
+                <label className='block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1'>
+                  Gas Mix
+                </label>
                 <GasMixInput value={stage.gas} onChange={val => updateStage(idx, 'gas', val)} />
               </div>
             </div>
@@ -509,7 +518,7 @@ const GasTanksInput = ({ value, onChange, error, showSwitchMode = true }) => {
       <button
         type='button'
         onClick={addStage}
-        className='w-full py-2 border-2 border-dashed border-gray-300 rounded-md text-gray-500 hover:border-blue-400 hover:text-blue-500 flex items-center justify-center gap-2 transition-colors'
+        className='w-full py-2 border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-md text-gray-500 dark:text-slate-400 hover:border-blue-400 dark:hover:border-blue-500 hover:text-blue-500 dark:hover:text-blue-400 flex items-center justify-center gap-2 transition-colors'
       >
         <Plus size={16} />
         Add Stage Cylinder

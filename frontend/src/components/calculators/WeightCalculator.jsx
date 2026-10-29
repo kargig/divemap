@@ -138,15 +138,17 @@ const WeightCalculator = () => {
   }, [bodyWeight, suitIdx, waterTypeIdx, gasConfig, experience, neutralityTarget, includeValve]);
 
   return (
-    <div className='bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden flex flex-col'>
-      <div className='p-4 border-b border-gray-100 bg-emerald-50/30'>
+    <div className='bg-white dark:bg-slate-800 rounded-xl shadow-md border border-gray-200 dark:border-slate-700 overflow-hidden flex flex-col'>
+      <div className='p-4 border-b border-gray-100 dark:border-slate-700 bg-emerald-50/30 dark:bg-slate-900/60'>
         <div className='flex items-center space-x-2 sm:space-x-3'>
           <div className='p-1.5 bg-emerald-600 rounded text-white hidden sm:block'>
             <Gauge className='h-5 w-5 sm:h-6 sm:w-6' />
           </div>
-          <h2 className='text-base sm:text-xl font-bold text-gray-900'>Estimated Diving Weight</h2>
+          <h2 className='text-base sm:text-xl font-bold text-gray-900 dark:text-slate-100'>
+            Estimated Diving Weight
+          </h2>
         </div>
-        <p className='mt-1 text-xs sm:text-sm text-gray-600 hidden sm:block'>
+        <p className='mt-1 text-xs sm:text-sm text-gray-600 dark:text-slate-400 hidden sm:block'>
           Estimate how much lead you need based on your gear and environment.
         </p>
       </div>
@@ -156,7 +158,7 @@ const WeightCalculator = () => {
           <div>
             <label
               htmlFor='bodyWeight'
-              className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
+              className='block text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1 sm:mb-2'
             >
               Your Weight (kg)
             </label>
@@ -167,13 +169,13 @@ const WeightCalculator = () => {
               max='250'
               value={bodyWeight}
               onChange={e => setBodyWeight(parseFloat(e.target.value) || 0)}
-              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-xs sm:text-sm'
+              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-xs sm:text-sm'
             />
           </div>
           <div>
             <label
               htmlFor='experience'
-              className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
+              className='block text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1 sm:mb-2'
             >
               Experience Level
             </label>
@@ -181,7 +183,7 @@ const WeightCalculator = () => {
               id='experience'
               value={experience}
               onChange={e => setExperience(e.target.value)}
-              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-xs sm:text-sm'
+              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-xs sm:text-sm'
             >
               <option value='novice'>Novice (+2kg)</option>
               <option value='proficient'>Proficient (Baseline)</option>
@@ -194,7 +196,7 @@ const WeightCalculator = () => {
           <div>
             <label
               htmlFor='suitType'
-              className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
+              className='block text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1 sm:mb-2'
             >
               Exposure Suit
             </label>
@@ -202,7 +204,7 @@ const WeightCalculator = () => {
               id='suitType'
               value={suitIdx}
               onChange={e => setSuitIdx(parseInt(e.target.value))}
-              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-xs sm:text-sm'
+              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-xs sm:text-sm'
             >
               {SUIT_OPTIONS.map((suit, idx) => (
                 <option key={suit.label} value={idx}>
@@ -214,7 +216,7 @@ const WeightCalculator = () => {
           <div>
             <label
               htmlFor='waterType'
-              className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
+              className='block text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1 sm:mb-2'
             >
               Water Salinity
             </label>
@@ -222,7 +224,7 @@ const WeightCalculator = () => {
               id='waterType'
               value={waterTypeIdx}
               onChange={e => setWaterTypeIdx(parseInt(e.target.value))}
-              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-xs sm:text-sm'
+              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-xs sm:text-sm'
             >
               {WATER_TYPES.map((type, idx) => (
                 <option key={type.id} value={idx}>
@@ -234,60 +236,60 @@ const WeightCalculator = () => {
         </div>
 
         <div>
-          <span className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'>
+          <span className='block text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1 sm:mb-2'>
             Cylinder Configuration
           </span>
           <GasTanksInput value={gasConfig} onChange={setGasConfig} showSwitchMode={false} />
-          <p className='text-[10px] sm:text-xs text-gray-500 mt-1'>
+          <p className='text-[10px] sm:text-xs text-gray-500 dark:text-slate-400 mt-1'>
             Select cylinders to account for their buoyancy swing.
           </p>
         </div>
 
         <div>
-          <span className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'>
+          <span className='block text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1 sm:mb-2'>
             Weighting Strategy
           </span>
           <div className='grid grid-cols-2 gap-2 sm:gap-4'>
             <label
-              className={`border rounded-lg p-2 sm:p-3 cursor-pointer transition-colors ${neutralityTarget === 'empty' ? 'bg-emerald-50 border-emerald-500 ring-1 ring-emerald-500' : 'bg-white border-gray-200 hover:border-gray-300'}`}
+              className={`border rounded-lg p-2 sm:p-3 cursor-pointer transition-colors ${neutralityTarget === 'empty' ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 ring-1 ring-emerald-500' : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600'}`}
             >
               <div className='flex items-center'>
                 <input
                   type='radio'
                   checked={neutralityTarget === 'empty'}
                   onChange={() => setNeutralityTarget('empty')}
-                  className='h-3 w-3 sm:h-4 sm:w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300'
+                  className='h-3 w-3 sm:h-4 sm:w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 dark:border-slate-600'
                 />
-                <span className='ml-2 text-xs sm:text-sm font-medium text-gray-900'>
+                <span className='ml-2 text-xs sm:text-sm font-medium text-gray-900 dark:text-slate-100'>
                   Neutral at 0 bar
                 </span>
               </div>
-              <p className='mt-1 text-[10px] sm:text-xs text-gray-500 ml-5 sm:ml-6'>
+              <p className='mt-1 text-[10px] sm:text-xs text-gray-500 dark:text-slate-400 ml-5 sm:ml-6'>
                 Safest. Ensures you can hold a stop even if completely out of gas.
               </p>
             </label>
             <label
-              className={`border rounded-lg p-2 sm:p-3 cursor-pointer transition-colors ${neutralityTarget === 'reserve' ? 'bg-emerald-50 border-emerald-500 ring-1 ring-emerald-500' : 'bg-white border-gray-200 hover:border-gray-300'}`}
+              className={`border rounded-lg p-2 sm:p-3 cursor-pointer transition-colors ${neutralityTarget === 'reserve' ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 ring-1 ring-emerald-500' : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600'}`}
             >
               <div className='flex items-center'>
                 <input
                   type='radio'
                   checked={neutralityTarget === 'reserve'}
                   onChange={() => setNeutralityTarget('reserve')}
-                  className='h-3 w-3 sm:h-4 sm:w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300'
+                  className='h-3 w-3 sm:h-4 sm:w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 dark:border-slate-600'
                 />
-                <span className='ml-2 text-xs sm:text-sm font-medium text-gray-900'>
+                <span className='ml-2 text-xs sm:text-sm font-medium text-gray-900 dark:text-slate-100'>
                   Neutral at Reserve
                 </span>
               </div>
-              <p className='mt-1 text-[10px] sm:text-xs text-gray-500 ml-5 sm:ml-6'>
+              <p className='mt-1 text-[10px] sm:text-xs text-gray-500 dark:text-slate-400 ml-5 sm:ml-6'>
                 Standard practice. Neutral with ~50 bar remaining in tanks.
               </p>
             </label>
           </div>
         </div>
 
-        <div className='flex flex-wrap items-center justify-between p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200 gap-2 sm:gap-3'>
+        <div className='flex flex-wrap items-center justify-between p-2 sm:p-3 bg-gray-50 dark:bg-slate-900/60 rounded-lg border border-gray-200 dark:border-slate-700 gap-2 sm:gap-3'>
           <div className='flex items-center gap-2 sm:gap-4'>
             <div className='flex items-center'>
               <input
@@ -295,11 +297,11 @@ const WeightCalculator = () => {
                 type='checkbox'
                 checked={includeValve}
                 onChange={e => setIncludeValve(e.target.checked)}
-                className='w-3 h-3 sm:w-4 sm:h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500 cursor-pointer'
+                className='w-3 h-3 sm:w-4 sm:h-4 text-emerald-600 border-gray-300 dark:border-slate-600 rounded focus:ring-emerald-500 cursor-pointer'
               />
               <label
                 htmlFor='includeValveWeight'
-                className='ml-2 text-xs sm:text-sm font-medium text-gray-700 cursor-pointer select-none'
+                className='ml-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-slate-300 cursor-pointer select-none'
               >
                 Include Valve(s)
               </label>
@@ -312,18 +314,18 @@ const WeightCalculator = () => {
                 type='checkbox'
                 checked={isPrecisionMode}
                 onChange={e => setIsPrecisionMode(e.target.checked)}
-                className='w-3 h-3 sm:w-4 sm:h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500 cursor-pointer'
+                className='w-3 h-3 sm:w-4 sm:h-4 text-emerald-600 border-gray-300 dark:border-slate-600 rounded focus:ring-emerald-500 cursor-pointer'
               />
               <label
                 htmlFor='isPrecisionMode'
-                className='ml-2 text-xs sm:text-sm font-medium text-gray-700 cursor-pointer select-none'
+                className='ml-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-slate-300 cursor-pointer select-none'
               >
                 Precision Mode
               </label>
             </div>
             <button
               onClick={() => setShowDetails(!showDetails)}
-              className='text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition-colors'
+              className='text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors'
             >
               {showDetails ? 'Hide Calculations' : 'Show Calculations'}
             </button>
@@ -331,44 +333,50 @@ const WeightCalculator = () => {
         </div>
 
         {showDetails && (
-          <div className='bg-gray-50 rounded-xl border border-gray-200 p-3 sm:p-4 text-xs space-y-3 animate-in fade-in slide-in-from-top-1 duration-200 mb-4 sm:mb-6'>
+          <div className='bg-gray-50 dark:bg-slate-900/60 rounded-xl border border-gray-200 dark:border-slate-700 p-3 sm:p-4 text-xs space-y-3 animate-in fade-in slide-in-from-top-1 duration-200 mb-4 sm:mb-6'>
             <div>
-              <h4 className='font-bold text-gray-800 border-b border-gray-300 pb-1 mb-2'>
+              <h4 className='font-bold text-gray-800 dark:text-slate-200 border-b border-gray-300 dark:border-slate-700 pb-1 mb-2'>
                 1. Base Suit Weight
               </h4>
-              <div className='flex justify-between text-gray-600'>
+              <div className='flex justify-between text-gray-600 dark:text-slate-400'>
                 <span>
                   {SUIT_OPTIONS[suitIdx].label} (
                   {Math.round(SUIT_OPTIONS[suitIdx].multiplier * 100)}% of body weight):
                 </span>
                 <span>{(bodyWeight * SUIT_OPTIONS[suitIdx].multiplier).toFixed(1)} kg</span>
               </div>
-              <div className='flex justify-between text-gray-600'>
+              <div className='flex justify-between text-gray-600 dark:text-slate-400'>
                 <span>Offset (inherent buoyancy):</span>
                 <span>+{SUIT_OPTIONS[suitIdx].offset} kg</span>
               </div>
-              <div className='flex justify-between font-semibold text-emerald-700 mt-1 border-t border-gray-200 pt-1'>
+              <div className='flex justify-between font-semibold text-emerald-700 dark:text-emerald-400 mt-1 border-t border-gray-200 dark:border-slate-700 pt-1'>
                 <span>Suit Total:</span>
                 <span>{result.suitLead.toFixed(1)} kg</span>
               </div>
             </div>
 
             <div>
-              <h4 className='font-bold text-gray-800 border-b border-gray-300 pb-1 mb-2'>
+              <h4 className='font-bold text-gray-800 dark:text-slate-200 border-b border-gray-300 dark:border-slate-700 pb-1 mb-2'>
                 2. Cylinder Buoyancy
               </h4>
               {result.tankBreakdown.map(tank => (
                 <div key={`${tank.role}-${tank.name}`} className='mb-2 last:mb-0'>
-                  <div className='flex justify-between font-semibold text-gray-700'>
+                  <div className='flex justify-between font-semibold text-gray-700 dark:text-slate-300'>
                     <span>
                       {tank.role}: {tank.name}
                     </span>
-                    <span className={tank.adjustment > 0 ? 'text-red-600' : 'text-emerald-600'}>
+                    <span
+                      className={
+                        tank.adjustment > 0
+                          ? 'text-red-600 dark:text-red-400'
+                          : 'text-emerald-600 dark:text-emerald-400'
+                      }
+                    >
                       {tank.adjustment > 0 ? '+' : ''}
                       {tank.adjustment.toFixed(1)} kg
                     </span>
                   </div>
-                  <div className='pl-2 text-gray-500 space-y-0.5 border-l-2 border-gray-200 ml-1'>
+                  <div className='pl-2 text-gray-500 dark:text-slate-400 space-y-0.5 border-l-2 border-gray-200 dark:border-slate-700 ml-1'>
                     <div className='flex justify-between'>
                       <span>Gas Weight (Full):</span>
                       <span>{tank.gasWeightFull.toFixed(1)} kg</span>
@@ -400,7 +408,7 @@ const WeightCalculator = () => {
                   </div>
                 </div>
               ))}
-              <div className='flex justify-between font-semibold text-emerald-700 mt-1 border-t border-gray-200 pt-1'>
+              <div className='flex justify-between font-semibold text-emerald-700 dark:text-emerald-400 mt-1 border-t border-gray-200 dark:border-slate-700 pt-1'>
                 <span>Total Tank Adjustment:</span>
                 <span>
                   {(result.tankAdjustment > 0 ? '+' : '') + result.tankAdjustment.toFixed(1)} kg
@@ -409,14 +417,14 @@ const WeightCalculator = () => {
             </div>
 
             <div>
-              <h4 className='font-bold text-gray-800 border-b border-gray-300 pb-1 mb-2'>
+              <h4 className='font-bold text-gray-800 dark:text-slate-200 border-b border-gray-300 dark:border-slate-700 pb-1 mb-2'>
                 3. Environmental & Personal
               </h4>
-              <div className='flex justify-between text-gray-600'>
+              <div className='flex justify-between text-gray-600 dark:text-slate-400'>
                 <span>Water Type ({WATER_TYPES[waterTypeIdx].label}):</span>
                 <span>{result.waterAdjustment.toFixed(1)} kg</span>
               </div>
-              <div className='flex justify-between text-gray-600'>
+              <div className='flex justify-between text-gray-600 dark:text-slate-400'>
                 <span>Experience ({experience}):</span>
                 <span>
                   {result.experienceAdjustment > 0 ? '+' : ''}
@@ -425,31 +433,33 @@ const WeightCalculator = () => {
               </div>
             </div>
 
-            <div className='flex justify-between font-black text-sm sm:text-base text-gray-900 pt-2 border-t-2 border-gray-300 mt-2'>
+            <div className='flex justify-between font-black text-sm sm:text-base text-gray-900 dark:text-slate-100 pt-2 border-t-2 border-gray-300 dark:border-slate-700 mt-2'>
               <span>Calculated Total:</span>
               <span>{result.totalLead.toFixed(2)} kg</span>
             </div>
           </div>
         )}
 
-        <div className='mt-0 p-3 sm:p-6 bg-emerald-50 rounded-2xl border border-emerald-100 flex flex-col items-center justify-center text-center'>
-          <span className='text-xs sm:text-sm uppercase tracking-wider font-bold text-emerald-800 mb-1'>
+        <div className='mt-0 p-3 sm:p-6 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl border border-emerald-100 dark:border-emerald-900 flex flex-col items-center justify-center text-center'>
+          <span className='text-xs sm:text-sm uppercase tracking-wider font-bold text-emerald-800 dark:text-emerald-200 mb-1'>
             Recommended Lead
           </span>
           <div className='flex items-baseline'>
-            <span className='text-3xl sm:text-6xl font-black text-emerald-600'>
+            <span className='text-3xl sm:text-6xl font-black text-emerald-600 dark:text-emerald-400'>
               {isPrecisionMode ? result.totalLead.toFixed(1) : Math.round(result.totalLead)}
             </span>
-            <span className='ml-1 sm:ml-2 text-lg sm:text-2xl font-bold text-emerald-400'>kg</span>
+            <span className='ml-1 sm:ml-2 text-lg sm:text-2xl font-bold text-emerald-400 dark:text-emerald-300'>
+              kg
+            </span>
           </div>
-          <p className='mt-1 sm:mt-2 text-xs sm:text-sm text-emerald-700 font-medium'>
+          <p className='mt-1 sm:mt-2 text-xs sm:text-sm text-emerald-700 dark:text-emerald-300 font-medium'>
             Estimated total weight for neutral buoyancy.
           </p>
         </div>
       </div>
 
-      <div className='p-3 sm:p-4 bg-amber-50 border-t border-amber-100 text-xs text-amber-700 flex items-start'>
-        <AlertTriangle className='h-4 w-4 mr-2 text-amber-600 flex-shrink-0 mt-0.5' />
+      <div className='p-3 sm:p-4 bg-amber-50 dark:bg-amber-950/30 border-t border-amber-100 dark:border-amber-900/60 text-xs text-amber-700 dark:text-amber-300 flex items-start'>
+        <AlertTriangle className='h-4 w-4 mr-2 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5' />
         <p>
           <strong>Always perform a buoyancy check!</strong> This is only an estimate. Your physical
           composition, specific gear brands, and lung volume significantly affect actual weighting
@@ -458,11 +468,11 @@ const WeightCalculator = () => {
       </div>
 
       {/* Detailed Formulas Section */}
-      <div className='border-t border-gray-200'>
+      <div className='border-t border-gray-200 dark:border-slate-700'>
         <details className='group'>
-          <summary className='flex justify-between items-center font-medium cursor-pointer list-none p-3 sm:p-4 bg-gray-50 hover:bg-gray-100 transition-colors'>
-            <span className='text-xs sm:text-sm text-gray-700 font-semibold flex items-center gap-2'>
-              <Gauge className='h-4 w-4 text-emerald-600' />
+          <summary className='flex justify-between items-center font-medium cursor-pointer list-none p-3 sm:p-4 bg-gray-50 dark:bg-slate-800/80 hover:bg-gray-100 dark:hover:bg-slate-750 transition-colors'>
+            <span className='text-xs sm:text-sm text-gray-700 dark:text-slate-300 font-semibold flex items-center gap-2'>
+              <Gauge className='h-4 w-4 text-emerald-600 dark:text-emerald-400' />
               View Calculation Formulas
             </span>
             <span className='transition group-open:rotate-180'>
@@ -481,57 +491,65 @@ const WeightCalculator = () => {
               </svg>
             </span>
           </summary>
-          <div className='text-gray-600 text-xs p-4 sm:p-6 bg-white space-y-4 sm:space-y-6 animate-in slide-in-from-top-2 duration-200'>
+          <div className='text-gray-600 dark:text-slate-400 text-xs p-4 sm:p-6 bg-white dark:bg-slate-800 space-y-4 sm:space-y-6 animate-in slide-in-from-top-2 duration-200'>
             <div>
-              <h4 className='font-bold text-gray-900 mb-1 text-sm'>1. Total Lead Required</h4>
+              <h4 className='font-bold text-gray-900 dark:text-slate-100 mb-1 text-sm'>
+                1. Total Lead Required
+              </h4>
               <p className='mb-2'>
                 The sum of all positive buoyancy factors that need to be counteracted.
               </p>
-              <div className='bg-gray-50 p-3 rounded-lg font-mono text-emerald-800 border border-gray-100'>
+              <div className='bg-gray-50 dark:bg-slate-900/60 p-3 rounded-lg font-mono text-emerald-800 dark:text-emerald-300 border border-gray-100 dark:border-slate-700'>
                 <p>Total = Suit Buoyancy + Tank Adjustment + Water Density Adj + Experience</p>
               </div>
             </div>
 
             <div>
-              <h4 className='font-bold text-gray-900 mb-1 text-sm'>2. Suit Buoyancy</h4>
+              <h4 className='font-bold text-gray-900 dark:text-slate-100 mb-1 text-sm'>
+                2. Suit Buoyancy
+              </h4>
               <p className='mb-2'>Estimates the positive buoyancy of your exposure protection.</p>
-              <div className='bg-gray-50 p-3 rounded-lg font-mono text-emerald-800 border border-gray-100'>
+              <div className='bg-gray-50 dark:bg-slate-900/60 p-3 rounded-lg font-mono text-emerald-800 dark:text-emerald-300 border border-gray-100 dark:border-slate-700'>
                 <p>Suit Buoyancy = (Body Weight × Multiplier) + Offset</p>
               </div>
-              <ul className='mt-2 list-disc pl-4 space-y-1 text-gray-500'>
+              <ul className='mt-2 list-disc pl-4 space-y-1 text-gray-500 dark:text-slate-400'>
                 <li>Multiplier: 5mm = 0.08, 7mm = 0.10, Drysuit = 0.10</li>
                 <li>Offset: Added for thick suits or drysuits (2-6 kg)</li>
               </ul>
             </div>
 
             <div>
-              <h4 className='font-bold text-gray-900 mb-1 text-sm'>3. Tank Adjustment</h4>
+              <h4 className='font-bold text-gray-900 dark:text-slate-100 mb-1 text-sm'>
+                3. Tank Adjustment
+              </h4>
               <p className='mb-2'>
                 Compensates for the buoyancy characteristics of your cylinders.
               </p>
-              <div className='bg-gray-50 p-3 rounded-lg font-mono text-emerald-800 border border-gray-100'>
+              <div className='bg-gray-50 dark:bg-slate-900/60 p-3 rounded-lg font-mono text-emerald-800 dark:text-emerald-300 border border-gray-100 dark:border-slate-700'>
                 <p>Adjustment = Σ (Tank Buoyancy at Target Pressure)</p>
               </div>
-              <p className='mt-2 text-gray-500'>
+              <p className='mt-2 text-gray-500 dark:text-slate-400'>
                 If target is &apos;Empty&apos;, we add lead to ensure you are neutral with 0 bar. If
                 &apos;Reserve&apos;, we check at 50 bar.
               </p>
             </div>
 
             <div>
-              <h4 className='font-bold text-gray-900 mb-1 text-sm'>4. Water Density Adjustment</h4>
+              <h4 className='font-bold text-gray-900 dark:text-slate-100 mb-1 text-sm'>
+                4. Water Density Adjustment
+              </h4>
               <p className='mb-2'>Compensates for the extra lift provided by saltier water.</p>
-              <div className='bg-gray-50 p-3 rounded-lg font-mono text-emerald-800 border border-gray-100'>
+              <div className='bg-gray-50 dark:bg-slate-900/60 p-3 rounded-lg font-mono text-emerald-800 dark:text-emerald-300 border border-gray-100 dark:border-slate-700'>
                 <p>Adj = Body Weight × (Current Density - 1.025)</p>
               </div>
-              <p className='mt-2 text-gray-500'>
+              <p className='mt-2 text-gray-500 dark:text-slate-400'>
                 Baseline is Standard Ocean (1.025). Freshwater (1.000) provides less lift, so you
                 need less weight (result is negative).
               </p>
             </div>
 
             <div>
-              <h4 className='font-bold text-gray-900 mb-1 text-sm'>
+              <h4 className='font-bold text-gray-900 dark:text-slate-100 mb-1 text-sm'>
                 1. Displacement (Archimedes&apos; Principle)
               </h4>
               <p className='mb-2'>

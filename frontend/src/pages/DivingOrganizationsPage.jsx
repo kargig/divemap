@@ -91,11 +91,11 @@ const CertificationLevelsList = ({ organizationId, identifier, highlightCourse }
   const allExpanded = categories.length > 0 && categories.every(cat => expandedCategories[cat]);
 
   return (
-    <div className='bg-gray-50 p-4 border-t border-gray-100'>
+    <div className='bg-gray-50 dark:bg-slate-900 p-4 border-t border-gray-100 dark:border-slate-800 min-h-full'>
       <div className='flex justify-between items-center mb-3'>
         <button
           onClick={toggleAll}
-          className='text-xs font-medium text-blue-600 hover:text-blue-800 focus:outline-none'
+          className='text-xs font-medium text-blue-600 dark:text-sky-400 hover:text-blue-800 dark:hover:text-sky-300 focus:outline-none'
         >
           {allExpanded ? 'Collapse All' : 'Expand All'}
         </button>
@@ -105,14 +105,16 @@ const CertificationLevelsList = ({ organizationId, identifier, highlightCourse }
         {categories.map(category => (
           <div
             key={category}
-            className='bg-white rounded border border-gray-200 shadow-sm overflow-hidden'
+            className='bg-white dark:bg-slate-800 rounded border border-gray-200 dark:border-slate-700 shadow-sm overflow-hidden'
           >
             <button
               onClick={() => toggleCategory(category)}
-              className='w-full px-4 py-3 flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors focus:outline-none'
+              className='w-full px-4 py-3 flex justify-between items-center bg-gray-50 dark:bg-slate-750 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors focus:outline-none'
             >
-              <span className='font-medium text-gray-900 text-sm'>{category}</span>
-              <span className='text-gray-500'>
+              <span className='font-medium text-gray-900 dark:text-slate-100 text-sm'>
+                {category}
+              </span>
+              <span className='text-gray-500 dark:text-slate-400'>
                 {expandedCategories[category] ? (
                   <ChevronUp className='h-4 w-4' />
                 ) : (
@@ -122,7 +124,7 @@ const CertificationLevelsList = ({ organizationId, identifier, highlightCourse }
             </button>
 
             {expandedCategories[category] && (
-              <div className='p-3 grid gap-3 border-t border-gray-200'>
+              <div className='p-3 grid gap-3 border-t border-gray-200 dark:border-slate-700'>
                 {groupedLevels[category].map(level => {
                   const isHighlighted =
                     highlightCourse &&
@@ -131,21 +133,25 @@ const CertificationLevelsList = ({ organizationId, identifier, highlightCourse }
                     <div
                       key={level.id}
                       ref={isHighlighted ? highlightedRef : null}
-                      className={`bg-white rounded border text-sm overflow-hidden transition-all duration-300 ${
+                      className={`bg-white dark:bg-slate-800 rounded border text-sm overflow-hidden transition-all duration-300 ${
                         isHighlighted
-                          ? 'border-blue-500 ring-2 ring-blue-200 shadow-md'
-                          : 'border-gray-200'
+                          ? 'border-blue-500 ring-2 ring-blue-200 dark:ring-blue-900/50 shadow-md'
+                          : 'border-gray-200 dark:border-slate-700'
                       }`}
                     >
                       <div
-                        className={`p-3 border-b ${isHighlighted ? 'border-blue-100 bg-blue-100/50' : 'border-gray-100 bg-blue-50/50'}`}
+                        className={`p-3 border-b ${
+                          isHighlighted
+                            ? 'border-blue-100 dark:border-blue-900 bg-blue-100/50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-200'
+                            : 'border-gray-100 dark:border-slate-700 bg-blue-50/50 dark:bg-slate-750 text-gray-900 dark:text-slate-100'
+                        }`}
                       >
                         <span
-                          className={`font-medium ${isHighlighted ? 'text-blue-900' : 'text-gray-900'}`}
+                          className={`font-medium ${isHighlighted ? 'text-blue-900 dark:text-blue-200' : 'text-gray-900 dark:text-slate-100'}`}
                         >
                           {level.name}
                           {isHighlighted && (
-                            <span className='ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800'>
+                            <span className='ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200'>
                               Highlighted
                             </span>
                           )}
@@ -154,42 +160,48 @@ const CertificationLevelsList = ({ organizationId, identifier, highlightCourse }
                       <div className='p-3 grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-4 text-xs'>
                         {level.max_depth && (
                           <div className='flex items-start'>
-                            <span className='font-semibold text-gray-500 w-24 flex-shrink-0'>
+                            <span className='font-semibold text-gray-500 dark:text-slate-400 w-24 flex-shrink-0'>
                               Max Depth:
                             </span>
-                            <span className='text-gray-700'>{level.max_depth}</span>
+                            <span className='text-gray-700 dark:text-slate-200'>
+                              {level.max_depth}
+                            </span>
                           </div>
                         )}
                         {level.deco_time_limit && (
                           <div className='flex items-start'>
-                            <span className='font-semibold text-gray-500 w-24 flex-shrink-0'>
+                            <span className='font-semibold text-gray-500 dark:text-slate-400 w-24 flex-shrink-0'>
                               Deco Limit:
                             </span>
-                            <span className='text-gray-700'>{level.deco_time_limit}</span>
+                            <span className='text-gray-700 dark:text-slate-200'>
+                              {level.deco_time_limit}
+                            </span>
                           </div>
                         )}
                         {level.gases && (
                           <div className='flex items-start'>
-                            <span className='font-semibold text-gray-500 w-24 flex-shrink-0'>
+                            <span className='font-semibold text-gray-500 dark:text-slate-400 w-24 flex-shrink-0'>
                               Gases:
                             </span>
-                            <span className='text-gray-700'>{level.gases}</span>
+                            <span className='text-gray-700 dark:text-slate-200'>{level.gases}</span>
                           </div>
                         )}
                         {level.tanks && (
                           <div className='flex items-start'>
-                            <span className='font-semibold text-gray-500 w-24 flex-shrink-0'>
+                            <span className='font-semibold text-gray-500 dark:text-slate-400 w-24 flex-shrink-0'>
                               Tanks:
                             </span>
-                            <span className='text-gray-700'>{level.tanks}</span>
+                            <span className='text-gray-700 dark:text-slate-200'>{level.tanks}</span>
                           </div>
                         )}
                         {level.prerequisites && (
                           <div className='flex items-start md:col-span-2'>
-                            <span className='font-semibold text-gray-500 w-24 flex-shrink-0'>
+                            <span className='font-semibold text-gray-500 dark:text-slate-400 w-24 flex-shrink-0'>
                               Prerequisites:
                             </span>
-                            <span className='text-gray-700'>{level.prerequisites}</span>
+                            <span className='text-gray-700 dark:text-slate-200'>
+                              {level.prerequisites}
+                            </span>
                           </div>
                         )}
                       </div>
@@ -223,8 +235,10 @@ const OrganizationCard = ({ org, initialDrawerOpen, highlightCourse }) => {
   return (
     <>
       <div
-        className={`bg-white rounded-lg shadow-sm border overflow-hidden hover:shadow-md transition-all duration-200 cursor-pointer ${
-          initialDrawerOpen ? 'border-blue-400 ring-1 ring-blue-100' : 'border-gray-200'
+        className={`bg-white dark:bg-slate-800 rounded-lg shadow-sm border overflow-hidden hover:shadow-md transition-all duration-200 cursor-pointer ${
+          initialDrawerOpen
+            ? 'border-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/40'
+            : 'border-gray-200 dark:border-slate-700'
         }`}
         onClick={() => setDrawerOpen(true)}
         onKeyDown={e => {
@@ -245,8 +259,14 @@ const OrganizationCard = ({ org, initialDrawerOpen, highlightCourse }) => {
                 textSize='text-base sm:text-xl'
               />
               <div>
-                <h3 className='text-lg font-medium text-gray-900'>{org.name}</h3>
-                {org.acronym && <p className='text-sm text-gray-500 font-medium'>{org.acronym}</p>}
+                <h3 className='text-lg font-medium text-gray-900 dark:text-slate-100'>
+                  {org.name}
+                </h3>
+                {org.acronym && (
+                  <p className='text-sm text-gray-500 dark:text-slate-400 font-medium'>
+                    {org.acronym}
+                  </p>
+                )}
               </div>
             </div>
             <div className='flex items-center space-x-2'>
@@ -255,7 +275,7 @@ const OrganizationCard = ({ org, initialDrawerOpen, highlightCourse }) => {
                   e.stopPropagation();
                   setDrawerOpen(true);
                 }}
-                className='p-2 rounded-lg transition-all duration-200 bg-blue-50 text-blue-600 hover:bg-blue-100'
+                className='p-2 rounded-lg transition-all duration-200 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-sky-400 hover:bg-blue-100 dark:hover:bg-blue-900/60'
                 title='View certifications'
               >
                 <NotebookText className='h-5 w-5' />
@@ -265,7 +285,7 @@ const OrganizationCard = ({ org, initialDrawerOpen, highlightCourse }) => {
 
           {org.website && (
             <div
-              className='mt-3 flex items-center text-sm text-blue-600 hover:text-blue-800'
+              className='mt-3 flex items-center text-sm text-blue-600 dark:text-sky-400 hover:text-blue-800 dark:hover:text-sky-300'
               onClick={e => e.stopPropagation()}
               onKeyDown={e => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -296,8 +316,8 @@ const OrganizationCard = ({ org, initialDrawerOpen, highlightCourse }) => {
           <div className='flex items-center space-x-3'>
             <OrganizationLogo org={org} size='h-8 w-8' textSize='text-sm' />
             <div>
-              <span className='font-medium'>{org.name}</span>
-              <span className='text-gray-500 ml-2'>- Certification Levels</span>
+              <span className='font-medium text-gray-900 dark:text-slate-100'>{org.name}</span>
+              <span className='text-gray-500 dark:text-slate-400 ml-2'>- Certification Levels</span>
             </div>
           </div>
         }
@@ -363,19 +383,19 @@ const DivingOrganizationsPage = () => {
           badge={filteredOrgs?.length || organizations?.length || null}
           breadcrumbItems={[{ label: 'Resources' }, { label: 'Organizations' }]}
         />
-        <div className='bg-white shadow-sm rounded-lg overflow-hidden mb-8 border border-gray-100 dark:border-slate-700'>
-          <div className='p-4 sm:p-6 border-b border-gray-200'>
+        <div className='bg-white dark:bg-slate-800 shadow-sm rounded-lg overflow-hidden mb-8 border border-gray-100 dark:border-slate-700'>
+          <div className='p-4 sm:p-6 border-b border-gray-200 dark:border-slate-700'>
             <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
               <p className='text-sm text-gray-600 dark:text-slate-400'>
                 Browse recognized diving organizations and their certification levels.
               </p>
               <div className='relative w-full md:w-64'>
                 <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
-                  <Search className='h-5 w-5 text-gray-400' />
+                  <Search className='h-5 w-5 text-gray-400 dark:text-slate-500' />
                 </div>
                 <input
                   type='text'
-                  className='block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out'
+                  className='block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md leading-5 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out'
                   placeholder='Search organizations...'
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
@@ -389,7 +409,7 @@ const DivingOrganizationsPage = () => {
               <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
             </div>
           ) : (
-            <div className='bg-gray-50 p-2 sm:p-4 lg:p-6'>
+            <div className='bg-gray-50 dark:bg-slate-900 p-2 sm:p-4 lg:p-6'>
               {filteredOrgs?.length > 0 ? (
                 <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6'>
                   {filteredOrgs.map(org => {
@@ -408,10 +428,12 @@ const DivingOrganizationsPage = () => {
                   })}
                 </div>
               ) : (
-                <div className='text-center py-12 bg-white rounded-lg border border-dashed border-gray-300'>
-                  <NotebookText className='mx-auto h-12 w-12 text-gray-400' />
-                  <h3 className='mt-2 text-sm font-medium text-gray-900'>No organizations found</h3>
-                  <p className='mt-1 text-sm text-gray-500'>
+                <div className='text-center py-12 bg-white dark:bg-slate-800 rounded-lg border border-dashed border-gray-300 dark:border-slate-700'>
+                  <NotebookText className='mx-auto h-12 w-12 text-gray-400 dark:text-slate-500' />
+                  <h3 className='mt-2 text-sm font-medium text-gray-900 dark:text-slate-100'>
+                    No organizations found
+                  </h3>
+                  <p className='mt-1 text-sm text-gray-500 dark:text-slate-400'>
                     {searchTerm
                       ? `No organizations matching "${searchTerm}"`
                       : 'There are no diving organizations in the system yet.'}

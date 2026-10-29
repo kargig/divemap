@@ -425,7 +425,7 @@ const DivingCenters = () => {
                       {divingCenters?.map((center, index) => (
                         <React.Fragment key={`${center.id}-${index}`}>
                           <div
-                            className={`dive-item bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(0,114,178)] p-1.5 sm:p-4 hover:shadow-md transition-all duration-200 relative`}
+                            className={`dive-item bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 border-l-4 border-l-[rgb(0,114,178)] p-1.5 sm:p-4 hover:shadow-md transition-all duration-200 relative`}
                           >
                             {/* Main content column */}
                             <div className='flex flex-col'>
@@ -440,20 +440,20 @@ const DivingCenters = () => {
                                       size='md'
                                       fallbackText={center.name}
                                     />
-                                    <h3 className='font-semibold text-gray-900 leading-tight text-base sm:text-lg truncate'>
+                                    <h3 className='font-semibold text-gray-900 dark:text-slate-100 leading-tight text-base sm:text-lg truncate'>
                                       <Link
                                         to={`/diving-centers/${center.id}/${getDivingCenterSlug(center)}`}
                                         state={{
                                           from: window.location.pathname + window.location.search,
                                         }}
-                                        className='hover:text-blue-600 transition-colors'
+                                        className='hover:text-blue-600 dark:hover:text-sky-400 transition-colors'
                                       >
                                         {center.name}
                                       </Link>
                                     </h3>
                                   </div>
                                   {center.average_rating && (
-                                    <div className='flex items-center gap-1 text-yellow-600 flex-shrink-0 bg-yellow-50/50 px-1 py-0.5 rounded text-[10px] sm:text-xs font-bold'>
+                                    <div className='flex items-center gap-1 text-yellow-600 dark:text-amber-400 flex-shrink-0 bg-yellow-50/50 dark:bg-amber-950/30 px-1 py-0.5 rounded text-[10px] sm:text-xs font-bold'>
                                       <img
                                         src='/arts/starfish-2.svg'
                                         alt='Rating'
@@ -467,8 +467,8 @@ const DivingCenters = () => {
                                 {/* Location & Metadata Row - Very compact */}
                                 <div className='flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5'>
                                   {(center.country || center.region || center.city) && (
-                                    <div className='flex items-center gap-1 text-[9px] sm:text-[10px] text-blue-500 font-semibold'>
-                                      <MapPin className='w-2.5 h-2.5 text-blue-400 flex-shrink-0' />
+                                    <div className='flex items-center gap-1 text-[9px] sm:text-[10px] text-blue-500 dark:text-sky-400 font-semibold'>
+                                      <MapPin className='w-2.5 h-2.5 text-blue-400 dark:text-sky-400 flex-shrink-0' />
                                       <span className='truncate max-w-[200px] sm:max-w-[300px]'>
                                         {Array.from(
                                           new Set(
@@ -491,14 +491,14 @@ const DivingCenters = () => {
 
                                 {/* Description - completely removed on mobile view */}
                                 {!isMobile && center.description && (
-                                  <p className='text-xs sm:text-sm text-gray-600 line-clamp-3 sm:line-clamp-4 leading-tight mt-1.5'>
+                                  <p className='text-xs sm:text-sm text-gray-600 dark:text-slate-400 line-clamp-3 sm:line-clamp-4 leading-tight mt-1.5'>
                                     {decodeHtmlEntities(center.description)}
                                   </p>
                                 )}
                               </div>
 
                               {/* Bottom row - Quick Action Row (High consistency) */}
-                              <div className='flex flex-row items-center justify-end gap-2 mt-2 pt-2 border-t border-gray-50'>
+                              <div className='flex flex-row items-center justify-end gap-2 mt-2 pt-2 border-t border-gray-50 dark:border-slate-700/80'>
                                 {center.website && (
                                   <a
                                     href={
@@ -508,37 +508,37 @@ const DivingCenters = () => {
                                     }
                                     target='_blank'
                                     rel='noopener noreferrer'
-                                    className='w-8 h-8 inline-flex items-center justify-center bg-blue-50 text-divemap-blue rounded-lg hover:bg-blue-100/70 active:scale-95 transition-all'
+                                    className='w-8 h-8 inline-flex items-center justify-center bg-blue-50 dark:bg-blue-950/40 text-divemap-blue dark:text-sky-400 rounded-lg hover:bg-blue-100/70 dark:hover:bg-blue-900/60 active:scale-95 transition-all'
                                     title='Website'
                                   >
-                                    <Globe className='w-4 h-4 text-divemap-blue flex-shrink-0' />
+                                    <Globe className='w-4 h-4 text-divemap-blue dark:text-sky-400 flex-shrink-0' />
                                   </a>
                                 )}
                                 {center.email &&
                                   (isMobile ? (
                                     <a
                                       href={`mailto:${center.email}`}
-                                      className='w-8 h-8 inline-flex items-center justify-center bg-blue-50 text-divemap-blue rounded-lg hover:bg-blue-100/70 active:scale-95 transition-all'
+                                      className='w-8 h-8 inline-flex items-center justify-center bg-blue-50 dark:bg-blue-950/40 text-divemap-blue dark:text-sky-400 rounded-lg hover:bg-blue-100/70 dark:hover:bg-blue-900/60 active:scale-95 transition-all'
                                       title='Email'
                                     >
-                                      <Mail className='w-4 h-4 text-divemap-blue flex-shrink-0' />
+                                      <Mail className='w-4 h-4 text-divemap-blue dark:text-sky-400 flex-shrink-0' />
                                     </a>
                                   ) : (
                                     <MaskedEmail
                                       email={center.email}
                                       label=''
-                                      className='w-8 h-8 inline-flex items-center justify-center bg-blue-50 text-divemap-blue rounded-lg hover:bg-blue-100/70 active:scale-95 transition-all cursor-pointer'
+                                      className='w-8 h-8 inline-flex items-center justify-center bg-blue-50 dark:bg-blue-950/40 text-divemap-blue dark:text-sky-400 rounded-lg hover:bg-blue-100/70 dark:hover:bg-blue-900/60 active:scale-95 transition-all cursor-pointer'
                                     >
-                                      <Mail className='w-4 h-4 text-divemap-blue flex-shrink-0' />
+                                      <Mail className='w-4 h-4 text-divemap-blue dark:text-sky-400 flex-shrink-0' />
                                     </MaskedEmail>
                                   ))}
                                 {center.phone && (
                                   <a
                                     href={`tel:${center.phone}`}
-                                    className='w-8 h-8 inline-flex items-center justify-center bg-blue-50 text-divemap-blue rounded-lg hover:bg-blue-100/70 active:scale-95 transition-all'
+                                    className='w-8 h-8 inline-flex items-center justify-center bg-blue-50 dark:bg-blue-950/40 text-divemap-blue dark:text-sky-400 rounded-lg hover:bg-blue-100/70 dark:hover:bg-blue-900/60 active:scale-95 transition-all'
                                     title='Call'
                                   >
-                                    <Phone className='w-4 h-4 text-divemap-blue flex-shrink-0' />
+                                    <Phone className='w-4 h-4 text-divemap-blue dark:text-sky-400 flex-shrink-0' />
                                   </a>
                                 )}
                                 <Link
@@ -546,7 +546,7 @@ const DivingCenters = () => {
                                   state={{
                                     from: window.location.pathname + window.location.search,
                                   }}
-                                  className='w-8 h-8 inline-flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-lg transition-all group ml-auto sm:ml-0'
+                                  className='w-8 h-8 inline-flex items-center justify-center bg-gray-50 dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600 text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200 rounded-lg transition-all group ml-auto sm:ml-0'
                                   title='View Details'
                                 >
                                   <ChevronRight className='w-4 h-4 transition-transform group-hover:translate-x-0.5 flex-shrink-0' />
@@ -570,7 +570,7 @@ const DivingCenters = () => {
                       {divingCenters?.map(center => (
                         <div
                           key={center.id}
-                          className={`dive-item bg-white rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-[rgb(0,114,178)] overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-[1.02] ${
+                          className={`dive-item bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 border-l-4 border-l-[rgb(0,114,178)] overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-[1.02] ${
                             compactLayout ? 'p-4' : 'p-6'
                           }`}
                         >
@@ -586,22 +586,22 @@ const DivingCenters = () => {
                                     fallbackText={center.name}
                                   />
                                   <h3
-                                    className={`font-bold text-gray-900 line-clamp-2 flex-1 min-w-0 ${compactLayout ? 'text-sm' : 'text-lg'}`}
+                                    className={`font-bold text-gray-900 dark:text-slate-100 line-clamp-2 flex-1 min-w-0 ${compactLayout ? 'text-sm' : 'text-lg'}`}
                                   >
                                     <Link
                                       to={`/diving-centers/${center.id}/${getDivingCenterSlug(center)}`}
                                       state={{
                                         from: window.location.pathname + window.location.search,
                                       }}
-                                      className='hover:text-blue-600 transition-colors'
+                                      className='hover:text-blue-600 dark:hover:text-sky-400 transition-colors'
                                     >
                                       {center.name}
                                     </Link>
                                   </h3>
                                 </div>
 
-                                <div className='flex items-center gap-1.5 text-xs text-gray-500'>
-                                  <MapPin className='w-3 h-3 text-blue-500' />
+                                <div className='flex items-center gap-1.5 text-xs text-gray-500 dark:text-slate-400'>
+                                  <MapPin className='w-3 h-3 text-blue-500 dark:text-sky-400' />
                                   <span className='truncate'>
                                     {center.city ? `${center.city}, ` : ''}
                                     {center.country || 'Global'}
@@ -610,13 +610,13 @@ const DivingCenters = () => {
                               </div>
 
                               {center.average_rating && (
-                                <div className='flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-lg border border-yellow-100'>
+                                <div className='flex items-center gap-1 bg-yellow-50 dark:bg-amber-950/30 px-2 py-1 rounded-lg border border-yellow-100 dark:border-amber-900/60'>
                                   <img
                                     src='/arts/starfish-2.svg'
                                     alt='Rating'
                                     className='w-3.5 h-3.5 object-contain'
                                   />
-                                  <span className='text-sm font-bold text-yellow-700'>
+                                  <span className='text-sm font-bold text-yellow-700 dark:text-amber-400'>
                                     {center.average_rating.toFixed(1)}
                                   </span>
                                 </div>
@@ -625,18 +625,18 @@ const DivingCenters = () => {
 
                             {/* Description - completely removed on mobile view */}
                             {!isMobile && center.description && (
-                              <p className='text-gray-600 text-sm line-clamp-3 mb-4 leading-relaxed'>
+                              <p className='text-gray-600 dark:text-slate-400 text-sm line-clamp-3 mb-4 leading-relaxed'>
                                 {decodeHtmlEntities(center.description)}
                               </p>
                             )}
 
                             {/* Footer with actions */}
-                            <div className='flex items-center justify-between pt-4 border-t border-gray-50 mt-auto'>
+                            <div className='flex items-center justify-between pt-4 border-t border-gray-50 dark:border-slate-700/80 mt-auto'>
                               <div className='flex items-center gap-2'>
                                 {center.phone && (
                                   <a
                                     href={`tel:${center.phone}`}
-                                    className='p-2 bg-blue-50 text-divemap-blue rounded-lg hover:bg-blue-100/70 active:scale-95 transition-all'
+                                    className='p-2 bg-blue-50 dark:bg-blue-950/40 text-divemap-blue dark:text-sky-400 rounded-lg hover:bg-blue-100/70 dark:hover:bg-blue-900/60 active:scale-95 transition-all'
                                     title='Call'
                                   >
                                     <Phone className='w-4 h-4' />
@@ -651,7 +651,7 @@ const DivingCenters = () => {
                                     }
                                     target='_blank'
                                     rel='noopener noreferrer'
-                                    className='p-2 bg-blue-50 text-divemap-blue rounded-lg hover:bg-blue-100/70 active:scale-95 transition-all'
+                                    className='p-2 bg-blue-50 dark:bg-blue-950/40 text-divemap-blue dark:text-sky-400 rounded-lg hover:bg-blue-100/70 dark:hover:bg-blue-900/60 active:scale-95 transition-all'
                                     title='Website'
                                   >
                                     <Globe className='w-4 h-4' />
@@ -664,7 +664,7 @@ const DivingCenters = () => {
                                 state={{
                                   from: window.location.pathname + window.location.search,
                                 }}
-                                className='text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 group'
+                                className='text-xs font-bold text-blue-600 dark:text-sky-400 hover:text-blue-800 dark:hover:text-sky-300 flex items-center gap-1 group'
                               >
                                 Explore
                                 <ChevronRight className='w-4 h-4 transition-transform group-hover:translate-x-0.5' />
@@ -678,15 +678,17 @@ const DivingCenters = () => {
 
                   {/* Empty State */}
                   {divingCenters?.length === 0 && (
-                    <div className='text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300'>
-                      <Building className='w-12 h-12 text-gray-300 mx-auto mb-4' />
-                      <h3 className='text-lg font-medium text-gray-900'>No diving centers found</h3>
-                      <p className='text-gray-500 mt-2 max-w-xs mx-auto'>
+                    <div className='text-center py-12 bg-gray-50 dark:bg-slate-800/40 rounded-xl border border-dashed border-gray-300 dark:border-slate-700'>
+                      <Building className='w-12 h-12 text-gray-300 dark:text-slate-600 mx-auto mb-4' />
+                      <h3 className='text-lg font-medium text-gray-900 dark:text-slate-100'>
+                        No diving centers found
+                      </h3>
+                      <p className='text-gray-500 dark:text-slate-400 mt-2 max-w-xs mx-auto'>
                         Try adjusting your filters or search terms to find what you're looking for.
                       </p>
                       <button
                         onClick={clearFilters}
-                        className='mt-4 text-blue-600 font-semibold hover:underline'
+                        className='mt-4 text-blue-600 dark:text-sky-400 font-semibold hover:underline'
                       >
                         Clear all filters
                       </button>

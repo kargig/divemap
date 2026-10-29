@@ -122,15 +122,17 @@ const BestMixCalculator = () => {
   }, [values.depth, values.pO2, values.isTrimix, values.targetEAD, maxDepthAllowed]);
 
   return (
-    <div className='bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden flex flex-col h-full'>
-      <div className='p-4 border-b border-gray-100 bg-emerald-50/30'>
+    <div className='bg-white dark:bg-slate-800 rounded-xl shadow-md border border-gray-200 dark:border-slate-700 overflow-hidden flex flex-col h-full'>
+      <div className='p-4 border-b border-gray-100 dark:border-slate-700 bg-emerald-50/30 dark:bg-slate-900/60'>
         <div className='flex items-center space-x-2 sm:space-x-3'>
           <div className='p-1.5 bg-emerald-600 rounded text-white hidden sm:block'>
             <Wind className='h-5 w-5 sm:h-6 sm:w-6' />
           </div>
-          <h2 className='text-base sm:text-xl font-bold text-gray-900'>Best Gas Mix</h2>
+          <h2 className='text-base sm:text-xl font-bold text-gray-900 dark:text-slate-100'>
+            Best Gas Mix
+          </h2>
         </div>
-        <p className='mt-1 text-xs sm:text-sm text-gray-600 hidden sm:block'>
+        <p className='mt-1 text-xs sm:text-sm text-gray-600 dark:text-slate-400 hidden sm:block'>
           Calculate the ideal gas mix for your planned depth.
         </p>
       </div>
@@ -139,7 +141,7 @@ const BestMixCalculator = () => {
         <div>
           <label
             htmlFor='bestMixDepth'
-            className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
+            className='block text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1 sm:mb-2'
           >
             Planned Depth (meters)
           </label>
@@ -150,24 +152,26 @@ const BestMixCalculator = () => {
             max={maxDepthAllowed}
             step='1'
             {...register('depth', { valueAsNumber: true })}
-            className='w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600'
+            className='w-full h-2 bg-gray-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-600'
           />
           <div className='flex justify-between mt-1 sm:mt-2'>
-            <span className='text-xs sm:text-sm text-gray-500'>0m</span>
+            <span className='text-xs sm:text-sm text-gray-500 dark:text-slate-400'>0m</span>
             <div className='flex flex-col items-center'>
-              <span className='text-base sm:text-lg font-bold text-emerald-600'>
+              <span className='text-base sm:text-lg font-bold text-emerald-600 dark:text-emerald-400'>
                 {values.depth}m
               </span>
               {errors.depth && <span className='text-red-500 text-xs'>{errors.depth.message}</span>}
             </div>
-            <span className='text-xs sm:text-sm text-gray-500'>{maxDepthAllowed}m</span>
+            <span className='text-xs sm:text-sm text-gray-500 dark:text-slate-400'>
+              {maxDepthAllowed}m
+            </span>
           </div>
         </div>
 
         <div>
           <label
             htmlFor='bestMixPO2'
-            className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
+            className='block text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1 sm:mb-2'
           >
             Max pO<sub>2</sub> (bar)
           </label>
@@ -180,7 +184,7 @@ const BestMixCalculator = () => {
                 className={`py-1.5 px-2 sm:py-2 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all ${
                   parseFloat(values.pO2) === val
                     ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
                 }`}
               >
                 {val} bar
@@ -190,16 +194,16 @@ const BestMixCalculator = () => {
           {errors.pO2 && <p className='text-red-500 text-xs mt-1'>{errors.pO2.message}</p>}
         </div>
 
-        <div className='flex items-center p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200'>
+        <div className='flex items-center p-2 sm:p-3 bg-gray-50 dark:bg-slate-900/60 rounded-lg border border-gray-200 dark:border-slate-700'>
           <input
             id='trimixToggle'
             type='checkbox'
             {...register('isTrimix')}
-            className='w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500 cursor-pointer'
+            className='w-4 h-4 text-emerald-600 border-gray-300 dark:border-slate-600 rounded focus:ring-emerald-500 cursor-pointer'
           />
           <label
             htmlFor='trimixToggle'
-            className='ml-2 text-xs sm:text-sm font-medium text-gray-700 cursor-pointer select-none'
+            className='ml-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-slate-300 cursor-pointer select-none'
           >
             Enable Trimix (Helium)
           </label>
@@ -209,7 +213,7 @@ const BestMixCalculator = () => {
           <div>
             <label
               htmlFor='targetEAD'
-              className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
+              className='block text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1 sm:mb-2'
             >
               Target EAD (meters)
             </label>
@@ -220,19 +224,19 @@ const BestMixCalculator = () => {
               max='60'
               step='1'
               {...register('targetEAD', { valueAsNumber: true })}
-              className='w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600'
+              className='w-full h-2 bg-gray-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-600'
             />
             <div className='flex justify-between mt-1 sm:mt-2'>
-              <span className='text-xs sm:text-sm text-gray-500'>0m</span>
+              <span className='text-xs sm:text-sm text-gray-500 dark:text-slate-400'>0m</span>
               <div className='flex flex-col items-center'>
-                <span className='text-base sm:text-lg font-bold text-emerald-600'>
+                <span className='text-base sm:text-lg font-bold text-emerald-600 dark:text-emerald-400'>
                   {values.targetEAD}m
                 </span>
                 {errors.targetEAD && (
                   <span className='text-red-500 text-xs'>{errors.targetEAD.message}</span>
                 )}
               </div>
-              <span className='text-xs sm:text-sm text-gray-500'>60m</span>
+              <span className='text-xs sm:text-sm text-gray-500 dark:text-slate-400'>60m</span>
             </div>
           </div>
         )}
@@ -240,15 +244,15 @@ const BestMixCalculator = () => {
         <div className='flex justify-end'>
           <button
             onClick={() => setShowDetails(!showDetails)}
-            className='text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition-colors'
+            className='text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors'
           >
             {showDetails ? 'Hide Calculations' : 'Show Calculations'}
           </button>
         </div>
 
         {showDetails && bestMixResult.details.ata && (
-          <div className='p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-2 text-xs font-mono text-gray-600 animate-in fade-in slide-in-from-top-1 duration-200'>
-            <div className='flex justify-between font-bold text-gray-700 border-b border-gray-200 pb-1 mb-1'>
+          <div className='p-4 bg-gray-50 dark:bg-slate-900/60 rounded-xl border border-gray-100 dark:border-slate-700 space-y-2 text-xs font-mono text-gray-600 dark:text-slate-300 animate-in fade-in slide-in-from-top-1 duration-200'>
+            <div className='flex justify-between font-bold text-gray-700 dark:text-slate-200 border-b border-gray-200 dark:border-slate-700 pb-1 mb-1'>
               <span>1. Ambient Pressure</span>
             </div>
             <div className='flex justify-between'>
@@ -262,11 +266,11 @@ const BestMixCalculator = () => {
                 {bestMixResult.details.ata.toFixed(2)} ATA
               </span>
             </div>
-            <div className='text-[10px] text-gray-400 italic text-right mb-1'>
+            <div className='text-[10px] text-gray-400 dark:text-slate-500 italic text-right mb-1'>
               * {SURFACE_PRESSURE_BAR} bar is Standard Surface Pressure (1 atm).
             </div>
 
-            <div className='flex justify-between font-bold text-gray-700 border-b border-gray-200 pb-1 mb-1 mt-3'>
+            <div className='flex justify-between font-bold text-gray-700 dark:text-slate-200 border-b border-gray-200 dark:border-slate-700 pb-1 mb-1 mt-3'>
               <span>2. Oxygen Fraction</span>
             </div>
             <div className='flex justify-between'>
@@ -282,7 +286,7 @@ const BestMixCalculator = () => {
                 {bestMixResult.details.fO2.toFixed(3)}
               </span>
             </div>
-            <div className='flex justify-between font-bold text-emerald-600'>
+            <div className='flex justify-between font-bold text-emerald-600 dark:text-emerald-400'>
               <span>Result:</span>
               <span>
                 {(bestMixResult.details.fO2 * 100).toFixed(1)}% O<sub>2</sub>
@@ -291,10 +295,10 @@ const BestMixCalculator = () => {
 
             {bestMixResult.details.isTrimix && (
               <>
-                <div className='flex justify-between font-bold text-gray-700 border-b border-gray-200 pb-1 mb-1 mt-3'>
+                <div className='flex justify-between font-bold text-gray-700 dark:text-slate-200 border-b border-gray-200 dark:border-slate-700 pb-1 mb-1 mt-3'>
                   <span>3. Nitrogen Limit (Narcosis)</span>
                 </div>
-                <div className='flex justify-between text-gray-500'>
+                <div className='flex justify-between text-gray-500 dark:text-slate-400'>
                   <span>Target EAD:</span>
                   <span>{bestMixResult.details.targetEAD}m</span>
                 </div>
@@ -318,7 +322,7 @@ const BestMixCalculator = () => {
                   </span>
                 </div>
 
-                <div className='flex justify-between font-bold text-gray-700 border-b border-gray-200 pb-1 mb-1 mt-3'>
+                <div className='flex justify-between font-bold text-gray-700 dark:text-slate-200 border-b border-gray-200 dark:border-slate-700 pb-1 mb-1 mt-3'>
                   <span>4. Helium Fill</span>
                 </div>
                 <div className='flex justify-between'>
@@ -334,7 +338,7 @@ const BestMixCalculator = () => {
                     {(bestMixResult.details.maxFN2 * 100).toFixed(1)}
                   </span>
                 </div>
-                <div className='flex justify-between font-bold text-purple-600'>
+                <div className='flex justify-between font-bold text-purple-600 dark:text-purple-400'>
                   <span>Result:</span>
                   <span>{bestMixResult.fHe.toFixed(1)}% He</span>
                 </div>
@@ -343,22 +347,22 @@ const BestMixCalculator = () => {
           </div>
         )}
 
-        <div className='mt-1 sm:mt-2 p-3 sm:p-6 bg-emerald-50 rounded-2xl border border-emerald-100 flex flex-col items-center justify-center text-center'>
-          <span className='text-xs sm:text-sm uppercase tracking-wider font-bold text-emerald-800 mb-1'>
+        <div className='mt-1 sm:mt-2 p-3 sm:p-6 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl border border-emerald-100 dark:border-emerald-900 flex flex-col items-center justify-center text-center'>
+          <span className='text-xs sm:text-sm uppercase tracking-wider font-bold text-emerald-800 dark:text-emerald-200 mb-1'>
             Ideal Gas Mix
           </span>
           <div className='flex items-baseline'>
-            <span className='text-3xl sm:text-5xl font-black text-emerald-600'>
+            <span className='text-3xl sm:text-5xl font-black text-emerald-600 dark:text-emerald-400'>
               {bestMixResult.label}
             </span>
           </div>
           {bestMixResult.fHe > 0.1 && (
-            <div className='mt-1 text-xs sm:text-sm text-emerald-600 font-medium'>
+            <div className='mt-1 text-xs sm:text-sm text-emerald-600 dark:text-emerald-400 font-medium'>
               {bestMixResult.fO2.toFixed(0)}% O<sub>2</sub> / {bestMixResult.fHe.toFixed(0)}% He
             </div>
           )}
           {bestMixResult.fO2 > 40 && (
-            <div className='mt-2 sm:mt-3 flex items-center text-amber-600 bg-amber-50 px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-medium border border-amber-100'>
+            <div className='mt-2 sm:mt-3 flex items-center text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-medium border border-amber-100 dark:border-amber-900/60'>
               <AlertTriangle className='h-3 w-3 mr-1' />
               Exceeds standard Nitrox (40%)
             </div>
@@ -366,8 +370,8 @@ const BestMixCalculator = () => {
         </div>
       </div>
 
-      <div className='p-3 sm:p-4 bg-gray-50 border-t border-gray-100 text-xs text-gray-500 flex items-start'>
-        <Info className='h-4 w-4 mr-2 text-gray-400 flex-shrink-0' />
+      <div className='p-3 sm:p-4 bg-gray-50 dark:bg-slate-900/60 border-t border-gray-100 dark:border-slate-700 text-xs text-gray-500 dark:text-slate-400 flex items-start'>
+        <Info className='h-4 w-4 mr-2 text-gray-400 dark:text-slate-500 flex-shrink-0' />
         <p>
           Calculates Best Mix based on pO<sub>2</sub> limit. If Trimix is enabled, Helium is added
           to keep Equivalent Air Depth (EAD) within limits.

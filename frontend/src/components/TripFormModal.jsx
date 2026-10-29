@@ -167,14 +167,19 @@ const TripFormModal = ({
         </div>
 
         <div>
-          <label htmlFor='trip-date' className='block text-sm font-medium text-gray-700 mb-1'>
+          <label
+            htmlFor='trip-date'
+            className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
+          >
             Trip Date *
           </label>
           <input
             id='trip-date'
             type='date'
             {...register('trip_date')}
-            className={`w-full p-2 border rounded-md ${errors.trip_date ? 'border-red-500' : ''}`}
+            className={`w-full p-2 border rounded-md bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 ${
+              errors.trip_date ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
+            }`}
             required
           />
           {errors.trip_date && (
@@ -183,14 +188,19 @@ const TripFormModal = ({
         </div>
 
         <div>
-          <label htmlFor='trip-time' className='block text-sm font-medium text-gray-700 mb-1'>
+          <label
+            htmlFor='trip-time'
+            className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
+          >
             Trip Time
           </label>
           <input
             id='trip-time'
             type='time'
             {...register('trip_time')}
-            className={`w-full p-2 border rounded-md ${errors.trip_time ? 'border-red-500' : ''}`}
+            className={`w-full p-2 border rounded-md bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 ${
+              errors.trip_time ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
+            }`}
           />
           {errors.trip_time && (
             <p className='text-red-500 text-sm mt-1'>{getErrorMessage(errors.trip_time)}</p>
@@ -198,7 +208,10 @@ const TripFormModal = ({
         </div>
 
         <div>
-          <label htmlFor='trip-duration' className='block text-sm font-medium text-gray-700 mb-1'>
+          <label
+            htmlFor='trip-duration'
+            className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
+          >
             Trip Duration (minutes)
           </label>
           <input
@@ -207,8 +220,8 @@ const TripFormModal = ({
             {...register('trip_duration', {
               setValueAs: val => (val === '' ? null : val),
             })}
-            className={`w-full p-2 border rounded-md ${
-              errors.trip_duration ? 'border-red-500' : ''
+            className={`w-full p-2 border rounded-md bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${
+              errors.trip_duration ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
             }`}
             min='1'
           />
@@ -218,7 +231,10 @@ const TripFormModal = ({
         </div>
 
         <div>
-          <label htmlFor='trip-price' className='block text-sm font-medium text-gray-700 mb-1'>
+          <label
+            htmlFor='trip-price'
+            className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
+          >
             Trip Price
           </label>
           <input
@@ -228,7 +244,9 @@ const TripFormModal = ({
             {...register('trip_price', {
               setValueAs: val => (val === '' ? null : val),
             })}
-            className={`w-full p-2 border rounded-md ${errors.trip_price ? 'border-red-500' : ''}`}
+            className={`w-full p-2 border rounded-md bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${
+              errors.trip_price ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
+            }`}
           />
           {errors.trip_price && (
             <p className='text-red-500 text-sm mt-1'>{getErrorMessage(errors.trip_price)}</p>
@@ -257,7 +275,7 @@ const TripFormModal = ({
         <div>
           <label
             htmlFor='trip-group-size-limit'
-            className='block text-sm font-medium text-gray-700 mb-1'
+            className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
           >
             Group Size Limit
           </label>
@@ -267,8 +285,8 @@ const TripFormModal = ({
             {...register('group_size_limit', {
               setValueAs: val => (val === '' ? null : val),
             })}
-            className={`w-full p-2 border rounded-md ${
-              errors.group_size_limit ? 'border-red-500' : ''
+            className={`w-full p-2 border rounded-md bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${
+              errors.group_size_limit ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
             }`}
             min='1'
           />
@@ -280,7 +298,7 @@ const TripFormModal = ({
         <div>
           <label
             htmlFor='trip-current-bookings'
-            className='block text-sm font-medium text-gray-700 mb-1'
+            className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
           >
             Current Bookings
           </label>
@@ -290,8 +308,8 @@ const TripFormModal = ({
             {...register('current_bookings', {
               setValueAs: val => (val === '' ? 0 : Number(val)),
             })}
-            className={`w-full p-2 border rounded-md ${
-              errors.current_bookings ? 'border-red-500' : ''
+            className={`w-full p-2 border rounded-md bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${
+              errors.current_bookings ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
             }`}
             min='0'
           />
@@ -473,9 +491,9 @@ const TripFormModal = ({
       </div>
 
       {/* Dives Section */}
-      <div className='border-t pt-4'>
+      <div className='border-t border-gray-200 dark:border-slate-700 pt-4'>
         <div className='flex justify-between items-center mb-4'>
-          <h4 className='text-lg font-medium text-gray-900'>Dives</h4>
+          <h4 className='text-lg font-medium text-gray-900 dark:text-slate-100'>Dives</h4>
           <Button
             type='button'
             onClick={addDive}
@@ -488,19 +506,24 @@ const TripFormModal = ({
         </div>
 
         {fields.length === 0 && (
-          <p className='text-gray-500 text-sm'>
+          <p className='text-gray-500 dark:text-slate-400 text-sm'>
             No dives added yet. Click &quot;Add Dive&quot; to add dives to this trip.
           </p>
         )}
 
         {fields.map((field, index) => (
-          <div key={field.id} className='border rounded-lg p-4 mb-4 bg-gray-50'>
+          <div
+            key={field.id}
+            className='border border-gray-200 dark:border-slate-700 rounded-lg p-4 mb-4 bg-gray-50 dark:bg-slate-900/40'
+          >
             <div className='flex justify-between items-center mb-3'>
-              <h5 className='text-md font-medium text-gray-700'>Dive {index + 1}</h5>
+              <h5 className='text-md font-medium text-gray-700 dark:text-slate-200'>
+                Dive {index + 1}
+              </h5>
               <button
                 type='button'
                 onClick={() => removeDive(index)}
-                className='text-red-600 hover:text-red-800'
+                className='text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300'
               >
                 <X className='h-4 w-4' />
               </button>
@@ -550,7 +573,7 @@ const TripFormModal = ({
               <div>
                 <label
                   htmlFor={`dive-time-${index}`}
-                  className='block text-sm font-medium text-gray-700 mb-1'
+                  className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
                 >
                   Dive Time
                 </label>
@@ -558,8 +581,10 @@ const TripFormModal = ({
                   id={`dive-time-${index}`}
                   type='time'
                   {...register(`dives.${index}.dive_time`)}
-                  className={`w-full p-2 border rounded-md ${
-                    errors.dives?.[index]?.dive_time ? 'border-red-500' : ''
+                  className={`w-full p-2 border rounded-md bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 ${
+                    errors.dives?.[index]?.dive_time
+                      ? 'border-red-500'
+                      : 'border-gray-300 dark:border-slate-600'
                   }`}
                 />
                 {errors.dives?.[index]?.dive_time && (
@@ -572,7 +597,7 @@ const TripFormModal = ({
               <div>
                 <label
                   htmlFor={`dive-duration-${index}`}
-                  className='block text-sm font-medium text-gray-700 mb-1'
+                  className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
                 >
                   Duration (min)
                 </label>
@@ -582,8 +607,10 @@ const TripFormModal = ({
                   {...register(`dives.${index}.dive_duration`, {
                     setValueAs: val => (val === '' ? null : val),
                   })}
-                  className={`w-full p-2 border rounded-md ${
-                    errors.dives?.[index]?.dive_duration ? 'border-red-500' : ''
+                  className={`w-full p-2 border rounded-md bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${
+                    errors.dives?.[index]?.dive_duration
+                      ? 'border-red-500'
+                      : 'border-gray-300 dark:border-slate-600'
                   }`}
                   min='1'
                 />
@@ -616,19 +643,22 @@ const TripFormModal = ({
       </div>
 
       {/* Broadcast Option */}
-      <div className='flex items-center space-x-2 mt-4 pt-4 border-t border-gray-200'>
+      <div className='flex items-center space-x-2 mt-4 pt-4 border-t border-gray-200 dark:border-slate-700'>
         <input
           type='checkbox'
           id='broadcast'
           {...register('broadcast_to_followers')}
-          className='w-4 h-4 text-divemap-blue border-gray-300 rounded focus:ring-divemap-sky'
+          className='w-4 h-4 text-divemap-blue border-gray-300 dark:border-slate-600 rounded focus:ring-divemap-sky'
         />
-        <label htmlFor='broadcast' className='text-sm font-medium text-gray-700'>
+        <label
+          htmlFor='broadcast'
+          className='text-sm font-medium text-gray-700 dark:text-slate-300'
+        >
           {trip ? 'Broadcast update to followers' : 'Broadcast this trip to followers'}
         </label>
       </div>
 
-      <div className='flex justify-end space-x-3 pt-4 border-t'>
+      <div className='flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-slate-700'>
         {onCancel && (
           <Button type='button' onClick={onCancel} variant='secondary'>
             Cancel
@@ -657,10 +687,10 @@ const TripFormModal = ({
 
   // Standalone form (for CreateTrip page)
   return (
-    <div className='bg-white rounded-lg shadow-md p-6 max-w-4xl mx-auto'>
+    <div className='bg-white dark:bg-slate-800 rounded-lg shadow-md border border-gray-100 dark:border-slate-700 p-6 max-w-4xl mx-auto'>
       {title && (
         <div className='mb-6'>
-          <h2 className='text-2xl font-bold text-gray-900'>{title}</h2>
+          <h2 className='text-2xl font-bold text-gray-900 dark:text-slate-100'>{title}</h2>
         </div>
       )}
       {formContent}

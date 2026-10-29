@@ -37,9 +37,9 @@ export const DiveSiteSearchDropdown = ({
 
   const renderDiveSiteItem = site => (
     <div>
-      <div className='font-medium text-gray-900'>{site.name}</div>
+      <div className='font-medium text-gray-900 dark:text-slate-100'>{site.name}</div>
       {site.country && (
-        <div className='text-xs text-gray-500'>
+        <div className='text-xs text-gray-500 dark:text-slate-400'>
           {site.country}
           {site.region ? `, ${site.region}` : ''}
         </div>

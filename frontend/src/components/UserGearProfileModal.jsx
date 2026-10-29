@@ -690,13 +690,13 @@ const UserGearProfileModal = ({
 
               <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3'>
                 <div>
-                  <label className='block text-[11px] font-medium text-gray-600 mb-1'>
+                  <label className='block text-[11px] font-medium text-gray-600 dark:text-slate-400 mb-1'>
                     Water Body / Salinity
                   </label>
                   <select
                     value={waterTypeIdx}
                     onChange={e => setWaterTypeIdx(parseInt(e.target.value, 10))}
-                    className='w-full px-2.5 py-1 text-xs border border-blue-200 rounded-md bg-white'
+                    className='w-full px-2.5 py-1 text-xs border border-blue-200 dark:border-blue-800 rounded-md bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100'
                   >
                     {WATER_TYPES.map((w, idx) => (
                       <option key={w.id} value={idx}>
@@ -706,9 +706,11 @@ const UserGearProfileModal = ({
                   </select>
                 </div>
 
-                <div className='bg-white p-2.5 rounded-lg border border-blue-100 flex flex-col justify-center'>
-                  <span className='text-[11px] text-gray-500'>Physics Breakdown:</span>
-                  <div className='text-xs text-gray-700 flex justify-between mt-0.5'>
+                <div className='bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-blue-100 dark:border-blue-900/60 flex flex-col justify-center'>
+                  <span className='text-[11px] text-gray-500 dark:text-slate-400'>
+                    Physics Breakdown:
+                  </span>
+                  <div className='text-xs text-gray-700 dark:text-slate-300 flex justify-between mt-0.5'>
                     <span>
                       Suit: +
                       {unitSystem === 'METRIC'
@@ -799,7 +801,7 @@ const UserGearProfileModal = ({
                 <select
                   value={bcdSize || 'M'}
                   onChange={e => setBcdSize(e.target.value)}
-                  className='w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white'
+                  className='w-full px-3 py-1.5 border border-gray-300 dark:border-slate-600 rounded-md text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100'
                 >
                   <option value='XS'>XS</option>
                   <option value='S'>S</option>
@@ -855,7 +857,7 @@ const UserGearProfileModal = ({
                 <select
                   value={wetsuitThickness}
                   onChange={e => setWetsuitThickness(e.target.value)}
-                  className='w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white'
+                  className='w-full px-3 py-1.5 border border-gray-300 dark:border-slate-600 rounded-md text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100'
                 >
                   <option value='3mm-shorty'>3mm Shorty</option>
                   <option value='3mm'>3mm Full</option>
@@ -874,7 +876,7 @@ const UserGearProfileModal = ({
                     <select
                       value={wetsuitGender}
                       onChange={e => setWetsuitGender(e.target.value)}
-                      className='w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white'
+                      className='w-full px-3 py-1.5 border border-gray-300 dark:border-slate-600 rounded-md text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100'
                     >
                       <option value='MEN'>Men / Unisex</option>
                       <option value='WOMEN'>Women</option>
@@ -887,7 +889,7 @@ const UserGearProfileModal = ({
                     <select
                       value={wetsuitSize}
                       onChange={e => setWetsuitSize(e.target.value)}
-                      className='w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white'
+                      className='w-full px-3 py-1.5 border border-gray-300 dark:border-slate-600 rounded-md text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100'
                     >
                       <option value='XS'>XS</option>
                       <option value='S'>S</option>
@@ -950,7 +952,7 @@ const UserGearProfileModal = ({
                 <select
                   value={regulatorFitting}
                   onChange={e => setRegulatorFitting(e.target.value)}
-                  className='w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white'
+                  className='w-full px-3 py-1.5 border border-gray-300 dark:border-slate-600 rounded-md text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100'
                 >
                   <option value='DIN'>DIN (232/300 bar threaded) — European Standard</option>
                   <option value='YOKE'>Yoke / INT (A-clamp)</option>
@@ -1009,7 +1011,7 @@ const UserGearProfileModal = ({
                 <select
                   value={finType}
                   onChange={e => setFinType(e.target.value)}
-                  className='w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white'
+                  className='w-full px-3 py-1.5 border border-gray-300 dark:border-slate-600 rounded-md text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100'
                 >
                   <option value='OPEN_HEEL'>Open-Heel (With Booties)</option>
                   <option value='FULL_FOOT'>Full-Foot (Barefoot)</option>
@@ -1142,7 +1144,7 @@ const UserGearProfileModal = ({
               <select
                 value={preferredTankId}
                 onChange={e => setPreferredTankId(e.target.value)}
-                className='w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white'
+                className='w-full px-3 py-1.5 border border-gray-300 dark:border-slate-600 rounded-md text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100'
               >
                 {cylinders.map(cyl => (
                   <option key={cyl.id} value={cyl.id}>
@@ -1159,7 +1161,7 @@ const UserGearProfileModal = ({
               <select
                 value={preferredGasMixId}
                 onChange={e => setPreferredGasMixId(e.target.value)}
-                className='w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white'
+                className='w-full px-3 py-1.5 border border-gray-300 dark:border-slate-600 rounded-md text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100'
               >
                 {gasMixes.map(gas => (
                   <option key={gas.id} value={gas.id}>

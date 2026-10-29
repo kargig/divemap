@@ -511,16 +511,18 @@ const CreateDiveSite = () => {
         <div className='flex items-center mb-6'>
           <button
             onClick={handleCancel}
-            className='flex items-center text-gray-600 hover:text-gray-800 mr-4'
+            className='flex items-center text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 mr-4'
           >
             <ArrowLeft className='h-4 w-4 mr-1' />
             Back to Dive Sites
           </button>
         </div>
 
-        <div className='bg-white rounded-lg shadow-md p-6'>
+        <div className='bg-white dark:bg-slate-800 rounded-lg shadow-md border border-gray-100 dark:border-slate-700 p-6'>
           <div className='flex justify-between items-center mb-6'>
-            <h1 className='text-2xl font-bold text-gray-900'>Create New Dive Site</h1>
+            <h1 className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
+              Create New Dive Site
+            </h1>
           </div>
 
           <FormProvider {...methods}>
@@ -534,8 +536,8 @@ const CreateDiveSite = () => {
                         id='dive-site-name'
                         type='text'
                         {...register(name)}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          errors.name ? 'border-red-500' : 'border-gray-300'
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${
+                          errors.name ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
                         }`}
                         placeholder='Enter dive site name'
                       />
@@ -549,7 +551,7 @@ const CreateDiveSite = () => {
                       <select
                         id='difficulty-level'
                         {...register(name)}
-                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                        className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                       >
                         {getDifficultyOptions().map(option => (
                           <option
@@ -609,8 +611,10 @@ const CreateDiveSite = () => {
                             }
                           },
                         })}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          errors.latitude ? 'border-red-500' : 'border-gray-300'
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${
+                          errors.latitude
+                            ? 'border-red-500'
+                            : 'border-gray-300 dark:border-slate-600'
                         }`}
                         placeholder='e.g., -16.5'
                       />
@@ -626,8 +630,10 @@ const CreateDiveSite = () => {
                         type='text'
                         inputMode='decimal'
                         {...register(name)}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          errors.longitude ? 'border-red-500' : 'border-gray-300'
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${
+                          errors.longitude
+                            ? 'border-red-500'
+                            : 'border-gray-300 dark:border-slate-600'
                         }`}
                         placeholder='e.g., 145.67'
                       />
@@ -667,7 +673,7 @@ const CreateDiveSite = () => {
                   type='button'
                   onClick={suggestLocation}
                   disabled={!formData.latitude || !formData.longitude}
-                  className='flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed gap-2'
+                  className='flex items-center px-4 py-2 text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-650 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed gap-2'
                 >
                   🗺️ Suggest Country & Region from Coordinates
                 </button>
@@ -682,8 +688,10 @@ const CreateDiveSite = () => {
                         id='country'
                         type='text'
                         {...register(name)}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          errors.country ? 'border-red-500' : 'border-gray-300'
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${
+                          errors.country
+                            ? 'border-red-500'
+                            : 'border-gray-300 dark:border-slate-600'
                         }`}
                         placeholder='e.g., Australia'
                       />
@@ -698,8 +706,8 @@ const CreateDiveSite = () => {
                         id='region'
                         type='text'
                         {...register(name)}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          errors.region ? 'border-red-500' : 'border-gray-300'
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${
+                          errors.region ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
                         }`}
                         placeholder='e.g., Queensland'
                       />
@@ -720,12 +728,14 @@ const CreateDiveSite = () => {
                         min='0'
                         max='360'
                         {...register(name)}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          errors.shore_direction ? 'border-red-500' : 'border-gray-300'
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${
+                          errors.shore_direction
+                            ? 'border-red-500'
+                            : 'border-gray-300 dark:border-slate-600'
                         }`}
                         placeholder='Auto-detected from coordinates (or enter manually)'
                       />
-                      <p className='mt-1 text-xs text-gray-500'>
+                      <p className='mt-1 text-xs text-gray-500 dark:text-slate-400'>
                         Shore direction in degrees (0-360). 0° = North, 90° = East, 180° = South,
                         270° = West. If left empty, shore direction will be auto-detected from
                         coordinates when the dive site is created.
@@ -746,8 +756,10 @@ const CreateDiveSite = () => {
                       max='1000'
                       step='any'
                       {...register(name)}
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        errors.max_depth ? 'border-red-500' : 'border-gray-300'
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${
+                        errors.max_depth
+                          ? 'border-red-500'
+                          : 'border-gray-300 dark:border-slate-600'
                       }`}
                       placeholder='e.g., 25.5'
                     />
@@ -805,7 +817,9 @@ const CreateDiveSite = () => {
 
               {/* Media */}
               <div>
-                <h2 className='text-xl font-semibold mb-4'>Media</h2>
+                <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4'>
+                  Media
+                </h2>
                 <div className='space-y-4'>
                   {/* Photo Upload */}
                   <UploadPhotosComponent
@@ -832,7 +846,7 @@ const CreateDiveSite = () => {
                                 <div>
                                   <label
                                     htmlFor='media_type'
-                                    className='block text-sm font-medium text-gray-700 mb-1'
+                                    className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
                                   >
                                     Media Type
                                   </label>
@@ -840,7 +854,7 @@ const CreateDiveSite = () => {
                                     id='media_type'
                                     value={newMediaType}
                                     onChange={e => setNewMediaType(e.target.value)}
-                                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                    className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                   >
                                     <option value='photo'>Photo</option>
                                     <option value='video'>Video</option>
@@ -849,7 +863,7 @@ const CreateDiveSite = () => {
                                 <div className='md:col-span-2'>
                                   <label
                                     htmlFor='media_url'
-                                    className='block text-sm font-medium text-gray-700 mb-1'
+                                    className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
                                   >
                                     URL
                                   </label>
@@ -858,7 +872,7 @@ const CreateDiveSite = () => {
                                     type='url'
                                     value={newMediaUrl}
                                     onChange={e => setNewMediaUrl(e.target.value)}
-                                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                    className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                     placeholder='https://example.com/image.jpg'
                                   />
                                 </div>
@@ -866,7 +880,7 @@ const CreateDiveSite = () => {
                               <div>
                                 <label
                                   htmlFor='media_description'
-                                  className='block text-sm font-medium text-gray-700 mb-1'
+                                  className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
                                 >
                                   Description
                                 </label>
@@ -875,14 +889,14 @@ const CreateDiveSite = () => {
                                   type='text'
                                   value={newMediaDescription}
                                   onChange={e => setNewMediaDescription(e.target.value)}
-                                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                  className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                 />
                               </div>
                               <div className='flex space-x-2'>
                                 <button
                                   type='button'
                                   onClick={handleUrlAdd}
-                                  className='flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors'
+                                  className='flex items-center px-4 py-2 text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-650 hover:text-gray-900 dark:hover:text-white transition-colors'
                                 >
                                   Add Media
                                 </button>
@@ -908,26 +922,26 @@ const CreateDiveSite = () => {
 
                               {/* Show pending media */}
                               {pendingMedia.length > 0 && (
-                                <div className='mt-4 pt-4 border-t border-gray-200'>
-                                  <h4 className='text-sm font-medium text-gray-700 mb-3'>
+                                <div className='mt-4 pt-4 border-t border-gray-200 dark:border-slate-700'>
+                                  <h4 className='text-sm font-medium text-gray-700 dark:text-slate-300 mb-3'>
                                     Pending Media
                                   </h4>
                                   <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
                                     {pendingMedia.map(item => (
                                       <div
                                         key={item.id}
-                                        className='border rounded-lg p-4 border-yellow-400 bg-yellow-50'
+                                        className='border rounded-lg p-4 border-yellow-400 dark:border-amber-600 bg-yellow-50 dark:bg-amber-950/20'
                                       >
                                         <div className='flex items-center justify-between mb-2'>
-                                          <span className='text-sm font-medium text-gray-700 capitalize'>
+                                          <span className='text-sm font-medium text-gray-700 dark:text-slate-300 capitalize'>
                                             {item.type}{' '}
-                                            <span className='text-xs text-yellow-700'>
+                                            <span className='text-xs text-yellow-700 dark:text-amber-400'>
                                               (Pending)
                                             </span>
                                           </span>
                                           <button
                                             onClick={() => handleMediaRemove(item)}
-                                            className='text-red-600 hover:text-red-800'
+                                            className='text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300'
                                             title='Remove media'
                                           >
                                             <X size={16} />
@@ -953,14 +967,14 @@ const CreateDiveSite = () => {
                                           )}
                                           {(isFlickrUrl(item.url) || isYouTubeUrl(item.url)) && (
                                             <div
-                                              className='text-xs text-gray-500 truncate mt-1 px-1'
+                                              className='text-xs text-gray-500 dark:text-slate-400 truncate mt-1 px-1'
                                               title={item.url}
                                             >
                                               <a
                                                 href={getSafeExternalUrl(item.url)}
                                                 target='_blank'
                                                 rel='noopener noreferrer'
-                                                className='hover:text-blue-600 transition-colors'
+                                                className='hover:text-blue-600 dark:hover:text-sky-400 transition-colors'
                                                 onClick={e => e.stopPropagation()}
                                               >
                                                 {item.url}
@@ -977,7 +991,7 @@ const CreateDiveSite = () => {
                                               }));
                                             }}
                                             placeholder='Add description...'
-                                            className='w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
+                                            className='w-full px-2 py-1 text-sm border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
                                           />
                                         </div>
                                       </div>
@@ -998,11 +1012,11 @@ const CreateDiveSite = () => {
               <TagSelection selectedTags={selectedTags} setSelectedTags={setSelectedTags} />
 
               {/* Form Actions */}
-              <div className='flex justify-end space-x-4 pt-6 border-t'>
+              <div className='flex justify-end space-x-4 pt-6 border-t border-gray-100 dark:border-slate-700'>
                 <button
                   type='button'
                   onClick={handleCancel}
-                  className='flex items-center px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200'
+                  className='flex items-center px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors'
                 >
                   <X className='h-4 w-4 mr-2' />
                   Cancel
@@ -1034,44 +1048,46 @@ const CreateDiveSite = () => {
           title='Duplicate Dive Site Detected'
           size='lg'
         >
-          <div className='space-y-6 text-gray-700'>
-            <div className='border-b border-gray-100 pb-3'>
-              <p className='text-base text-gray-900 font-medium flex items-center gap-2'>
+          <div className='space-y-6 text-gray-700 dark:text-slate-300'>
+            <div className='border-b border-gray-100 dark:border-slate-700 pb-3'>
+              <p className='text-base text-gray-900 dark:text-slate-100 font-medium flex items-center gap-2'>
                 <AlertTriangle className='h-5 w-5 text-yellow-500 flex-shrink-0' />
                 <span>This location is highly similar to existing dive sites.</span>
               </p>
-              <p className='text-sm text-gray-500 mt-1'>
+              <p className='text-sm text-gray-500 dark:text-slate-400 mt-1'>
                 To maintain a clean and reliable map, please select one of the three options below
                 to proceed.
               </p>
             </div>
 
             {/* Option 1: Create Route on Existing Site */}
-            <div className='border border-blue-100 bg-blue-50/30 rounded-lg p-4 space-y-3'>
+            <div className='border border-blue-100 dark:border-blue-900 bg-blue-50/30 dark:bg-blue-950/20 rounded-lg p-4 space-y-3'>
               <div className='flex items-start gap-2.5'>
-                <div className='bg-blue-100 p-1.5 rounded-full text-blue-700 mt-0.5'>
+                <div className='bg-blue-100 dark:bg-blue-900/60 p-1.5 rounded-full text-blue-700 dark:text-blue-300 mt-0.5'>
                   <Route className='h-4 w-4' />
                 </div>
                 <div>
-                  <h4 className='text-sm font-semibold text-gray-900'>
+                  <h4 className='text-sm font-semibold text-gray-900 dark:text-slate-100'>
                     Option 1: Add a GPS Route to an Existing Site (Recommended)
                   </h4>
-                  <p className='text-xs text-gray-600 mt-0.5'>
+                  <p className='text-xs text-gray-600 dark:text-slate-400 mt-0.5'>
                     If the dive site you are trying to add is already on the map, you can create and
                     share a GPS Dive Route for it instead.
                   </p>
                 </div>
               </div>
 
-              <div className='bg-white rounded-md border border-gray-200 divide-y divide-gray-100 max-h-48 overflow-y-auto mt-2'>
+              <div className='bg-white dark:bg-slate-800 rounded-md border border-gray-200 dark:border-slate-700 divide-y divide-gray-100 dark:divide-slate-700 max-h-48 overflow-y-auto mt-2'>
                 {nearbySites.map(site => (
                   <div
                     key={site.id}
-                    className='p-3 flex justify-between items-center hover:bg-gray-50 transition-colors'
+                    className='p-3 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-slate-750 transition-colors'
                   >
                     <div>
-                      <h5 className='font-medium text-gray-900 text-sm'>{site.name}</h5>
-                      <p className='text-xs text-gray-500'>
+                      <h5 className='font-medium text-gray-900 dark:text-slate-100 text-sm'>
+                        {site.name}
+                      </h5>
+                      <p className='text-xs text-gray-500 dark:text-slate-400'>
                         {site.distance_m >= 1000
                           ? `${(site.distance_m / 1000).toFixed(1)}km away`
                           : `${site.distance_m}m away`}
@@ -1092,16 +1108,16 @@ const CreateDiveSite = () => {
             </div>
 
             {/* Option 2: Cancel and Discard */}
-            <div className='border border-gray-200 bg-gray-50/50 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
+            <div className='border border-gray-200 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/60 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
               <div className='flex items-start gap-2.5'>
-                <div className='bg-gray-200 p-1.5 rounded-full text-gray-600 mt-0.5'>
+                <div className='bg-gray-200 dark:bg-slate-700 p-1.5 rounded-full text-gray-600 dark:text-slate-300 mt-0.5'>
                   <XCircle className='h-4 w-4' />
                 </div>
                 <div>
-                  <h4 className='text-sm font-semibold text-gray-900'>
+                  <h4 className='text-sm font-semibold text-gray-900 dark:text-slate-100'>
                     Option 2: Cancel & Discard Addition
                   </h4>
-                  <p className='text-xs text-gray-600 mt-0.5'>
+                  <p className='text-xs text-gray-600 dark:text-slate-400 mt-0.5'>
                     Abort this operation and discard the form. Choose this if you're sure this site
                     is a duplicate.
                   </p>
@@ -1119,16 +1135,16 @@ const CreateDiveSite = () => {
             </div>
 
             {/* Option 3: Submit for Moderation */}
-            <div className='border border-yellow-200 bg-yellow-50/30 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
+            <div className='border border-yellow-200 dark:border-amber-900/60 bg-yellow-50/30 dark:bg-amber-950/20 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
               <div className='flex items-start gap-2.5'>
-                <div className='bg-yellow-100 p-1.5 rounded-full text-yellow-700 mt-0.5'>
+                <div className='bg-yellow-100 dark:bg-amber-900/60 p-1.5 rounded-full text-yellow-700 dark:text-amber-300 mt-0.5'>
                   <Send className='h-4 w-4' />
                 </div>
                 <div>
-                  <h4 className='text-sm font-semibold text-gray-900'>
+                  <h4 className='text-sm font-semibold text-gray-900 dark:text-slate-100'>
                     Option 3: Submit for Manual Review
                   </h4>
-                  <p className='text-xs text-gray-600 mt-0.5'>
+                  <p className='text-xs text-gray-600 dark:text-slate-400 mt-0.5'>
                     If you are absolutely certain this is a distinct, separate site from those
                     listed above, submit it for manual review.
                   </p>

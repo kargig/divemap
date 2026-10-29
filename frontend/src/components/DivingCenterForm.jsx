@@ -259,7 +259,7 @@ const DivingCenterForm = ({
           <button
             type='button'
             onClick={onCancel}
-            className='flex items-center text-blue-600 hover:text-blue-800 mr-4'
+            className='flex items-center text-blue-600 dark:text-sky-400 hover:text-blue-800 dark:hover:text-sky-300 mr-4'
           >
             <ArrowLeft className='h-4 w-4 mr-1' />
             {mode === 'create' ? 'Back to Diving Centers' : 'Back to Diving Center'}
@@ -275,8 +275,8 @@ const DivingCenterForm = ({
                   id='diving-center-name'
                   type='text'
                   {...register(name)}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.name ? 'border-red-500' : 'border-gray-300'
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${
+                    errors.name ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
                   }`}
                   placeholder='Enter diving center name'
                 />
@@ -291,8 +291,8 @@ const DivingCenterForm = ({
                   id='diving-center-email'
                   type='email'
                   {...register(name)}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.email ? 'border-red-500' : 'border-gray-300'
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${
+                    errors.email ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
                   }`}
                   placeholder='Enter email address'
                 />
@@ -326,8 +326,8 @@ const DivingCenterForm = ({
                   id='diving-center-phone'
                   type='tel'
                   {...register(name)}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.phone ? 'border-red-500' : 'border-gray-300'
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${
+                    errors.phone ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
                   }`}
                   placeholder='Enter phone number'
                 />
@@ -342,8 +342,8 @@ const DivingCenterForm = ({
                   id='diving-center-website'
                   type='url'
                   {...register(name)}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.website ? 'border-red-500' : 'border-gray-300'
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${
+                    errors.website ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
                   }`}
                   placeholder='Enter website URL'
                 />
@@ -364,8 +364,8 @@ const DivingCenterForm = ({
                   {...register(name, {
                     valueAsNumber: false, // Keep as string for preprocess
                   })}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.latitude ? 'border-red-500' : 'border-gray-300'
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${
+                    errors.latitude ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
                   }`}
                   placeholder='e.g., -16.92'
                 />
@@ -383,8 +383,8 @@ const DivingCenterForm = ({
                   {...register(name, {
                     valueAsNumber: false, // Keep as string for preprocess
                   })}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.longitude ? 'border-red-500' : 'border-gray-300'
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${
+                    errors.longitude ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
                   }`}
                   placeholder='e.g., 145.77'
                 />
@@ -399,8 +399,8 @@ const DivingCenterForm = ({
                   id='diving-center-address'
                   type='text'
                   {...register(name)}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.address ? 'border-red-500' : 'border-gray-300'
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${
+                    errors.address ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
                   }`}
                   placeholder='Enter address'
                 />
@@ -415,7 +415,7 @@ const DivingCenterForm = ({
             type='button'
             onClick={suggestFromCoordinates}
             disabled={!watchedValues.latitude || !watchedValues.longitude}
-            className='flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed gap-2'
+            className='flex items-center px-4 py-2 text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-650 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed gap-2'
           >
             <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
               <path
@@ -430,7 +430,7 @@ const DivingCenterForm = ({
         </div>
 
         {/* Geographic Information */}
-        <div className='grid grid-cols-1 md-grid-cols-3 md:grid-cols-3 gap-6'>
+        <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
           <div>
             <FormField name='country' label='Country'>
               {({ register, name }) => (
@@ -438,8 +438,8 @@ const DivingCenterForm = ({
                   id='diving-center-country'
                   type='text'
                   {...register(name)}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.country ? 'border-red-500' : 'border-gray-300'
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${
+                    errors.country ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
                   }`}
                   placeholder='e.g., Greece'
                 />
@@ -454,8 +454,8 @@ const DivingCenterForm = ({
                   id='diving-center-region'
                   type='text'
                   {...register(name)}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.region ? 'border-red-500' : 'border-gray-300'
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${
+                    errors.region ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
                   }`}
                   placeholder='e.g., South Aegean'
                 />
@@ -470,8 +470,8 @@ const DivingCenterForm = ({
                   id='diving-center-city'
                   type='text'
                   {...register(name)}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.city ? 'border-red-500' : 'border-gray-300'
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${
+                    errors.city ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
                   }`}
                   placeholder='e.g., Kos'
                 />
@@ -481,7 +481,7 @@ const DivingCenterForm = ({
         </div>
 
         {/* Actions: consumer pages will render their own submit buttons with loading states if needed */}
-        <div className='flex justify-end space-x-4 pt-6 border-t'>
+        <div className='flex justify-end space-x-4 pt-6 border-t border-gray-100 dark:border-slate-700'>
           <Button onClick={onCancel} variant='secondary'>
             Cancel
           </Button>

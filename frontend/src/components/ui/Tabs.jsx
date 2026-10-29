@@ -38,7 +38,7 @@ export const Tabs = ({ defaultValue, value, onValueChange, children, className =
 export const TabsList = ({ children, className = '' }) => {
   return (
     <div
-      className={`inline-flex h-auto items-center justify-start rounded-lg bg-gray-100 p-1 text-gray-500 overflow-x-auto max-w-full ${className}`}
+      className={`inline-flex h-auto items-center justify-start rounded-lg bg-gray-100 dark:bg-slate-800 p-1 text-gray-500 dark:text-slate-400 overflow-x-auto max-w-full ${className}`}
     >
       {children}
     </div>
@@ -52,8 +52,10 @@ export const TabsTrigger = ({ value, children, className = '' }) => {
   return (
     <button
       type='button'
-      className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${
-        isActive ? 'bg-white text-gray-950 shadow-sm' : 'hover:bg-gray-200/50 hover:text-gray-700'
+      className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-white dark:ring-offset-slate-800 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 dark:focus-visible:ring-slate-300 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${
+        isActive
+          ? 'bg-white dark:bg-slate-700 text-gray-950 dark:text-slate-100 shadow-sm'
+          : 'text-gray-500 dark:text-slate-400 hover:bg-gray-200/50 dark:hover:bg-slate-700/50 hover:text-gray-700 dark:hover:text-slate-200'
       } ${className}`}
       onClick={() => setActiveTab(value)}
     >

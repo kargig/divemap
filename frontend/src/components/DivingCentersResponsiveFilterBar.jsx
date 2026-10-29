@@ -162,7 +162,7 @@ const DivingCentersResponsiveFilterBar = ({
     return (
       <div
         data-testid='diving-centers-responsive-filter-bar'
-        className={`bg-white border-b border-gray-200 shadow-sm sticky top-0 z-40 ${className}`}
+        className={`bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-sm mb-6 ${className}`}
       >
         <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 p-4'>
           {/* Quick Filters */}
@@ -173,8 +173,8 @@ const DivingCentersResponsiveFilterBar = ({
                   onClick={() => onQuickFilter('min_rating')}
                   className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
                     quickFilter === 'min_rating'
-                      ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
-                      : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
+                      ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700 shadow-sm'
+                      : 'bg-gray-50 dark:bg-slate-700 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-650'
                   }`}
                 >
                   <Star className='h-4 w-4' />
@@ -185,8 +185,8 @@ const DivingCentersResponsiveFilterBar = ({
                 onClick={() => onQuickFilter('country')}
                 className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
                   quickFilter === 'country'
-                    ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
-                    : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
+                    ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700 shadow-sm'
+                    : 'bg-gray-50 dark:bg-slate-700 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-650'
                 }`}
               >
                 <MapPin className='h-4 w-4' />
@@ -199,7 +199,7 @@ const DivingCentersResponsiveFilterBar = ({
           {showAdvancedToggle && (
             <button
               onClick={onToggleFilters}
-              className='flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors'
+              className='flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors'
             >
               <Filter className='h-4 w-4' />
               {showFilters ? 'Hide Filters' : 'Show Filters'}
@@ -214,21 +214,23 @@ const DivingCentersResponsiveFilterBar = ({
 
         {/* Active Filters Display */}
         {activeFilters.length > 0 && (
-          <div className='border-t border-gray-200 py-2 px-3 bg-blue-50'>
+          <div className='border-t border-gray-200 dark:border-slate-700 py-2 px-3 bg-blue-50 dark:bg-blue-950/30'>
             <div className='flex items-center gap-2 mb-1.5'>
-              <span className='text-xs font-medium text-blue-900'>Active Filters:</span>
+              <span className='text-xs font-medium text-blue-900 dark:text-blue-200'>
+                Active Filters:
+              </span>
             </div>
             <div className='flex flex-wrap gap-1 justify-start'>
               {activeFilters.map(filter => (
                 <div
                   key={filter.key}
-                  className='inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full border border-blue-200'
+                  className='inline-flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 text-xs rounded-full border border-blue-200 dark:border-blue-800'
                 >
                   <span className='font-medium'>{filter.label}:</span>
                   <span className='max-w-[100px] truncate'>{filter.value}</span>
                   <button
                     onClick={() => onFilterChange(filter.key, '')}
-                    className='ml-1 text-blue-600 hover:text-blue-800 active:text-blue-900 transition-colors p-0.5 rounded-full hover:bg-blue-200 active:bg-blue-300'
+                    className='ml-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 transition-colors p-0.5 rounded-full hover:bg-blue-200 dark:hover:bg-blue-800'
                     title={`Remove ${filter.label} filter`}
                   >
                     <X className='h-2.5 w-2.5' />
@@ -240,16 +242,18 @@ const DivingCentersResponsiveFilterBar = ({
         )}
 
         {/* Desktop: Sorting & View Controls */}
-        <div className='border-t border-gray-200 bg-white py-3 px-4'>
+        <div className='border-t border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 py-3 px-4'>
           <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
             {/* Sorting Controls */}
             <div className='flex items-center gap-3'>
               <div className='flex items-center gap-2'>
-                <label className='text-sm font-medium text-gray-700'>Sort by:</label>
+                <label className='text-sm font-medium text-gray-700 dark:text-slate-300'>
+                  Sort by:
+                </label>
                 <select
                   value={sortBy}
                   onChange={e => onSortChange(e.target.value, sortOrder)}
-                  className='px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+                  className='px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
                 >
                   {sortOptions.map(option => (
                     <option key={option.value} value={option.value}>
@@ -265,7 +269,7 @@ const DivingCentersResponsiveFilterBar = ({
                   className={`px-3 py-2 text-sm rounded-l-md border transition-colors ${
                     sortOrder === 'asc'
                       ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                      : 'bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-300 border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-600'
                   }`}
                   title='Sort Ascending'
                 >
@@ -276,7 +280,7 @@ const DivingCentersResponsiveFilterBar = ({
                   className={`px-3 py-2 text-sm rounded-r-md border-l-0 border transition-colors ${
                     sortOrder === 'desc'
                       ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                      : 'bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-300 border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-600'
                   }`}
                   title='Sort Descending'
                 >
@@ -289,7 +293,9 @@ const DivingCentersResponsiveFilterBar = ({
             <div className='flex items-center gap-3'>
               {/* View Mode Selection */}
               <div className='flex items-center gap-2'>
-                <label className='text-sm font-medium text-gray-700'>View:</label>
+                <label className='text-sm font-medium text-gray-700 dark:text-slate-300'>
+                  View:
+                </label>
                 <div className='flex rounded-md shadow-sm' data-testid='view-mode-toggle'>
                   <button
                     onClick={() => onViewModeChange('list')}
@@ -297,7 +303,7 @@ const DivingCentersResponsiveFilterBar = ({
                     className={`px-3 py-2 text-sm border transition-colors rounded-l-md ${
                       viewMode === 'list'
                         ? 'bg-blue-600 text-white border-blue-600 active'
-                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                        : 'bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-300 border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-600'
                     }`}
                     title='List View'
                   >
@@ -309,7 +315,7 @@ const DivingCentersResponsiveFilterBar = ({
                     className={`px-3 py-2 text-sm border border-l-0 transition-colors rounded-r-md ${
                       viewMode === 'grid'
                         ? 'bg-blue-600 text-white border-blue-600 active'
-                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                        : 'bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-300 border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-600'
                     }`}
                     title='Grid View'
                   >
@@ -320,14 +326,16 @@ const DivingCentersResponsiveFilterBar = ({
 
               {/* Display Options */}
               <div className='flex items-center gap-2'>
-                <label className='text-sm font-medium text-gray-700'>Display:</label>
+                <label className='text-sm font-medium text-gray-700 dark:text-slate-300'>
+                  Display:
+                </label>
                 <div className='flex items-center gap-2'>
-                  <label className='flex items-center gap-1 text-sm text-gray-700'>
+                  <label className='flex items-center gap-1 text-sm text-gray-700 dark:text-slate-300'>
                     <input
                       type='checkbox'
                       checked={compactLayout}
                       onChange={() => onDisplayOptionChange('compact')}
-                      className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                      className='rounded border-gray-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500'
                     />
                     Compact
                   </label>
@@ -339,13 +347,13 @@ const DivingCentersResponsiveFilterBar = ({
 
         {/* Desktop: Expandable Filters Section */}
         {showFilters && (
-          <div className='border-t border-gray-200 bg-gray-50'>
+          <div className='border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/40'>
             <div className='p-4'>
               <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
                 {/* Min Rating Filter */}
                 {reviewsEnabled && (
                   <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    <label className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2'>
                       Min Rating (≥)
                     </label>
                     <input
@@ -361,10 +369,10 @@ const DivingCentersResponsiveFilterBar = ({
                           e.preventDefault();
                         }
                       }}
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 text-sm ${
                         filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 5)
                           ? 'border-red-500 ring-1 ring-red-500'
-                          : 'border-gray-300'
+                          : 'border-gray-300 dark:border-slate-600'
                       }`}
                     />
                     {filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 5) && (
@@ -375,25 +383,29 @@ const DivingCentersResponsiveFilterBar = ({
 
                 {/* Country Filter */}
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>Country</label>
+                  <label className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2'>
+                    Country
+                  </label>
                   <input
                     type='text'
                     placeholder='Enter country name'
                     value={filters.country || ''}
                     onChange={e => onFilterChange('country', e.target.value)}
-                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                    className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
                   />
                 </div>
 
                 {/* Services Filter */}
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>Services</label>
+                  <label className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2'>
+                    Services
+                  </label>
                   <input
                     type='text'
                     placeholder='Enter service type'
                     value={filters.services || ''}
                     onChange={e => onFilterChange('services', e.target.value)}
-                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                    className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
                   />
                 </div>
               </div>
@@ -410,27 +422,27 @@ const DivingCentersResponsiveFilterBar = ({
       {/* Mobile Unified Header - Search + Filter Toggle */}
       <div
         data-testid='diving-centers-mobile-unified-header'
-        className='bg-white border border-gray-200 rounded-xl shadow-sm mb-4 sm:hidden'
+        className='bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-sm mb-4 sm:hidden'
       >
         <div className='p-2 flex items-center gap-2'>
           <div className='relative flex-1'>
-            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400' />
+            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400 dark:text-slate-400' />
             <input
               type='text'
               placeholder='Search centers...'
               value={searchQuery}
               onChange={e => onSearchChange(e.target.value)}
               onKeyPress={e => e.key === 'Enter' && onSearchSubmit()}
-              className='w-full pl-9 pr-4 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50'
+              className='w-full pl-9 pr-4 py-1.5 border border-gray-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400'
             />
           </div>
           <button
             onClick={handleFilterOverlayToggle}
-            className='flex items-center justify-center p-2 bg-blue-100 text-blue-700 rounded-lg min-h-[38px] min-w-[38px] relative'
+            className='flex items-center justify-center p-2 bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 rounded-lg min-h-[38px] min-w-[38px] relative'
           >
             <Filter className='h-4 w-4' />
             {activeFiltersCount > 0 && (
-              <span className='absolute -top-1 -right-1 bg-blue-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center border-2 border-white font-bold'>
+              <span className='absolute -top-1 -right-1 bg-blue-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center border-2 border-white dark:border-slate-800 font-bold'>
                 {activeFiltersCount}
               </span>
             )}
@@ -445,7 +457,7 @@ const DivingCentersResponsiveFilterBar = ({
               className={`flex-shrink-0 px-2.5 py-1 text-[11px] font-medium rounded-full transition-colors border ${
                 quickFilter === 'min_rating'
                   ? 'bg-blue-600 text-white border-blue-600'
-                  : 'bg-white text-gray-600 border-gray-200'
+                  : 'bg-white dark:bg-slate-700 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-600'
               }`}
             >
               4+ Stars
@@ -456,7 +468,7 @@ const DivingCentersResponsiveFilterBar = ({
             className={`flex-shrink-0 px-2.5 py-1 text-[11px] font-medium rounded-full transition-colors border ${
               quickFilter === 'country'
                 ? 'bg-blue-600 text-white border-blue-600'
-                : 'bg-white text-gray-600 border-gray-200'
+                : 'bg-white dark:bg-slate-700 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-600'
             }`}
           >
             Greece
@@ -464,7 +476,7 @@ const DivingCentersResponsiveFilterBar = ({
           {activeFilters.length > 0 && (
             <button
               onClick={onClearFilters}
-              className='flex-shrink-0 px-2.5 py-1 text-[11px] font-medium rounded-full bg-red-50 text-red-600 border border-red-100'
+              className='flex-shrink-0 px-2.5 py-1 text-[11px] font-medium rounded-full bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900'
             >
               Clear All
             </button>
@@ -473,11 +485,11 @@ const DivingCentersResponsiveFilterBar = ({
 
         {/* Active Filters Summary - Removable bubbles */}
         {activeFilters.length > 0 && (
-          <div className='px-2 pb-2 flex flex-wrap gap-1 border-t border-gray-50 pt-2'>
+          <div className='px-2 pb-2 flex flex-wrap gap-1 border-t border-gray-50 dark:border-slate-700/80 pt-2'>
             {activeFilters.map(filter => (
               <div
                 key={filter.key}
-                className='inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] rounded-full border border-blue-100 max-w-[120px]'
+                className='inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-[10px] rounded-full border border-blue-100 dark:border-blue-900 max-w-[120px]'
               >
                 <span className='truncate'>{filter.value}</span>
                 <button onClick={() => onFilterChange(filter.key, '')} className='p-0.5'>
@@ -498,13 +510,13 @@ const DivingCentersResponsiveFilterBar = ({
         showCloseButton={true}
       >
         {/* Tab Navigation */}
-        <div className='flex border-b border-gray-200 bg-white'>
+        <div className='flex border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800'>
           <button
             onClick={() => setActiveTab('filters')}
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
               activeTab === 'filters'
-                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-950/30'
+                : 'text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700'
             }`}
           >
             <Filter className='h-4 w-4 inline mr-2' />
@@ -514,8 +526,8 @@ const DivingCentersResponsiveFilterBar = ({
             onClick={() => setActiveTab('sorting')}
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
               activeTab === 'sorting'
-                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-950/30'
+                : 'text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700'
             }`}
           >
             <Settings className='h-4 w-4 inline mr-2' />
@@ -531,7 +543,7 @@ const DivingCentersResponsiveFilterBar = ({
               {/* Min Rating Filter */}
               {reviewsEnabled && (
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-3'>
+                  <label className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-3'>
                     Min Rating (≥)
                   </label>
                   <input
@@ -547,10 +559,10 @@ const DivingCentersResponsiveFilterBar = ({
                         e.preventDefault();
                       }
                     }}
-                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[48px] ${
+                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 text-base min-h-[48px] ${
                       filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 5)
                         ? 'border-red-500 ring-1 ring-red-500'
-                        : 'border-gray-300'
+                        : 'border-gray-300 dark:border-slate-600'
                     }`}
                   />
                   {filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 5) && (
@@ -561,25 +573,29 @@ const DivingCentersResponsiveFilterBar = ({
 
               {/* Country Filter */}
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-3'>Country</label>
+                <label className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-3'>
+                  Country
+                </label>
                 <input
                   type='text'
                   placeholder='Enter country name'
                   value={filters.country || ''}
                   onChange={e => onFilterChange('country', e.target.value)}
-                  className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[48px]'
+                  className='w-full px-4 py-3 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[48px]'
                 />
               </div>
 
               {/* Services Filter */}
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-3'>Services</label>
+                <label className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-3'>
+                  Services
+                </label>
                 <input
                   type='text'
                   placeholder='Enter service type'
                   value={filters.services || ''}
                   onChange={e => onFilterChange('services', e.target.value)}
-                  className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[48px]'
+                  className='w-full px-4 py-3 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[48px]'
                 />
               </div>
             </div>
@@ -590,11 +606,13 @@ const DivingCentersResponsiveFilterBar = ({
             <div className='p-4 space-y-6 pb-4'>
               {/* Sort Field Selection - Compact Dropdown */}
               <div>
-                <h4 className='text-sm font-medium text-gray-700 mb-3'>Sort Field</h4>
+                <h4 className='text-sm font-medium text-gray-700 dark:text-slate-300 mb-3'>
+                  Sort Field
+                </h4>
                 <select
                   value={pendingSortBy || ''}
                   onChange={e => handleSortFieldChange(e.target.value)}
-                  className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[48px]'
+                  className='w-full px-4 py-3 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[48px]'
                 >
                   <option value=''>Select sort field</option>
                   {sortOptions.map(option => (
@@ -608,14 +626,16 @@ const DivingCentersResponsiveFilterBar = ({
 
               {/* Sort Order - Compact Toggle */}
               <div>
-                <h4 className='text-sm font-medium text-gray-700 mb-3'>Sort Order</h4>
+                <h4 className='text-sm font-medium text-gray-700 dark:text-slate-300 mb-3'>
+                  Sort Order
+                </h4>
                 <div className='flex gap-2'>
                   <button
                     onClick={() => setPendingSortOrder('asc')}
                     className={`flex-1 px-4 py-3 text-sm font-medium rounded-lg border transition-colors min-h-[48px] ${
                       pendingSortOrder === 'asc'
-                        ? 'bg-blue-50 border-blue-200 text-blue-900'
-                        : 'bg-white border-gray-200 hover:bg-gray-50'
+                        ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-200'
+                        : 'bg-white dark:bg-slate-700 border-gray-200 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-600'
                     }`}
                   >
                     <div className='flex items-center justify-center gap-2'>
@@ -627,8 +647,8 @@ const DivingCentersResponsiveFilterBar = ({
                     onClick={() => setPendingSortOrder('desc')}
                     className={`flex-1 px-4 py-3 text-sm font-medium rounded-lg border transition-colors min-h-[48px] ${
                       pendingSortOrder === 'desc'
-                        ? 'bg-blue-50 border-blue-200 text-blue-900'
-                        : 'bg-white border-gray-200 hover:bg-gray-50'
+                        ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-200'
+                        : 'bg-white dark:bg-slate-700 border-gray-200 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-600'
                     }`}
                   >
                     <div className='flex items-center justify-center gap-2'>
@@ -641,12 +661,14 @@ const DivingCentersResponsiveFilterBar = ({
 
               {/* Display Options - Compact Checkbox */}
               <div>
-                <h4 className='text-sm font-medium text-gray-700 mb-3'>Display Options</h4>
+                <h4 className='text-sm font-medium text-gray-700 dark:text-slate-300 mb-3'>
+                  Display Options
+                </h4>
                 <div className='space-y-2'>
-                  <label className='flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors'>
+                  <label className='flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-700/60 border border-gray-200 dark:border-slate-600 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-gray-700 dark:text-slate-200'>
                     <input
                       type='checkbox'
-                      className='w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+                      className='w-4 h-4 text-blue-600 border-gray-300 dark:border-slate-500 rounded focus:ring-blue-500'
                       checked={compactLayout}
                       onChange={() => onDisplayOptionChange('compact')}
                     />
@@ -659,7 +681,7 @@ const DivingCentersResponsiveFilterBar = ({
               <div className='flex gap-3 pt-4'>
                 <button
                   onClick={handleReset}
-                  className='flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors'
+                  className='flex-1 bg-gray-200 dark:bg-slate-700 text-gray-800 dark:text-slate-200 py-2 px-4 rounded-lg hover:bg-gray-300 dark:hover:bg-slate-600 transition-colors'
                 >
                   <RotateCcw className='w-4 h-4 inline mr-2' />
                   Reset
@@ -670,10 +692,10 @@ const DivingCentersResponsiveFilterBar = ({
         </div>
 
         {/* Footer Actions - Single Apply All button */}
-        <div className='border-t border-gray-200 p-4 bg-gray-50 flex gap-3'>
+        <div className='border-t border-gray-200 dark:border-slate-700 p-4 bg-gray-50 dark:bg-slate-800 flex gap-3'>
           <button
             onClick={onClearFilters}
-            className='flex-1 px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors min-h-[48px]'
+            className='flex-1 px-4 py-3 text-sm font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors min-h-[48px]'
           >
             Clear All
           </button>

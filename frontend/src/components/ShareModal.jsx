@@ -185,10 +185,12 @@ const ShareModal = ({ isOpen, onClose, entityType, entityData, additionalParams 
     >
       {/* Preview Section */}
       {shareContent.title && (
-        <div className='mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200'>
-          <div className='text-sm font-medium text-gray-900 mb-1'>{shareContent.title}</div>
+        <div className='mb-4 p-3 bg-gray-50 dark:bg-slate-900/60 rounded-lg border border-gray-200 dark:border-slate-700'>
+          <div className='text-sm font-medium text-gray-900 dark:text-slate-100 mb-1'>
+            {shareContent.title}
+          </div>
           {shareContent.description && (
-            <div className='text-xs text-gray-600 line-clamp-2 mt-1'>
+            <div className='text-xs text-gray-600 dark:text-slate-400 line-clamp-2 mt-1'>
               {shareContent.description}
             </div>
           )}
@@ -197,21 +199,21 @@ const ShareModal = ({ isOpen, onClose, entityType, entityData, additionalParams 
 
       {/* URL Copy Section */}
       <div className='mb-4'>
-        <p className='text-sm text-gray-600 mb-2'>Share URL:</p>
+        <p className='text-sm text-gray-600 dark:text-slate-300 mb-2'>Share URL:</p>
         <div className='flex items-center gap-2'>
           <input
             type='text'
             value={shareUrl}
             readOnly
-            className='flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500'
+            className='flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500'
             onClick={e => e.target.select()}
           />
           <button
             onClick={handleCopyToClipboard}
             className={`px-3 py-2 text-sm rounded-lg transition-colors flex items-center gap-1 ${
               copySuccess
-                ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                ? 'bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900'
+                : 'bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900'
             }`}
             aria-label='Copy URL to clipboard'
           >
@@ -245,7 +247,7 @@ const ShareModal = ({ isOpen, onClose, entityType, entityData, additionalParams 
 
       {/* Social Media Platforms */}
       <div className='mb-4'>
-        <p className='text-sm text-gray-600 mb-3'>Share via:</p>
+        <p className='text-sm text-gray-600 dark:text-slate-300 mb-3'>Share via:</p>
         <div className='grid grid-cols-3 gap-2'>
           {platforms.map(platform => (
             <button
@@ -262,7 +264,7 @@ const ShareModal = ({ isOpen, onClose, entityType, entityData, additionalParams 
       </div>
 
       {/* Footer Info */}
-      <div className='text-xs text-gray-500 text-center pt-2 border-t border-gray-200'>
+      <div className='text-xs text-gray-500 dark:text-slate-400 text-center pt-2 border-t border-gray-200 dark:border-slate-700'>
         Share this {getEntityTypeLabel().toLowerCase()} and invite others to explore it!
       </div>
     </Modal>

@@ -201,9 +201,11 @@ const CreateDivingCenter = () => {
       <div className='max-w-4xl mx-auto py-4 sm:py-6'>
         {/* Back navigation is provided by DivingCenterForm; remove duplicate here */}
 
-        <div className='bg-white rounded-lg shadow-md p-6'>
+        <div className='bg-white dark:bg-slate-800 rounded-lg shadow-md border border-gray-100 dark:border-slate-700 p-6'>
           <div className='flex justify-between items-center mb-6'>
-            <h1 className='text-2xl font-bold text-gray-900'>Create New Diving Center</h1>
+            <h1 className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
+              Create New Diving Center
+            </h1>
           </div>
 
           <DivingCenterForm
@@ -218,16 +220,18 @@ const CreateDivingCenter = () => {
           />
 
           {/* Diving Organizations */}
-          <div className='border-t pt-6'>
-            <h3 className='text-lg font-medium text-gray-900 mb-4'>Diving Organizations</h3>
+          <div className='border-t border-gray-100 dark:border-slate-700 pt-6'>
+            <h3 className='text-lg font-medium text-gray-900 dark:text-slate-100 mb-4'>
+              Diving Organizations
+            </h3>
 
             {/* Add Organization Form */}
-            <div className='bg-gray-50 p-4 rounded-lg mb-4'>
+            <div className='bg-gray-50 dark:bg-slate-900/60 p-4 rounded-lg mb-4 border border-gray-100 dark:border-slate-700'>
               <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
                 <div>
                   <label
                     htmlFor='diving-organization-select'
-                    className='block text-sm font-medium text-gray-700 mb-2'
+                    className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2'
                   >
                     Organization
                   </label>
@@ -236,7 +240,7 @@ const CreateDivingCenter = () => {
                     name='diving_organization_id'
                     value={newOrganization.diving_organization_id}
                     onChange={handleOrganizationChange}
-                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                    className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                   >
                     <option value=''>Select Organization</option>
                     {organizations.map(org => (
@@ -255,9 +259,11 @@ const CreateDivingCenter = () => {
                       name='is_primary'
                       checked={newOrganization.is_primary}
                       onChange={handleOrganizationChange}
-                      className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+                      className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-slate-600 rounded'
                     />
-                    <span className='ml-2 text-sm text-gray-700'>Primary Organization</span>
+                    <span className='ml-2 text-sm text-gray-700 dark:text-slate-300'>
+                      Primary Organization
+                    </span>
                   </label>
                 </div>
 
@@ -277,18 +283,20 @@ const CreateDivingCenter = () => {
             {/* Selected Organizations */}
             {selectedOrganizations.length > 0 && (
               <div className='space-y-2'>
-                <h4 className='text-sm font-medium text-gray-700'>Selected Organizations:</h4>
+                <h4 className='text-sm font-medium text-gray-700 dark:text-slate-300'>
+                  Selected Organizations:
+                </h4>
                 {selectedOrganizations.map((org, index) => (
                   <div
                     key={index}
-                    className='flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg'
+                    className='flex items-center justify-between p-3 bg-white dark:bg-slate-750 border border-gray-200 dark:border-slate-700 rounded-lg'
                   >
                     <div className='flex items-center space-x-3'>
-                      <span className='font-medium'>
+                      <span className='font-medium text-gray-900 dark:text-slate-100'>
                         {org.organization_acronym} - {org.organization_name}
                       </span>
                       {org.is_primary && (
-                        <span className='px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full'>
+                        <span className='px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 rounded-full'>
                           Primary
                         </span>
                       )}
@@ -297,10 +305,10 @@ const CreateDivingCenter = () => {
                       <button
                         type='button'
                         onClick={() => togglePrimary(index)}
-                        className={`px-2 py-1 text-xs rounded ${
+                        className={`px-2 py-1 text-xs rounded transition-colors ${
                           org.is_primary
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300'
+                            : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
                         }`}
                       >
                         {org.is_primary ? 'Primary' : 'Set Primary'}
@@ -308,7 +316,7 @@ const CreateDivingCenter = () => {
                       <button
                         type='button'
                         onClick={() => removeOrganization(index)}
-                        className='p-1 text-red-500 hover:text-red-700'
+                        className='p-1 text-red-500 hover:text-red-700 dark:hover:text-red-400'
                       >
                         <Trash2 className='h-4 w-4' />
                       </button>

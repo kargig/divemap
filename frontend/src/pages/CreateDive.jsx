@@ -221,7 +221,7 @@ const CreateDive = () => {
   const getFieldErrorClass = fieldName => {
     return errors[fieldName]
       ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-      : 'border-gray-300 focus:ring-blue-500 focus:border-transparent';
+      : 'border-gray-300 dark:border-slate-600 focus:ring-blue-500 focus:border-transparent';
   };
 
   const handleRouteSelect = routeId => {
@@ -528,26 +528,34 @@ const CreateDive = () => {
         title='Log a New Dive | Divemap'
         description='Record your scuba diving experiences, track your bottom time, gas consumption, and share marine life sightings with the Divemap community.'
       />
-      <div className='max-w-4xl mx-auto'>
+      <div className='max-w-4xl mx-auto py-4 sm:py-6'>
         <div className='flex items-center gap-4 mb-6'>
-          <button onClick={() => navigate('/dives')} className='text-gray-600 hover:text-gray-800'>
+          <button
+            onClick={() => navigate('/dives')}
+            className='text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 transition-colors'
+          >
             <ArrowLeft size={24} />
           </button>
-          <h1 className='text-3xl font-bold text-gray-900'>Log New Dive</h1>
+          <h1 className='text-3xl font-bold text-gray-900 dark:text-slate-100'>Log New Dive</h1>
         </div>
 
         <FormProvider {...methods}>
-          <form onSubmit={handleSubmit(onSubmit)} className='bg-white rounded-lg shadow p-6'>
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className='bg-white dark:bg-slate-800 rounded-lg shadow-md border border-gray-100 dark:border-slate-700 p-6'
+          >
             <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
               {/* Basic Information */}
               <div className='md:col-span-2'>
-                <h2 className='text-xl font-semibold mb-4'>Basic Information</h2>
+                <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4'>
+                  Basic Information
+                </h2>
               </div>
 
               <div className='relative' ref={diveSiteDropdownRef}>
                 <label
                   htmlFor='dive-site-search'
-                  className='block text-sm font-medium text-gray-700 mb-2'
+                  className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2'
                 >
                   Dive Site (Optional)
                 </label>
@@ -560,23 +568,27 @@ const CreateDive = () => {
                     onFocus={() => setIsDiveSiteDropdownOpen(true)}
                     onKeyDown={handleDiveSiteKeyDown}
                     placeholder='Search for a dive site...'
-                    className={`w-full border rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-2 ${getFieldErrorClass('dive_site_id')}`}
+                    className={`w-full border rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-2 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${getFieldErrorClass('dive_site_id')}`}
                   />
                   <div className='absolute inset-y-0 right-0 flex items-center pr-3'>
                     <ChevronDown
                       size={16}
-                      className={`text-gray-400 transition-transform ${isDiveSiteDropdownOpen ? 'rotate-180' : ''}`}
+                      className={`text-gray-400 dark:text-slate-400 transition-transform ${isDiveSiteDropdownOpen ? 'rotate-180' : ''}`}
                     />
                   </div>
                 </div>
 
                 {/* Dropdown */}
                 {isDiveSiteDropdownOpen && (
-                  <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'>
+                  <div className='absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-md shadow-lg max-h-60 overflow-auto'>
                     {diveSiteSearchLoading ? (
-                      <div className='px-3 py-2 text-gray-500 text-sm'>Searching...</div>
+                      <div className='px-3 py-2 text-gray-500 dark:text-slate-400 text-sm'>
+                        Searching...
+                      </div>
                     ) : diveSiteSearchError ? (
-                      <div className='px-3 py-2 text-red-500 text-sm'>{diveSiteSearchError}</div>
+                      <div className='px-3 py-2 text-red-500 dark:text-red-400 text-sm'>
+                        {diveSiteSearchError}
+                      </div>
                     ) : filteredDiveSites.length > 0 ? (
                       filteredDiveSites.map(site => (
                         <div
@@ -590,18 +602,24 @@ const CreateDive = () => {
                           }}
                           role='button'
                           tabIndex={0}
-                          className='px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0'
+                          className='px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer border-b border-gray-100 dark:border-slate-700 last:border-b-0'
                         >
-                          <div className='font-medium text-gray-900'>{site.name}</div>
+                          <div className='font-medium text-gray-900 dark:text-slate-100'>
+                            {site.name}
+                          </div>
                           {site.country && (
-                            <div className='text-sm text-gray-500'>{site.country}</div>
+                            <div className='text-sm text-gray-500 dark:text-slate-400'>
+                              {site.country}
+                            </div>
                           )}
                         </div>
                       ))
                     ) : diveSiteSearch ? (
-                      <div className='px-3 py-2 text-gray-500 text-sm'>No dive sites found</div>
+                      <div className='px-3 py-2 text-gray-500 dark:text-slate-400 text-sm'>
+                        No dive sites found
+                      </div>
                     ) : (
-                      <div className='px-3 py-2 text-gray-500 text-sm'>
+                      <div className='px-3 py-2 text-gray-500 dark:text-slate-400 text-sm'>
                         Start typing to search dive sites
                       </div>
                     )}
@@ -647,7 +665,7 @@ const CreateDive = () => {
                       type='text'
                       {...register(name)}
                       placeholder='Custom dive name or leave empty for automatic naming'
-                      className='w-full border border-gray-300 rounded-md px-3 py-2'
+                      className='w-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
                     />
                   )}
                 </FormField>
@@ -662,7 +680,7 @@ const CreateDive = () => {
                         setValueAs: value => value === 'true' || value === true,
                       })}
                       defaultValue='false'
-                      className='w-full border border-gray-300 rounded-md px-3 py-2'
+                      className='w-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
                     >
                       <option value='false'>Public (visible to everyone)</option>
                       <option value='true'>Private (visible only to you)</option>
@@ -678,7 +696,7 @@ const CreateDive = () => {
                       id='dive-date'
                       type='date'
                       {...register(name)}
-                      className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('dive_date')}`}
+                      className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 ${getFieldErrorClass('dive_date')}`}
                     />
                   )}
                 </FormField>
@@ -691,7 +709,7 @@ const CreateDive = () => {
                       id='dive-time'
                       type='time'
                       {...register(name)}
-                      className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('dive_time')}`}
+                      className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 ${getFieldErrorClass('dive_time')}`}
                     />
                   )}
                 </FormField>
@@ -706,7 +724,7 @@ const CreateDive = () => {
                       min='1'
                       max='1440'
                       {...register(name)}
-                      className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('duration')}`}
+                      className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${getFieldErrorClass('duration')}`}
                       placeholder='60'
                     />
                   )}
@@ -715,7 +733,9 @@ const CreateDive = () => {
 
               {/* Dive Details */}
               <div className='md:col-span-2'>
-                <h2 className='text-xl font-semibold mb-4'>Dive Details</h2>
+                <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4'>
+                  Dive Details
+                </h2>
               </div>
 
               <div>
@@ -728,7 +748,7 @@ const CreateDive = () => {
                       max='1000'
                       step='any'
                       {...register(name)}
-                      className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('max_depth')}`}
+                      className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${getFieldErrorClass('max_depth')}`}
                       placeholder='18.5'
                     />
                   )}
@@ -745,7 +765,7 @@ const CreateDive = () => {
                       max='1000'
                       step='any'
                       {...register(name)}
-                      className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('average_depth')}`}
+                      className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${getFieldErrorClass('average_depth')}`}
                       placeholder='12.0'
                     />
                   )}
@@ -758,7 +778,7 @@ const CreateDive = () => {
                     <select
                       id='difficulty-level'
                       {...register(name)}
-                      className='w-full border border-gray-300 rounded-md px-3 py-2'
+                      className='w-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
                     >
                       {getDifficultyOptions().map(option => (
                         <option
@@ -779,7 +799,7 @@ const CreateDive = () => {
                     <select
                       id='suit-type'
                       {...register(name)}
-                      className='w-full border border-gray-300 rounded-md px-3 py-2'
+                      className='w-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
                     >
                       <option value=''>Select suit type</option>
                       <option value='wet_suit'>Wet Suit</option>
@@ -799,7 +819,7 @@ const CreateDive = () => {
                       min='1'
                       max='5'
                       {...register(name)}
-                      className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('visibility_rating')}`}
+                      className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${getFieldErrorClass('visibility_rating')}`}
                       placeholder='4'
                     />
                   )}
@@ -815,7 +835,7 @@ const CreateDive = () => {
                       min='1'
                       max='5'
                       {...register(name)}
-                      className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('user_rating')}`}
+                      className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${getFieldErrorClass('user_rating')}`}
                       placeholder='4'
                     />
                   )}
@@ -823,7 +843,7 @@ const CreateDive = () => {
               </div>
 
               <div className='md:col-span-2'>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
+                <label className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'>
                   Gas Bottles Used
                 </label>
                 <Controller
@@ -841,7 +861,7 @@ const CreateDive = () => {
                     <textarea
                       id='dive-information'
                       {...register(name)}
-                      className='w-full border border-gray-300 rounded-md px-3 py-2'
+                      className='w-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
                       rows='4'
                       placeholder='Describe your dive experience, what you saw, conditions, etc.'
                     />
@@ -851,7 +871,9 @@ const CreateDive = () => {
 
               {/* Media */}
               <div className='md:col-span-2'>
-                <h2 className='text-xl font-semibold mb-4'>Media</h2>
+                <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4'>
+                  Media
+                </h2>
                 <div className='space-y-4'>
                   {/* Photo Upload - Only show for public dives */}
                   {!watch('is_private') && (
@@ -875,8 +897,8 @@ const CreateDive = () => {
                     />
                   )}
                   {watch('is_private') && (
-                    <div className='p-4 bg-gray-50 border border-gray-200 rounded-lg'>
-                      <p className='text-sm text-gray-600'>
+                    <div className='p-4 bg-gray-50 dark:bg-slate-900/40 border border-gray-200 dark:border-slate-700 rounded-lg'>
+                      <p className='text-sm text-gray-600 dark:text-slate-400'>
                         Photo uploads are only available for public dives. Photos are visible on the
                         dive site.
                       </p>
@@ -899,7 +921,7 @@ const CreateDive = () => {
                                 <div>
                                   <label
                                     htmlFor='media_type'
-                                    className='block text-sm font-medium text-gray-700 mb-1'
+                                    className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
                                   >
                                     Media Type
                                   </label>
@@ -907,7 +929,7 @@ const CreateDive = () => {
                                     id='media_type'
                                     value={newMediaType}
                                     onChange={e => setNewMediaType(e.target.value)}
-                                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                    className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                   >
                                     <option value='photo'>Photo</option>
                                     <option value='video'>Video</option>
@@ -916,7 +938,7 @@ const CreateDive = () => {
                                 <div className='md:col-span-2'>
                                   <label
                                     htmlFor='media_url'
-                                    className='block text-sm font-medium text-gray-700 mb-1'
+                                    className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
                                   >
                                     URL
                                   </label>
@@ -925,7 +947,7 @@ const CreateDive = () => {
                                     type='url'
                                     value={newMediaUrl}
                                     onChange={e => setNewMediaUrl(e.target.value)}
-                                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                    className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                     placeholder='https://example.com/image.jpg'
                                   />
                                 </div>
@@ -933,7 +955,7 @@ const CreateDive = () => {
                               <div>
                                 <label
                                   htmlFor='media_description'
-                                  className='block text-sm font-medium text-gray-700 mb-1'
+                                  className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
                                 >
                                   Description
                                 </label>
@@ -942,14 +964,14 @@ const CreateDive = () => {
                                   type='text'
                                   value={newMediaDescription}
                                   onChange={e => setNewMediaDescription(e.target.value)}
-                                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                  className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                 />
                               </div>
                               <div className='flex space-x-2'>
                                 <button
                                   type='button'
                                   onClick={handleUrlAdd}
-                                  className='flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors'
+                                  className='flex items-center px-4 py-2 text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-650 hover:text-gray-900 dark:hover:text-white transition-colors'
                                 >
                                   Add Media
                                 </button>
@@ -975,26 +997,26 @@ const CreateDive = () => {
 
                               {/* Show pending media */}
                               {pendingMedia.length > 0 && (
-                                <div className='mt-4 pt-4 border-t border-gray-200'>
-                                  <h4 className='text-sm font-medium text-gray-700 mb-3'>
+                                <div className='mt-4 pt-4 border-t border-gray-200 dark:border-slate-700'>
+                                  <h4 className='text-sm font-medium text-gray-700 dark:text-slate-300 mb-3'>
                                     Pending Media
                                   </h4>
                                   <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
                                     {pendingMedia.map(item => (
                                       <div
                                         key={item.id}
-                                        className='border rounded-lg p-4 border-yellow-400 bg-yellow-50'
+                                        className='border rounded-lg p-4 border-yellow-400 dark:border-amber-600 bg-yellow-50 dark:bg-amber-950/20'
                                       >
                                         <div className='flex items-center justify-between mb-2'>
-                                          <span className='text-sm font-medium text-gray-700 capitalize'>
+                                          <span className='text-sm font-medium text-gray-700 dark:text-slate-300 capitalize'>
                                             {item.type}{' '}
-                                            <span className='text-xs text-yellow-700'>
+                                            <span className='text-xs text-yellow-700 dark:text-amber-400'>
                                               (Pending)
                                             </span>
                                           </span>
                                           <button
                                             onClick={() => handleMediaRemove(item)}
-                                            className='text-red-600 hover:text-red-800'
+                                            className='text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300'
                                             title='Remove media'
                                           >
                                             <X size={16} />
@@ -1020,14 +1042,14 @@ const CreateDive = () => {
                                           )}
                                           {(isFlickrUrl(item.url) || isYouTubeUrl(item.url)) && (
                                             <div
-                                              className='text-xs text-gray-500 truncate mt-1 px-1'
+                                              className='text-xs text-gray-500 dark:text-slate-400 truncate mt-1 px-1'
                                               title={item.url}
                                             >
                                               <a
                                                 href={getSafeExternalUrl(item.url)}
                                                 target='_blank'
                                                 rel='noopener noreferrer'
-                                                className='hover:text-blue-600 transition-colors'
+                                                className='hover:text-blue-600 dark:hover:text-sky-400 transition-colors'
                                                 onClick={e => e.stopPropagation()}
                                               >
                                                 {item.url}
@@ -1044,7 +1066,7 @@ const CreateDive = () => {
                                               }));
                                             }}
                                             placeholder='Add description...'
-                                            className='w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
+                                            className='w-full px-2 py-1 text-sm border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
                                           />
                                         </div>
                                       </div>
@@ -1063,7 +1085,9 @@ const CreateDive = () => {
 
               {/* Buddies */}
               <div className='md:col-span-2'>
-                <h2 className='text-xl font-semibold mb-4'>Buddies</h2>
+                <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4'>
+                  Buddies
+                </h2>
                 <div className='space-y-4'>
                   <UserSearchInput
                     onSelect={handleBuddySelect}
@@ -1075,14 +1099,14 @@ const CreateDive = () => {
                   {/* Selected Buddies */}
                   {selectedBuddies.length > 0 && (
                     <div className='mt-4'>
-                      <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      <label className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2'>
                         Selected Buddies
                       </label>
                       <div className='flex flex-wrap gap-2'>
                         {selectedBuddies.map(buddy => (
                           <div
                             key={buddy.id}
-                            className='flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-800 rounded-full border border-blue-300'
+                            className='flex items-center gap-2 px-3 py-2 bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-200 rounded-full border border-blue-300 dark:border-blue-800'
                           >
                             {buddy.avatar_url ? (
                               <img
@@ -1091,20 +1115,22 @@ const CreateDive = () => {
                                 className='w-6 h-6 rounded-full object-cover'
                               />
                             ) : (
-                              <div className='w-6 h-6 rounded-full bg-blue-200 flex items-center justify-center'>
-                                <span className='text-xs font-medium text-blue-800'>
+                              <div className='w-6 h-6 rounded-full bg-blue-200 dark:bg-blue-900 flex items-center justify-center'>
+                                <span className='text-xs font-medium text-blue-800 dark:text-blue-200'>
                                   {buddy.username.charAt(0).toUpperCase()}
                                 </span>
                               </div>
                             )}
                             <span className='text-sm font-medium'>{buddy.username}</span>
                             {buddy.name && (
-                              <span className='text-xs text-blue-600'>({buddy.name})</span>
+                              <span className='text-xs text-blue-600 dark:text-blue-400'>
+                                ({buddy.name})
+                              </span>
                             )}
                             <button
                               type='button'
                               onClick={() => handleBuddyRemove(buddy.id)}
-                              className='ml-1 text-blue-600 hover:text-blue-800'
+                              className='ml-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200'
                               aria-label={`Remove ${buddy.username}`}
                             >
                               <X size={14} />
@@ -1119,7 +1145,9 @@ const CreateDive = () => {
 
               {/* Tags */}
               <div className='md:col-span-2'>
-                <h2 className='text-xl font-semibold mb-4'>Tags</h2>
+                <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4'>
+                  Tags
+                </h2>
                 <div className='space-y-4'>
                   <div className='flex flex-wrap gap-2'>
                     {availableTags.map(tag => (
@@ -1129,8 +1157,8 @@ const CreateDive = () => {
                         onClick={() => handleTagToggle(tag.id)}
                         className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
                           selectedTags.includes(tag.id)
-                            ? 'bg-blue-100 text-blue-800 border border-blue-300'
-                            : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
+                            ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 border border-blue-300 dark:border-blue-700'
+                            : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 border border-gray-300 dark:border-slate-600 hover:bg-gray-200 dark:hover:bg-slate-600'
                         }`}
                       >
                         {tag.name}
@@ -1144,12 +1172,12 @@ const CreateDive = () => {
                       value={newTag}
                       onChange={e => setNewTag(e.target.value)}
                       placeholder='Add new tag...'
-                      className='flex-1 border border-gray-300 rounded-md px-3 py-2'
+                      className='flex-1 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
                     />
                     <button
                       type='button'
                       onClick={handleAddNewTag}
-                      className='px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors flex items-center gap-2'
+                      className='px-4 py-2 text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-650 hover:text-gray-900 dark:hover:text-white transition-colors flex items-center gap-2'
                     >
                       <Plus size={16} />
                       Add
@@ -1164,7 +1192,7 @@ const CreateDive = () => {
               <button
                 type='button'
                 onClick={() => navigate('/dives')}
-                className='px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50'
+                className='px-6 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors'
               >
                 Cancel
               </button>

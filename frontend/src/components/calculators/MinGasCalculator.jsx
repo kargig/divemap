@@ -100,17 +100,17 @@ const MinGasCalculator = () => {
   }, [depth, sac, solveTime, ascentRate, safetyStopDuration, tankSize, values.isTech, targetDepth]);
 
   return (
-    <div className='bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden flex flex-col h-full'>
-      <div className='p-4 border-b border-gray-100 bg-red-50/30'>
+    <div className='bg-white dark:bg-slate-800 rounded-xl shadow-md border border-gray-200 dark:border-slate-700 overflow-hidden flex flex-col h-full'>
+      <div className='p-4 border-b border-gray-100 dark:border-slate-700 bg-red-50/30 dark:bg-slate-900/60'>
         <div className='flex items-center space-x-2 sm:space-x-3'>
           <div className='p-1.5 bg-red-600 rounded text-white hidden sm:block'>
             <AlertTriangle className='h-5 w-5 sm:h-6 sm:w-6' />
           </div>
-          <h2 className='text-base sm:text-xl font-bold text-gray-900'>
+          <h2 className='text-base sm:text-xl font-bold text-gray-900 dark:text-slate-100'>
             Minimum Gas (Rock Bottom)
           </h2>
         </div>
-        <p className='mt-1 text-xs sm:text-sm text-gray-600 hidden sm:block'>
+        <p className='mt-1 text-xs sm:text-sm text-gray-600 dark:text-slate-400 hidden sm:block'>
           Calculate the emergency reserve needed to share air with a buddy and ascend from the
           deepest part of the dive.
         </p>
@@ -121,7 +121,7 @@ const MinGasCalculator = () => {
           <div>
             <label
               htmlFor='minGasDepth'
-              className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
+              className='block text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1 sm:mb-2'
             >
               Depth (meters)
             </label>
@@ -130,7 +130,7 @@ const MinGasCalculator = () => {
               type='number'
               min='0'
               {...register('depth', { valueAsNumber: true })}
-              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 text-xs sm:text-sm'
+              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 text-xs sm:text-sm'
             />
             {errors.depth && <p className='text-red-500 text-xs mt-1'>{errors.depth.message}</p>}
           </div>
@@ -138,7 +138,7 @@ const MinGasCalculator = () => {
           <div>
             <label
               htmlFor='minGasSAC'
-              className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
+              className='block text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1 sm:mb-2'
             >
               Emergency SAC (L/min)
             </label>
@@ -147,25 +147,25 @@ const MinGasCalculator = () => {
               type='number'
               min='10'
               {...register('sac', { valueAsNumber: true })}
-              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 text-xs sm:text-sm'
+              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 text-xs sm:text-sm'
             />
             {errors.sac && <p className='text-red-500 text-xs mt-1'>{errors.sac.message}</p>}
-            <p className='text-[10px] sm:text-xs text-gray-500 mt-1'>
+            <p className='text-[10px] sm:text-xs text-gray-500 dark:text-slate-400 mt-1'>
               Typically 60 L/min for two stressed divers (30 L/min each).
             </p>
           </div>
         </div>
 
-        <div className='flex items-center p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200'>
+        <div className='flex items-center p-2 sm:p-3 bg-gray-50 dark:bg-slate-900/60 rounded-lg border border-gray-200 dark:border-slate-700'>
           <input
             id='techMinGasToggle'
             type='checkbox'
             {...register('isTech')}
-            className='w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500 cursor-pointer'
+            className='w-4 h-4 text-red-600 border-gray-300 dark:border-slate-600 rounded focus:ring-red-500 cursor-pointer'
           />
           <label
             htmlFor='techMinGasToggle'
-            className='ml-2 text-xs sm:text-sm font-medium text-gray-700 cursor-pointer select-none'
+            className='ml-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-slate-300 cursor-pointer select-none'
           >
             Gas Switch Mode
           </label>
@@ -175,7 +175,7 @@ const MinGasCalculator = () => {
           <div>
             <label
               htmlFor='minGasTargetDepth'
-              className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
+              className='block text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1 sm:mb-2'
             >
               Target Depth / Gas Switch (meters)
             </label>
@@ -185,12 +185,12 @@ const MinGasCalculator = () => {
               min='0'
               max={depth || 100}
               {...register('targetDepth', { valueAsNumber: true })}
-              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 text-xs sm:text-sm'
+              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 text-xs sm:text-sm'
             />
             {errors.targetDepth && (
               <p className='text-red-500 text-xs mt-1'>{errors.targetDepth.message}</p>
             )}
-            <p className='text-[10px] sm:text-xs text-gray-500 mt-1'>
+            <p className='text-[10px] sm:text-xs text-gray-500 dark:text-slate-400 mt-1'>
               Depth where you switch to a deco gas.
             </p>
           </div>
@@ -200,7 +200,7 @@ const MinGasCalculator = () => {
           <div>
             <label
               htmlFor='minGasSolveTime'
-              className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
+              className='block text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1 sm:mb-2'
             >
               Time to Solve (min)
             </label>
@@ -209,7 +209,7 @@ const MinGasCalculator = () => {
               type='number'
               min='0'
               {...register('solveTime', { valueAsNumber: true })}
-              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 text-xs sm:text-sm'
+              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 text-xs sm:text-sm'
             />
             {errors.solveTime && (
               <p className='text-red-500 text-xs mt-1'>{errors.solveTime.message}</p>
@@ -218,7 +218,7 @@ const MinGasCalculator = () => {
           <div>
             <label
               htmlFor='minGasAscentRate'
-              className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
+              className='block text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1 sm:mb-2'
             >
               Ascent Rate (m/min)
             </label>
@@ -227,7 +227,7 @@ const MinGasCalculator = () => {
               type='number'
               min='1'
               {...register('ascentRate', { valueAsNumber: true })}
-              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 text-xs sm:text-sm'
+              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 text-xs sm:text-sm'
             />
             {errors.ascentRate && (
               <p className='text-red-500 text-xs mt-1'>{errors.ascentRate.message}</p>
@@ -240,7 +240,7 @@ const MinGasCalculator = () => {
             <div>
               <label
                 htmlFor='minGasSafetyStopDuration'
-                className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
+                className='block text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1 sm:mb-2'
               >
                 Safety Stop (min)
               </label>
@@ -249,25 +249,27 @@ const MinGasCalculator = () => {
                 type='number'
                 min='0'
                 {...register('safetyStopDuration', { valueAsNumber: true })}
-                className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 text-xs sm:text-sm'
+                className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 text-xs sm:text-sm'
               />
               {errors.safetyStopDuration && (
                 <p className='text-red-500 text-xs mt-1'>{errors.safetyStopDuration.message}</p>
               )}
-              <p className='text-[10px] sm:text-xs text-gray-500 mt-1'>Usually 3 min at 5m.</p>
+              <p className='text-[10px] sm:text-xs text-gray-500 dark:text-slate-400 mt-1'>
+                Usually 3 min at 5m.
+              </p>
             </div>
           )}
           <div className={values.isTech ? 'col-span-2' : ''}>
             <label
               htmlFor='minGasTankSize'
-              className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
+              className='block text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1 sm:mb-2'
             >
               Cylinder Size (L)
             </label>
             <select
               id='minGasTankSize'
               {...register('tankSize', { valueAsNumber: true })}
-              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 text-xs sm:text-sm'
+              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 text-xs sm:text-sm'
             >
               {TANK_SIZES.map(t => (
                 <option key={t.id} value={t.size}>
@@ -284,14 +286,14 @@ const MinGasCalculator = () => {
         <div className='flex justify-end'>
           <button
             onClick={() => setShowDetails(!showDetails)}
-            className='text-xs font-semibold text-red-600 hover:text-red-700 transition-colors'
+            className='text-xs font-semibold text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors'
           >
             {showDetails ? 'Hide Calculations' : 'Show Calculations'}
           </button>
         </div>
 
         {showDetails && (
-          <div className='p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-2 text-xs font-mono text-gray-600 animate-in fade-in slide-in-from-top-1 duration-200'>
+          <div className='p-4 bg-gray-50 dark:bg-slate-900/60 rounded-xl border border-gray-100 dark:border-slate-700 space-y-2 text-xs font-mono text-gray-600 dark:text-slate-300 animate-in fade-in slide-in-from-top-1 duration-200'>
             <div className='flex justify-between'>
               <span>Solve Problem:</span>
               <span>
@@ -299,7 +301,7 @@ const MinGasCalculator = () => {
                 {breakdown.volSolve?.toFixed(0)} L
               </span>
             </div>
-            <div className='text-[10px] text-gray-400 italic text-right mb-1'>
+            <div className='text-[10px] text-gray-400 dark:text-slate-500 italic text-right mb-1'>
               * {SURFACE_PRESSURE_BAR} bar is Standard Surface Pressure (1 atm).
             </div>
             <div className='flex justify-between'>
@@ -321,44 +323,46 @@ const MinGasCalculator = () => {
                 </div>
               </>
             )}
-            <div className='flex justify-between border-t border-gray-200 pt-1 font-bold'>
+            <div className='flex justify-between border-t border-gray-200 dark:border-slate-700 pt-1 font-bold'>
               <span>Total Volume:</span>
               <span>{minGasResult.liters.toFixed(0)} L</span>
             </div>
-            <div className='flex justify-between text-gray-400'>
+            <div className='flex justify-between text-gray-400 dark:text-slate-500'>
               <span>Ideal Pressure:</span>
               <span>
                 {minGasResult.liters.toFixed(0)} L / {tankSize}L ={' '}
                 {minGasResult.barIdeal.toFixed(1)} bar
               </span>
             </div>
-            <div className='flex justify-between text-gray-600 pt-1'>
+            <div className='flex justify-between text-gray-600 dark:text-slate-300 pt-1'>
               <span>Real Pressure (Z-Factor):</span>
               <span>{minGasResult.barReal.toFixed(1)} bar</span>
             </div>
-            <div className='text-[10px] text-gray-400 italic mt-1'>
+            <div className='text-[10px] text-gray-400 dark:text-slate-500 italic mt-1'>
               Real Pressure accounts for gas becoming less compressible at high pressures.
             </div>
           </div>
         )}
 
-        <div className='mt-1 sm:mt-2 p-3 sm:p-6 bg-red-50 rounded-2xl border border-red-100 flex flex-col items-center justify-center text-center'>
-          <span className='text-xs sm:text-sm uppercase tracking-wider font-bold text-red-800 mb-1 sm:mb-2'>
+        <div className='mt-1 sm:mt-2 p-3 sm:p-6 bg-red-50 dark:bg-red-950/40 rounded-2xl border border-red-100 dark:border-red-900 flex flex-col items-center justify-center text-center'>
+          <span className='text-xs sm:text-sm uppercase tracking-wider font-bold text-red-800 dark:text-red-200 mb-1 sm:mb-2'>
             Minimum Gas (Real)
           </span>
           <div className='flex items-baseline'>
-            <span className='text-3xl sm:text-5xl font-black text-red-600'>
+            <span className='text-3xl sm:text-5xl font-black text-red-600 dark:text-red-400'>
               {Math.ceil(minGasResult.barReal)}
             </span>
-            <span className='ml-1 sm:ml-2 text-lg sm:text-xl font-bold text-red-400'>bar</span>
+            <span className='ml-1 sm:ml-2 text-lg sm:text-xl font-bold text-red-400 dark:text-red-300'>
+              bar
+            </span>
           </div>
-          <p className='mt-1 sm:mt-2 text-xs sm:text-sm text-red-700 font-medium'>
+          <p className='mt-1 sm:mt-2 text-xs sm:text-sm text-red-700 dark:text-red-300 font-medium'>
             Reserve required (accounting for compressibility).
           </p>
         </div>
 
-        <div className='p-3 sm:p-4 bg-gray-50 border-t border-gray-100 text-xs text-gray-500 flex items-start'>
-          <Info className='h-4 w-4 mr-2 text-gray-400 flex-shrink-0' />
+        <div className='p-3 sm:p-4 bg-gray-50 dark:bg-slate-900/60 border-t border-gray-100 dark:border-slate-700 text-xs text-gray-500 dark:text-slate-400 flex items-start'>
+          <Info className='h-4 w-4 mr-2 text-gray-400 dark:text-slate-500 flex-shrink-0' />
           <p>
             This calculates the 'Rock Bottom' reserve using the Real Gas Law (Z-Factor), ensuring
             you have enough actual gas volume for an emergency ascent.

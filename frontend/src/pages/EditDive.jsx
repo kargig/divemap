@@ -829,19 +829,24 @@ const EditDive = () => {
         <div className='flex items-center gap-4 mb-6'>
           <button
             onClick={() => navigate(`/dives/${id}`)}
-            className='text-gray-600 hover:text-gray-800'
+            className='text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 transition-colors'
           >
             <ArrowLeft size={24} />
           </button>
-          <h1 className='text-3xl font-bold text-gray-900'>Edit Dive</h1>
+          <h1 className='text-3xl font-bold text-gray-900 dark:text-slate-100'>Edit Dive</h1>
         </div>
 
         <FormProvider {...methods}>
-          <form onSubmit={handleSubmit(onSubmit)} className='bg-white rounded-lg shadow p-6'>
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className='bg-white dark:bg-slate-800 rounded-lg shadow-md border border-gray-100 dark:border-slate-700 p-6'
+          >
             <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
               {/* Basic Information */}
               <div className='md:col-span-2'>
-                <h2 className='text-xl font-semibold mb-4'>Basic Information</h2>
+                <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4'>
+                  Basic Information
+                </h2>
               </div>
 
               <FormField name='dive_site_id' label='Dive Site (Optional)'>
@@ -855,23 +860,25 @@ const EditDive = () => {
                         onFocus={() => setIsDiveSiteDropdownOpen(true)}
                         onKeyDown={handleDiveSiteKeyDown}
                         placeholder='Search for a dive site...'
-                        className='w-full border border-gray-300 rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                        className='w-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
                       />
                       <div className='absolute inset-y-0 right-0 flex items-center pr-3'>
                         <ChevronDown
                           size={16}
-                          className={`text-gray-400 transition-transform ${isDiveSiteDropdownOpen ? 'rotate-180' : ''}`}
+                          className={`text-gray-400 dark:text-slate-400 transition-transform ${isDiveSiteDropdownOpen ? 'rotate-180' : ''}`}
                         />
                       </div>
                     </div>
 
                     {/* Dropdown */}
                     {isDiveSiteDropdownOpen && (
-                      <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'>
+                      <div className='absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-md shadow-lg max-h-60 overflow-auto'>
                         {diveSiteSearchLoading ? (
-                          <div className='px-3 py-2 text-gray-500 text-sm'>Searching...</div>
+                          <div className='px-3 py-2 text-gray-500 dark:text-slate-400 text-sm'>
+                            Searching...
+                          </div>
                         ) : diveSiteSearchError ? (
-                          <div className='px-3 py-2 text-red-500 text-sm'>
+                          <div className='px-3 py-2 text-red-500 dark:text-red-400 text-sm'>
                             {diveSiteSearchError}
                           </div>
                         ) : filteredDiveSites.length > 0 ? (
@@ -879,16 +886,22 @@ const EditDive = () => {
                             <div
                               key={site.id}
                               onClick={() => handleDiveSiteSelect(site.id, site.name)}
-                              className='px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0'
+                              className='px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer border-b border-gray-100 dark:border-slate-700 last:border-b-0'
                             >
-                              <div className='font-medium text-gray-900'>{site.name}</div>
+                              <div className='font-medium text-gray-900 dark:text-slate-100'>
+                                {site.name}
+                              </div>
                               {site.country && (
-                                <div className='text-sm text-gray-500'>{site.country}</div>
+                                <div className='text-sm text-gray-500 dark:text-slate-400'>
+                                  {site.country}
+                                </div>
                               )}
                             </div>
                           ))
                         ) : (
-                          <div className='px-3 py-2 text-gray-500 text-sm'>No dive sites found</div>
+                          <div className='px-3 py-2 text-gray-500 dark:text-slate-400 text-sm'>
+                            No dive sites found
+                          </div>
                         )}
                       </div>
                     )}
@@ -925,7 +938,7 @@ const EditDive = () => {
                       type='text'
                       {...register(name)}
                       placeholder='Custom dive name or leave empty for automatic naming'
-                      className='w-full border border-gray-300 rounded-md px-3 py-2'
+                      className='w-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
                     />
                   )}
                 </FormField>
@@ -938,7 +951,7 @@ const EditDive = () => {
                       {...register(name, {
                         setValueAs: value => value === 'true' || value === true,
                       })}
-                      className='w-full border border-gray-300 rounded-md px-3 py-2'
+                      className='w-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
                     >
                       <option value='false'>Public (visible to everyone)</option>
                       <option value='true'>Private (visible only to you)</option>
@@ -954,7 +967,7 @@ const EditDive = () => {
                       type='date'
                       {...register(name)}
                       required
-                      className='w-full border border-gray-300 rounded-md px-3 py-2'
+                      className='w-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
                     />
                   )}
                 </FormField>
@@ -966,7 +979,7 @@ const EditDive = () => {
                     <input
                       type='time'
                       {...register(name)}
-                      className='w-full border border-gray-300 rounded-md px-3 py-2'
+                      className='w-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
                     />
                   )}
                 </FormField>
@@ -980,7 +993,7 @@ const EditDive = () => {
                       min='1'
                       max='1440'
                       {...register(name)}
-                      className='w-full border border-gray-300 rounded-md px-3 py-2'
+                      className='w-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
                       placeholder='60'
                     />
                   )}
@@ -989,7 +1002,9 @@ const EditDive = () => {
 
               {/* Dive Details */}
               <div className='md:col-span-2'>
-                <h2 className='text-xl font-semibold mb-4'>Dive Details</h2>
+                <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4'>
+                  Dive Details
+                </h2>
               </div>
 
               <div>
@@ -1001,7 +1016,7 @@ const EditDive = () => {
                       max='1000'
                       step='any'
                       {...register(name)}
-                      className='w-full border border-gray-300 rounded-md px-3 py-2'
+                      className='w-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
                       placeholder='18.5'
                     />
                   )}
@@ -1017,7 +1032,7 @@ const EditDive = () => {
                       max='1000'
                       step='any'
                       {...register(name)}
-                      className='w-full border border-gray-300 rounded-md px-3 py-2'
+                      className='w-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
                       placeholder='12.0'
                     />
                   )}
@@ -1029,7 +1044,7 @@ const EditDive = () => {
                   {({ register, name }) => (
                     <select
                       {...register(name)}
-                      className='w-full border border-gray-300 rounded-md px-3 py-2'
+                      className='w-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
                     >
                       {getDifficultyOptions().map(option => (
                         <option
@@ -1049,7 +1064,7 @@ const EditDive = () => {
                   {({ register, name }) => (
                     <select
                       {...register(name)}
-                      className='w-full border border-gray-300 rounded-md px-3 py-2'
+                      className='w-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
                     >
                       <option value=''>Select suit type</option>
                       <option value='wet_suit'>Wet Suit</option>
@@ -1068,7 +1083,7 @@ const EditDive = () => {
                       min='1'
                       max='5'
                       {...register(name)}
-                      className='w-full border border-gray-300 rounded-md px-3 py-2'
+                      className='w-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
                       placeholder='4'
                     />
                   )}
@@ -1083,7 +1098,7 @@ const EditDive = () => {
                       min='1'
                       max='5'
                       {...register(name)}
-                      className='w-full border border-gray-300 rounded-md px-3 py-2'
+                      className='w-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
                       placeholder='4'
                     />
                   )}
@@ -1091,7 +1106,7 @@ const EditDive = () => {
               </div>
 
               <div className='md:col-span-2'>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
+                <label className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'>
                   Gas Bottles Used
                 </label>
                 <Controller
@@ -1108,7 +1123,7 @@ const EditDive = () => {
                   {({ register, name }) => (
                     <textarea
                       {...register(name)}
-                      className='w-full border border-gray-300 rounded-md px-3 py-2'
+                      className='w-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
                       rows='4'
                       placeholder='Describe your dive experience, what you saw, conditions, etc.'
                     />
@@ -1118,7 +1133,9 @@ const EditDive = () => {
 
               {/* Media */}
               <div className='md:col-span-2'>
-                <h2 className='text-xl font-semibold mb-4'>Media</h2>
+                <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4'>
+                  Media
+                </h2>
                 <div className='space-y-4'>
                   {/* Photo Upload - Only show for public dives */}
                   {!watch('is_private') && (
@@ -1133,8 +1150,8 @@ const EditDive = () => {
                     />
                   )}
                   {watch('is_private') && (
-                    <div className='p-4 bg-gray-50 border border-gray-200 rounded-lg'>
-                      <p className='text-sm text-gray-600'>
+                    <div className='p-4 bg-gray-50 dark:bg-slate-900/40 border border-gray-200 dark:border-slate-700 rounded-lg'>
+                      <p className='text-sm text-gray-600 dark:text-slate-400'>
                         Photo uploads are only available for public dives. Photos are visible on the
                         dive site.
                       </p>
@@ -1156,7 +1173,7 @@ const EditDive = () => {
                                 <div>
                                   <label
                                     htmlFor='media_type'
-                                    className='block text-sm font-medium text-gray-700 mb-1'
+                                    className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
                                   >
                                     Media Type
                                   </label>
@@ -1164,7 +1181,7 @@ const EditDive = () => {
                                     id='media_type'
                                     value={newMediaType}
                                     onChange={e => setNewMediaType(e.target.value)}
-                                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                    className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                   >
                                     <option value='photo'>Photo</option>
                                     <option value='video'>Video</option>
@@ -1173,7 +1190,7 @@ const EditDive = () => {
                                 <div className='md:col-span-2'>
                                   <label
                                     htmlFor='media_url'
-                                    className='block text-sm font-medium text-gray-700 mb-1'
+                                    className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
                                   >
                                     URL *
                                   </label>
@@ -1182,7 +1199,7 @@ const EditDive = () => {
                                     type='url'
                                     value={newMediaUrl}
                                     onChange={e => setNewMediaUrl(e.target.value)}
-                                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                    className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                     placeholder='https://example.com/image.jpg'
                                   />
                                 </div>
@@ -1190,7 +1207,7 @@ const EditDive = () => {
                               <div>
                                 <label
                                   htmlFor='media_description'
-                                  className='block text-sm font-medium text-gray-700 mb-1'
+                                  className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
                                 >
                                   Description
                                 </label>
@@ -1199,14 +1216,14 @@ const EditDive = () => {
                                   type='text'
                                   value={newMediaDescription}
                                   onChange={e => setNewMediaDescription(e.target.value)}
-                                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                  className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                 />
                               </div>
                               <div className='flex space-x-2'>
                                 <button
                                   type='button'
                                   onClick={handleUrlAdd}
-                                  className='flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors'
+                                  className='flex items-center px-4 py-2 text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-650 hover:text-gray-900 dark:hover:text-white transition-colors'
                                 >
                                   Add Media
                                 </button>
@@ -1240,12 +1257,12 @@ const EditDive = () => {
                   {mediaLoading && (
                     <div className='text-center py-4'>
                       <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto'></div>
-                      <p className='text-gray-600 mt-2'>Loading media...</p>
+                      <p className='text-gray-600 dark:text-slate-400 mt-2'>Loading media...</p>
                     </div>
                   )}
                   {mediaError && (
                     <div className='text-center py-4'>
-                      <p className='text-red-600'>Failed to load media</p>
+                      <p className='text-red-600 dark:text-red-400'>Failed to load media</p>
                     </div>
                   )}
                   {!mediaLoading &&
@@ -1410,7 +1427,9 @@ const EditDive = () => {
 
               {/* Buddies */}
               <div className='md:col-span-2'>
-                <h2 className='text-xl font-semibold mb-4'>Buddies</h2>
+                <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4'>
+                  Buddies
+                </h2>
                 <div className='space-y-4'>
                   <UserSearchInput
                     onSelect={handleBuddySelect}
@@ -1422,14 +1441,14 @@ const EditDive = () => {
                   {/* Selected Buddies */}
                   {selectedBuddies.length > 0 && (
                     <div className='mt-4'>
-                      <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      <label className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2'>
                         Selected Buddies
                       </label>
                       <div className='flex flex-wrap gap-2'>
                         {selectedBuddies.map(buddy => (
                           <div
                             key={buddy.id}
-                            className='flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-800 rounded-full border border-blue-300'
+                            className='flex items-center gap-2 px-3 py-2 bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-200 rounded-full border border-blue-300 dark:border-blue-800'
                           >
                             {buddy.avatar_url ? (
                               <img
@@ -1438,20 +1457,22 @@ const EditDive = () => {
                                 className='w-6 h-6 rounded-full object-cover'
                               />
                             ) : (
-                              <div className='w-6 h-6 rounded-full bg-blue-200 flex items-center justify-center'>
-                                <span className='text-xs font-medium text-blue-800'>
+                              <div className='w-6 h-6 rounded-full bg-blue-200 dark:bg-blue-900 flex items-center justify-center'>
+                                <span className='text-xs font-medium text-blue-800 dark:text-blue-200'>
                                   {buddy.username.charAt(0).toUpperCase()}
                                 </span>
                               </div>
                             )}
                             <span className='text-sm font-medium'>{buddy.username}</span>
                             {buddy.name && (
-                              <span className='text-xs text-blue-600'>({buddy.name})</span>
+                              <span className='text-xs text-blue-600 dark:text-blue-400'>
+                                ({buddy.name})
+                              </span>
                             )}
                             <button
                               type='button'
                               onClick={() => handleBuddyRemove(buddy.id)}
-                              className='ml-1 text-blue-600 hover:text-blue-800'
+                              className='ml-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200'
                               aria-label={`Remove ${buddy.username}`}
                             >
                               <X size={14} />
@@ -1466,7 +1487,9 @@ const EditDive = () => {
 
               {/* Tags */}
               <div className='md:col-span-2'>
-                <h2 className='text-xl font-semibold mb-4'>Tags</h2>
+                <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4'>
+                  Tags
+                </h2>
                 <div className='space-y-4'>
                   <div className='flex flex-wrap gap-2'>
                     {availableTags.map(tag => (
@@ -1476,8 +1499,8 @@ const EditDive = () => {
                         onClick={() => handleTagToggle(tag.id)}
                         className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
                           selectedTags.includes(tag.id)
-                            ? 'bg-blue-100 text-blue-800 border border-blue-300'
-                            : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
+                            ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 border border-blue-300 dark:border-blue-700'
+                            : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 border border-gray-300 dark:border-slate-600 hover:bg-gray-200 dark:hover:bg-slate-600'
                         }`}
                       >
                         {tag.name}
@@ -1491,12 +1514,12 @@ const EditDive = () => {
                       value={newTag}
                       onChange={e => setNewTag(e.target.value)}
                       placeholder='Add new tag...'
-                      className='flex-1 border border-gray-300 rounded-md px-3 py-2'
+                      className='flex-1 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
                     />
                     <button
                       type='button'
                       onClick={handleAddNewTag}
-                      className='px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors flex items-center gap-2'
+                      className='px-4 py-2 text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-650 hover:text-gray-900 dark:hover:text-white transition-colors flex items-center gap-2'
                     >
                       <Plus size={16} />
                       Add

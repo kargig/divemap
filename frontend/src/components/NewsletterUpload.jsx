@@ -98,14 +98,16 @@ const NewsletterUpload = ({ divingCenters = [], onSuccess }) => {
   return (
     <div className='space-y-6'>
       {/* Upload Section */}
-      <div className='bg-white rounded-lg shadow-md p-6 mb-8'>
-        <h2 className='text-xl font-semibold text-gray-900 mb-4'>Upload Newsletter</h2>
+      <div className='bg-white dark:bg-slate-800 rounded-lg shadow-md border border-gray-100 dark:border-slate-700 p-6 mb-8'>
+        <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4'>
+          Upload Newsletter
+        </h2>
 
         <div className='space-y-4'>
           <div>
             <label
               htmlFor='newsletter-file'
-              className='block text-sm font-medium text-gray-700 mb-2'
+              className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2'
             >
               Newsletter File (.txt only)
             </label>
@@ -115,10 +117,10 @@ const NewsletterUpload = ({ divingCenters = [], onSuccess }) => {
                 type='file'
                 accept='.txt'
                 onChange={handleFileChange}
-                className='block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100'
+                className='block w-full text-sm text-gray-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-blue-950/40 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100 dark:hover:file:bg-blue-900/60'
               />
               {selectedFile && (
-                <div className='flex items-center text-sm text-gray-600'>
+                <div className='flex items-center text-sm text-gray-600 dark:text-slate-300'>
                   <FileText className='h-4 w-4 mr-2' />
                   {selectedFile.name}
                 </div>
@@ -132,9 +134,9 @@ const NewsletterUpload = ({ divingCenters = [], onSuccess }) => {
               id='useOpenai'
               checked={useOpenai}
               onChange={e => setUseOpenai(e.target.checked)}
-              className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+              className='rounded border-gray-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500'
             />
-            <label htmlFor='useOpenai' className='text-sm text-gray-700'>
+            <label htmlFor='useOpenai' className='text-sm text-gray-700 dark:text-slate-300'>
               Use OpenAI for parsing (recommended)
             </label>
           </div>
@@ -151,8 +153,10 @@ const NewsletterUpload = ({ divingCenters = [], onSuccess }) => {
       </div>
 
       {/* Parse Text Section */}
-      <div className='bg-white rounded-lg shadow-md p-6 mb-8'>
-        <h2 className='text-xl font-semibold text-gray-900 mb-4'>Parse Newsletter Text</h2>
+      <div className='bg-white dark:bg-slate-800 rounded-lg shadow-md border border-gray-100 dark:border-slate-700 p-6 mb-8'>
+        <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4'>
+          Parse Newsletter Text
+        </h2>
 
         <div className='space-y-4'>
           <div>
@@ -163,7 +167,7 @@ const NewsletterUpload = ({ divingCenters = [], onSuccess }) => {
               label='Diving Center (Optional)'
               id='diving-center-select'
             />
-            <p className='text-xs text-gray-500 mt-1'>
+            <p className='text-xs text-gray-500 dark:text-slate-400 mt-1'>
               Select the diving center organizing this trip. If not selected, the system will try to
               extract it from the text.
             </p>
@@ -172,7 +176,7 @@ const NewsletterUpload = ({ divingCenters = [], onSuccess }) => {
           <div>
             <label
               htmlFor='newsletter-text'
-              className='block text-sm font-medium text-gray-700 mb-2'
+              className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2'
             >
               Newsletter Content
             </label>
@@ -181,7 +185,7 @@ const NewsletterUpload = ({ divingCenters = [], onSuccess }) => {
               value={newsletterText}
               onChange={e => setNewsletterText(e.target.value)}
               placeholder='Paste newsletter content here...'
-              className='w-full h-64 p-3 border border-gray-300 rounded-md font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+              className='w-full h-64 p-3 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-md font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
             />
           </div>
 
@@ -191,9 +195,9 @@ const NewsletterUpload = ({ divingCenters = [], onSuccess }) => {
               id='useOpenaiText'
               checked={useOpenaiText}
               onChange={e => setUseOpenaiText(e.target.checked)}
-              className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+              className='rounded border-gray-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500'
             />
-            <label htmlFor='useOpenaiText' className='text-sm text-gray-700'>
+            <label htmlFor='useOpenaiText' className='text-sm text-gray-700 dark:text-slate-300'>
               Use OpenAI for parsing (recommended)
             </label>
           </div>

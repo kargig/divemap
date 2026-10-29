@@ -90,8 +90,8 @@ const MultiPhotoUploadModal = ({ isOpen, onClose, diveId, onUploadSuccess }) => 
           onClick={() => !isUploading && fileInputRef.current?.click()}
           className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
             isUploading
-              ? 'border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed'
-              : 'border-blue-200 hover:border-blue-400 bg-blue-50/50 hover:bg-blue-50'
+              ? 'border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/40 opacity-50 cursor-not-allowed'
+              : 'border-blue-200 dark:border-slate-600 hover:border-blue-400 dark:hover:border-blue-500 bg-blue-50/50 dark:bg-slate-800/60 hover:bg-blue-50 dark:hover:bg-slate-800'
           }`}
         >
           <input
@@ -103,9 +103,13 @@ const MultiPhotoUploadModal = ({ isOpen, onClose, diveId, onUploadSuccess }) => 
             className='hidden'
             disabled={isUploading}
           />
-          <Upload className='w-10 h-10 text-blue-500 mx-auto mb-3' />
-          <h3 className='text-sm font-medium text-gray-900 mb-1'>Click to select photos</h3>
-          <p className='text-xs text-gray-500'>JPG, PNG, GIF, WEBP up to 10MB</p>
+          <Upload className='w-10 h-10 text-blue-500 dark:text-sky-400 mx-auto mb-3' />
+          <h3 className='text-sm font-medium text-gray-900 dark:text-slate-100 mb-1'>
+            Click to select photos
+          </h3>
+          <p className='text-xs text-gray-500 dark:text-slate-400'>
+            JPG, PNG, GIF, WEBP up to 10MB
+          </p>
         </div>
 
         {/* Selected Files List */}
@@ -116,15 +120,17 @@ const MultiPhotoUploadModal = ({ isOpen, onClose, diveId, onUploadSuccess }) => 
               return (
                 <div
                   key={`${file.name}-${index}`}
-                  className='flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100'
+                  className='flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-700/60 rounded-lg border border-gray-100 dark:border-slate-600'
                 >
                   <div className='flex items-center gap-3 overflow-hidden'>
-                    <div className='w-10 h-10 bg-white rounded flex items-center justify-center flex-shrink-0'>
-                      <FileImage className='w-5 h-5 text-blue-500' />
+                    <div className='w-10 h-10 bg-white dark:bg-slate-800 rounded flex items-center justify-center flex-shrink-0'>
+                      <FileImage className='w-5 h-5 text-blue-500 dark:text-sky-400' />
                     </div>
                     <div className='min-w-0'>
-                      <p className='text-sm font-medium text-gray-700 truncate'>{file.name}</p>
-                      <p className='text-xs text-gray-400'>
+                      <p className='text-sm font-medium text-gray-700 dark:text-slate-200 truncate'>
+                        {file.name}
+                      </p>
+                      <p className='text-xs text-gray-400 dark:text-slate-400'>
                         {(file.size / 1024 / 1024).toFixed(2)} MB
                       </p>
                     </div>
@@ -140,7 +146,7 @@ const MultiPhotoUploadModal = ({ isOpen, onClose, diveId, onUploadSuccess }) => 
                     {!status && !isUploading && (
                       <button
                         onClick={() => removeFile(index)}
-                        className='p-1 hover:bg-gray-200 rounded-full text-gray-400 hover:text-red-500 transition-colors'
+                        className='p-1 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-full text-gray-400 dark:text-slate-400 hover:text-red-500 transition-colors'
                       >
                         <X className='w-4 h-4' />
                       </button>

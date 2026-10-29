@@ -68,15 +68,17 @@ const SacRateCalculator = () => {
   }, [JSON.stringify(values)]);
 
   return (
-    <div className='bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden flex flex-col h-full'>
-      <div className='p-4 border-b border-gray-100 bg-purple-50/30'>
+    <div className='bg-white dark:bg-slate-800 rounded-xl shadow-md border border-gray-200 dark:border-slate-700 overflow-hidden flex flex-col h-full'>
+      <div className='p-4 border-b border-gray-100 dark:border-slate-700 bg-purple-50/30 dark:bg-slate-900/60'>
         <div className='flex items-center space-x-2 sm:space-x-3'>
           <div className='p-1.5 bg-purple-600 rounded text-white hidden sm:block'>
             <Timer className='h-5 w-5 sm:h-6 sm:w-6' />
           </div>
-          <h2 className='text-base sm:text-xl font-bold text-gray-900'>SAC Rate Calculator</h2>
+          <h2 className='text-base sm:text-xl font-bold text-gray-900 dark:text-slate-100'>
+            SAC Rate Calculator
+          </h2>
         </div>
-        <p className='mt-1 text-xs sm:text-sm text-gray-600 hidden sm:block'>
+        <p className='mt-1 text-xs sm:text-sm text-gray-600 dark:text-slate-400 hidden sm:block'>
           Calculate your Surface Air Consumption rate to estimate gas usage.
         </p>
       </div>
@@ -86,7 +88,7 @@ const SacRateCalculator = () => {
           <div>
             <label
               htmlFor='sacDepth'
-              className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
+              className='block text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1 sm:mb-2'
             >
               Average Depth (meters)
             </label>
@@ -95,7 +97,7 @@ const SacRateCalculator = () => {
               type='number'
               min='0'
               {...register('depth', { valueAsNumber: true })}
-              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 text-xs sm:text-sm'
+              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 text-xs sm:text-sm'
             />
             {errors.depth && <p className='text-red-500 text-xs mt-1'>{errors.depth.message}</p>}
           </div>
@@ -103,7 +105,7 @@ const SacRateCalculator = () => {
           <div>
             <label
               htmlFor='sacTime'
-              className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
+              className='block text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1 sm:mb-2'
             >
               Bottom Time (mins)
             </label>
@@ -112,7 +114,7 @@ const SacRateCalculator = () => {
               type='number'
               min='1'
               {...register('time', { valueAsNumber: true })}
-              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 text-xs sm:text-sm'
+              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 text-xs sm:text-sm'
             />
             {errors.time && <p className='text-red-500 text-xs mt-1'>{errors.time.message}</p>}
           </div>
@@ -122,7 +124,7 @@ const SacRateCalculator = () => {
           <div>
             <label
               htmlFor='sacTankSize'
-              className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
+              className='block text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1 sm:mb-2'
             >
               Cylinder Size (L)
             </label>
@@ -137,7 +139,7 @@ const SacRateCalculator = () => {
                   setValue('startPressure', tank.defaultPressure);
                 }
               }}
-              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 text-xs sm:text-sm'
+              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 text-xs sm:text-sm'
             >
               {TANK_SIZES.map(t => (
                 <option key={t.id} value={t.size}>
@@ -151,7 +153,7 @@ const SacRateCalculator = () => {
           </div>
 
           <div>
-            <label className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'>
+            <label className='block text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1 sm:mb-2'>
               Gas Mix
             </label>
             <Controller
@@ -160,7 +162,7 @@ const SacRateCalculator = () => {
               render={({ field }) => <GasMixInput value={field.value} onChange={field.onChange} />}
             />
             {errors.gas?.o2 && <p className='text-red-500 text-xs mt-1'>{errors.gas.o2.message}</p>}
-            <p className='text-[10px] sm:text-xs text-gray-500 mt-1'>
+            <p className='text-[10px] sm:text-xs text-gray-500 dark:text-slate-400 mt-1'>
               Gas mix affects compressibility (Z-factor) for Real SAC calculation.
             </p>
           </div>
@@ -170,7 +172,7 @@ const SacRateCalculator = () => {
           <div>
             <label
               htmlFor='sacStartPressure'
-              className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
+              className='block text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1 sm:mb-2'
             >
               Start Pressure (bar)
             </label>
@@ -180,7 +182,7 @@ const SacRateCalculator = () => {
               min='0'
               max='300'
               {...register('startPressure', { valueAsNumber: true })}
-              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 text-xs sm:text-sm'
+              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 text-xs sm:text-sm'
             />
             {errors.startPressure && (
               <p className='text-red-500 text-xs mt-1'>{errors.startPressure.message}</p>
@@ -189,7 +191,7 @@ const SacRateCalculator = () => {
           <div>
             <label
               htmlFor='sacEndPressure'
-              className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
+              className='block text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1 sm:mb-2'
             >
               End Pressure (bar)
             </label>
@@ -199,7 +201,7 @@ const SacRateCalculator = () => {
               min='0'
               max='300'
               {...register('endPressure', { valueAsNumber: true })}
-              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 text-xs sm:text-sm'
+              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 text-xs sm:text-sm'
             />
             {errors.endPressure && (
               <p className='text-red-500 text-xs mt-1'>{errors.endPressure.message}</p>
@@ -210,15 +212,15 @@ const SacRateCalculator = () => {
         <div className='flex justify-end'>
           <button
             onClick={() => setShowDetails(!showDetails)}
-            className='text-xs font-semibold text-purple-600 hover:text-purple-700 transition-colors'
+            className='text-xs font-semibold text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors'
           >
             {showDetails ? 'Hide Calculations' : 'Show Calculations'}
           </button>
         </div>
 
         {showDetails && (
-          <div className='p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-2 text-xs font-mono text-gray-600 animate-in fade-in slide-in-from-top-1 duration-200'>
-            <div className='flex justify-between font-bold text-gray-700 border-b border-gray-200 pb-1 mb-1'>
+          <div className='p-4 bg-gray-50 dark:bg-slate-900/60 rounded-xl border border-gray-100 dark:border-slate-700 space-y-2 text-xs font-mono text-gray-600 dark:text-slate-300 animate-in fade-in slide-in-from-top-1 duration-200'>
+            <div className='flex justify-between font-bold text-gray-700 dark:text-slate-200 border-b border-gray-200 dark:border-slate-700 pb-1 mb-1'>
               <span>Ideal SAC (PV=nRT)</span>
             </div>
             <div className='flex justify-between'>
@@ -248,55 +250,59 @@ const SacRateCalculator = () => {
                 {((parseFloat(values.depth) || 0) / 10 + SURFACE_PRESSURE_BAR).toFixed(2)} ATA
               </span>
             </div>
-            <div className='text-[10px] text-gray-400 italic text-right mb-1'>
+            <div className='text-[10px] text-gray-400 dark:text-slate-500 italic text-right mb-1'>
               * {SURFACE_PRESSURE_BAR} bar is Standard Surface Pressure (1 atm).
             </div>
 
-            <div className='flex justify-between font-bold text-gray-700 border-b border-gray-200 pb-1 mb-1 mt-3'>
+            <div className='flex justify-between font-bold text-gray-700 dark:text-slate-200 border-b border-gray-200 dark:border-slate-700 pb-1 mb-1 mt-3'>
               <span>Real SAC (Virial Equation)</span>
             </div>
-            <div className='flex justify-between text-gray-500'>
+            <div className='flex justify-between text-gray-500 dark:text-slate-400'>
               <span>Takes gas compressibility (Z-factor) into account.</span>
             </div>
           </div>
         )}
 
-        <div className='mt-1 sm:mt-2 p-3 sm:p-6 bg-purple-50 rounded-2xl border border-purple-100 flex flex-col items-center justify-center text-center'>
-          <span className='text-xs sm:text-sm uppercase tracking-wider font-bold text-purple-800 mb-1 sm:mb-2'>
+        <div className='mt-1 sm:mt-2 p-3 sm:p-6 bg-purple-50 dark:bg-purple-950/40 rounded-2xl border border-purple-100 dark:border-purple-900 flex flex-col items-center justify-center text-center'>
+          <span className='text-xs sm:text-sm uppercase tracking-wider font-bold text-purple-800 dark:text-purple-200 mb-1 sm:mb-2'>
             SAC Rate
           </span>
           <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8 w-full max-w-sm'>
             <div className='flex flex-col items-center p-1 sm:p-0'>
-              <span className='text-[10px] sm:text-xs font-bold text-gray-500 mb-0.5 sm:mb-1'>
+              <span className='text-[10px] sm:text-xs font-bold text-gray-500 dark:text-slate-400 mb-0.5 sm:mb-1'>
                 IDEAL
               </span>
               <div className='flex items-baseline'>
-                <span className='text-2xl sm:text-4xl font-black text-gray-400'>
+                <span className='text-2xl sm:text-4xl font-black text-gray-400 dark:text-slate-400'>
                   {sacResults.ideal.toFixed(1)}
                 </span>
-                <span className='ml-1 text-[10px] sm:text-xs font-bold text-gray-400'>L/min</span>
+                <span className='ml-1 text-[10px] sm:text-xs font-bold text-gray-400 dark:text-slate-400'>
+                  L/min
+                </span>
               </div>
             </div>
-            <div className='flex flex-col items-center p-1 sm:p-0 border-t sm:border-t-0 sm:border-l border-purple-100 sm:pl-8'>
-              <span className='text-[10px] sm:text-xs font-bold text-purple-600 mb-0.5 sm:mb-1'>
+            <div className='flex flex-col items-center p-1 sm:p-0 border-t sm:border-t-0 sm:border-l border-purple-100 dark:border-purple-900/60 sm:pl-8'>
+              <span className='text-[10px] sm:text-xs font-bold text-purple-600 dark:text-purple-400 mb-0.5 sm:mb-1'>
                 REAL
               </span>
               <div className='flex items-baseline'>
-                <span className='text-3xl sm:text-5xl font-black text-purple-600'>
+                <span className='text-3xl sm:text-5xl font-black text-purple-600 dark:text-purple-400'>
                   {sacResults.real.toFixed(1)}
                 </span>
-                <span className='ml-1 text-base sm:text-xl font-bold text-purple-400'>L/min</span>
+                <span className='ml-1 text-base sm:text-xl font-bold text-purple-400 dark:text-purple-300'>
+                  L/min
+                </span>
               </div>
             </div>
           </div>
-          <div className='mt-2 sm:mt-4 text-[10px] sm:text-xs text-purple-700 font-medium'>
+          <div className='mt-2 sm:mt-4 text-[10px] sm:text-xs text-purple-700 dark:text-purple-300 font-medium'>
             Real SAC is more accurate for high-pressure fills.
           </div>
         </div>
       </div>
 
-      <div className='p-3 sm:p-4 bg-gray-50 border-t border-gray-100 text-xs text-gray-500 flex items-start'>
-        <Info className='h-4 w-4 mr-2 text-gray-400 flex-shrink-0' />
+      <div className='p-3 sm:p-4 bg-gray-50 dark:bg-slate-900/60 border-t border-gray-100 dark:border-slate-700 text-xs text-gray-500 dark:text-slate-400 flex items-start'>
+        <Info className='h-4 w-4 mr-2 text-gray-400 dark:text-slate-500 flex-shrink-0' />
         <div className='space-y-1'>
           <p>
             <span className='font-bold'>Ideal SAC:</span> Uses the Ideal Gas Law (PV=nRT). Assumes

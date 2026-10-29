@@ -740,31 +740,44 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
 
     return (
       <div className='space-y-6'>
-        <div className='bg-blue-50 p-4 rounded-lg flex items-start gap-3 border border-blue-100'>
-          <AlertCircle className='text-blue-500 mt-0.5' size={18} />
+        <div className='bg-blue-50 dark:bg-blue-950/40 p-4 rounded-lg flex items-start gap-3 border border-blue-100 dark:border-blue-900'>
+          <AlertCircle className='text-blue-500 dark:text-blue-400 mt-0.5' size={18} />
           <div>
-            <p className='text-sm text-blue-800 font-medium'>Map your CSV columns</p>
-            <p className='text-xs text-blue-600 mt-1'>
+            <p className='text-sm text-blue-800 dark:text-blue-200 font-medium'>
+              Map your CSV columns
+            </p>
+            <p className='text-xs text-blue-600 dark:text-blue-300 mt-1'>
               We detected {csvHeaders.length} columns and {csvTotalRows} rows. Match the columns
               below to our database fields.
             </p>
           </div>
         </div>
 
-        <div className='overflow-x-auto border border-gray-200 rounded-lg'>
+        <div className='overflow-x-auto border border-gray-200 dark:border-slate-700 rounded-lg'>
           <table className='w-full text-left text-sm'>
-            <thead className='bg-gray-50 border-bottom border-gray-200'>
+            <thead className='bg-gray-50 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700'>
               <tr>
-                <th className='px-4 py-3 font-semibold text-gray-700'>CSV Header</th>
-                <th className='px-4 py-3 font-semibold text-gray-700'>Sample Value</th>
-                <th className='px-4 py-3 font-semibold text-gray-700'>Map to Field</th>
+                <th className='px-4 py-3 font-semibold text-gray-700 dark:text-slate-300'>
+                  CSV Header
+                </th>
+                <th className='px-4 py-3 font-semibold text-gray-700 dark:text-slate-300'>
+                  Sample Value
+                </th>
+                <th className='px-4 py-3 font-semibold text-gray-700 dark:text-slate-300'>
+                  Map to Field
+                </th>
               </tr>
             </thead>
-            <tbody className='divide-y divide-gray-200'>
+            <tbody className='divide-y divide-gray-200 dark:divide-slate-700'>
               {csvHeaders.map(header => (
-                <tr key={header} className='hover:bg-gray-50 transition-colors'>
-                  <td className='px-4 py-3 font-medium text-gray-900'>{header}</td>
-                  <td className='px-4 py-3 text-gray-500 italic truncate max-w-[200px]'>
+                <tr
+                  key={header}
+                  className='hover:bg-gray-50 dark:hover:bg-slate-750 transition-colors'
+                >
+                  <td className='px-4 py-3 font-medium text-gray-900 dark:text-slate-100'>
+                    {header}
+                  </td>
+                  <td className='px-4 py-3 text-gray-500 dark:text-slate-400 italic truncate max-w-[200px]'>
                     {csvSampleData[0]?.[header] || '-'}
                   </td>
                   <td className='px-4 py-3'>
@@ -773,8 +786,8 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                       onChange={e => handleMappingChange(header, e.target.value)}
                       className={`w-full p-1.5 border rounded text-sm outline-none transition-colors ${
                         fieldMapping[header] && fieldMapping[header] !== 'ignore'
-                          ? 'border-blue-300 bg-blue-50 text-blue-800'
-                          : 'border-gray-300 bg-white text-gray-600'
+                          ? 'border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950/50 text-blue-800 dark:text-blue-200'
+                          : 'border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200'
                       }`}
                     >
                       {fields.map(f => (
@@ -815,17 +828,19 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
         {currentStep === 'upload' && (
           <div className='space-y-6'>
             <div>
-              <h3 className='text-lg font-medium text-gray-900 mb-2'>Upload Dive Log Files</h3>
-              <p className='text-gray-600 mb-4'>
+              <h3 className='text-lg font-medium text-gray-900 dark:text-slate-100 mb-2'>
+                Upload Dive Log Files
+              </h3>
+              <p className='text-gray-600 dark:text-slate-400 mb-4'>
                 Select Subsurface (.xml, .ssrf), CSV (e.g. MySSI), Garmin FIT, Suunto JSON or
                 Shearwater DB (.db, .sqlite) files to import your dives.
               </p>
             </div>
 
-            <div className='border-2 border-dashed border-gray-300 rounded-lg p-8 text-center'>
-              <Upload className='mx-auto h-12 w-12 text-gray-400 mb-4' />
+            <div className='border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg p-8 text-center bg-transparent dark:bg-slate-850/40'>
+              <Upload className='mx-auto h-12 w-12 text-gray-400 dark:text-slate-500 mb-4' />
               <div className='space-y-2'>
-                <p className='text-sm text-gray-600'>
+                <p className='text-sm text-gray-600 dark:text-slate-300'>
                   Drag and drop XML/SSRF, CSV, FIT, JSON or Shearwater DB files here, or click to
                   browse
                 </p>
@@ -844,13 +859,16 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
 
             {selectedFiles.length > 0 && (
               <div className='space-y-2'>
-                <h4 className='font-medium text-gray-900'>Selected Files:</h4>
+                <h4 className='font-medium text-gray-900 dark:text-slate-100'>Selected Files:</h4>
                 <div className='space-y-2'>
                   {selectedFiles.map((file, index) => (
-                    <div key={index} className='flex items-center gap-3 p-3 bg-gray-50 rounded-md'>
-                      <FileText className='h-5 w-5 text-gray-500' />
-                      <span className='text-sm text-gray-700'>{file.name}</span>
-                      <span className='text-xs text-gray-500'>
+                    <div
+                      key={index}
+                      className='flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-md'
+                    >
+                      <FileText className='h-5 w-5 text-gray-500 dark:text-slate-400' />
+                      <span className='text-sm text-gray-700 dark:text-slate-200'>{file.name}</span>
+                      <span className='text-xs text-gray-500 dark:text-slate-400'>
                         ({(file.size / 1024).toFixed(1)} KB)
                       </span>
                     </div>
@@ -881,14 +899,16 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
         {currentStep === 'review' && (
           <div className='space-y-4 sm:space-y-6'>
             <div>
-              <h3 className='text-lg font-medium text-gray-900 mb-2'>Review Dives to Import</h3>
-              <p className='text-gray-600 mb-4'>
+              <h3 className='text-lg font-medium text-gray-900 dark:text-slate-100 mb-2'>
+                Review Dives to Import
+              </h3>
+              <p className='text-gray-600 dark:text-slate-400 mb-4'>
                 Review the parsed dives and adjust privacy settings before importing.
               </p>
             </div>
 
-            <div className='flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg'>
-              <span className='text-sm text-gray-600 font-semibold text-center sm:text-left'>
+            <div className='flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 bg-gray-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 rounded-lg'>
+              <span className='text-sm text-gray-600 dark:text-slate-300 font-semibold text-center sm:text-left'>
                 {parsedDives.filter(d => !d.skip).length} of {parsedDives.length} dives selected for
                 import
               </span>
@@ -915,40 +935,42 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                 <div
                   key={index}
                   className={`border rounded-lg p-3 sm:p-4 ${
-                    dive.skip ? 'border-red-200 bg-red-50' : 'border-gray-200'
+                    dive.skip
+                      ? 'border-red-200 dark:border-red-900/60 bg-red-50 dark:bg-red-950/30'
+                      : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800/60'
                   }`}
                 >
-                  <div className='flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-3 pb-3 border-b border-gray-100 sm:border-b-0 sm:pb-0'>
+                  <div className='flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-3 pb-3 border-b border-gray-100 dark:border-slate-700/80 sm:border-b-0 sm:pb-0'>
                     <div className='flex-1 min-w-0'>
                       <div className='flex flex-wrap items-center gap-1.5 mb-1.5'>
-                        <h4 className='font-semibold text-gray-900 text-sm sm:text-base truncate'>
+                        <h4 className='font-semibold text-gray-900 dark:text-slate-100 text-sm sm:text-base truncate'>
                           {dive.name || `Dive ${index + 1}`}
                         </h4>
                         {dive.existing_dive_id && (
-                          <span className='px-1.5 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider bg-orange-100 text-orange-700 rounded-full border border-orange-200 shrink-0'>
+                          <span className='px-1.5 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 rounded-full border border-orange-200 dark:border-orange-800 shrink-0'>
                             Existing
                           </span>
                         )}
                         {(dive.latitude || dive.unmatched_dive_site?.latitude) && (
-                          <span className='px-1.5 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700 rounded-full border border-blue-200 shrink-0'>
+                          <span className='px-1.5 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 rounded-full border border-blue-200 dark:border-blue-800 shrink-0'>
                             GPS Included
                           </span>
                         )}
                       </div>
-                      <div className='flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs sm:text-sm text-gray-600'>
+                      <div className='flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs sm:text-sm text-gray-600 dark:text-slate-400'>
                         <div className='flex items-center gap-1 shrink-0'>
-                          <Calendar size={13} className='text-gray-400' />
+                          <Calendar size={13} className='text-gray-400 dark:text-slate-500' />
                           {formatDate(dive.dive_date)}
                         </div>
                         {dive.dive_time && (
                           <div className='flex items-center gap-1 shrink-0'>
-                            <Clock size={13} className='text-gray-400' />
+                            <Clock size={13} className='text-gray-400 dark:text-slate-500' />
                             {formatTime(dive.dive_time)}
                           </div>
                         )}
                         {dive.duration && (
                           <div className='flex items-center gap-1 shrink-0'>
-                            <Clock size={13} className='text-gray-400' />
+                            <Clock size={13} className='text-gray-400 dark:text-slate-500' />
                             {formatDuration(dive.duration)}
                           </div>
                         )}
@@ -957,13 +979,13 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
 
                     <div className='flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 shrink-0 w-full sm:w-auto mt-2 sm:mt-0'>
                       {/* Action Segmented Control */}
-                      <div className='flex bg-gray-100 p-0.5 rounded-lg border border-gray-200 flex-1 sm:flex-initial justify-center'>
+                      <div className='flex bg-gray-100 dark:bg-slate-700 p-0.5 rounded-lg border border-gray-200 dark:border-slate-600 flex-1 sm:flex-initial justify-center'>
                         <button
                           onClick={() => dive.skip && handleSkipDive(index)}
                           className={`flex-1 sm:flex-none px-3 py-1 text-xs font-semibold rounded-md transition-all ${
                             !dive.skip
-                              ? 'bg-white text-blue-600 shadow-sm'
-                              : 'text-gray-500 hover:text-gray-700'
+                              ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm'
+                              : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'
                           }`}
                         >
                           {dive.existing_dive_id ? 'Update' : 'Import'}
@@ -972,8 +994,8 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                           onClick={() => !dive.skip && handleSkipDive(index)}
                           className={`flex-1 sm:flex-none px-3 py-1 text-xs font-semibold rounded-md transition-all ${
                             dive.skip
-                              ? 'bg-white text-amber-600 shadow-sm'
-                              : 'text-gray-500 hover:text-gray-700'
+                              ? 'bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 shadow-sm'
+                              : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'
                           }`}
                         >
                           Skip
@@ -981,13 +1003,13 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                       </div>
 
                       {/* Privacy Segmented Control */}
-                      <div className='flex bg-gray-100 p-0.5 rounded-lg border border-gray-200 flex-1 sm:flex-initial justify-center'>
+                      <div className='flex bg-gray-100 dark:bg-slate-700 p-0.5 rounded-lg border border-gray-200 dark:border-slate-600 flex-1 sm:flex-initial justify-center'>
                         <button
                           onClick={() => dive.is_private && handlePrivacyChange(index, false)}
                           className={`flex-1 sm:flex-none flex items-center justify-center gap-1 px-3 py-1 text-xs font-semibold rounded-md transition-all ${
                             !dive.is_private
-                              ? 'bg-white text-green-600 shadow-sm'
-                              : 'text-gray-500 hover:text-gray-700'
+                              ? 'bg-white dark:bg-slate-800 text-green-600 dark:text-emerald-400 shadow-sm'
+                              : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'
                           }`}
                         >
                           <Eye size={12} className='shrink-0' /> Public
@@ -996,8 +1018,8 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                           onClick={() => !dive.is_private && handlePrivacyChange(index, true)}
                           className={`flex-1 sm:flex-none flex items-center justify-center gap-1 px-3 py-1 text-xs font-semibold rounded-md transition-all ${
                             dive.is_private
-                              ? 'bg-white text-purple-600 shadow-sm'
-                              : 'text-gray-500 hover:text-gray-700'
+                              ? 'bg-white dark:bg-slate-800 text-purple-600 dark:text-purple-400 shadow-sm'
+                              : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'
                           }`}
                         >
                           <EyeOff size={12} className='shrink-0' /> Private
@@ -1009,39 +1031,59 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                   <div className='grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4 text-sm'>
                     {dive.max_depth && (
                       <div>
-                        <span className='font-medium text-gray-700'>Max Depth:</span>
-                        <span className='ml-2 text-gray-600'>{dive.max_depth} m</span>
+                        <span className='font-medium text-gray-700 dark:text-slate-300'>
+                          Max Depth:
+                        </span>
+                        <span className='ml-2 text-gray-600 dark:text-slate-400'>
+                          {dive.max_depth} m
+                        </span>
                       </div>
                     )}
                     {dive.average_depth && (
                       <div>
-                        <span className='font-medium text-gray-700'>Avg Depth:</span>
-                        <span className='ml-2 text-gray-600'>{dive.average_depth} m</span>
+                        <span className='font-medium text-gray-700 dark:text-slate-300'>
+                          Avg Depth:
+                        </span>
+                        <span className='ml-2 text-gray-600 dark:text-slate-400'>
+                          {dive.average_depth} m
+                        </span>
                       </div>
                     )}
                     {dive.visibility_rating && (
                       <div>
-                        <span className='font-medium text-gray-700'>Visibility:</span>
-                        <span className='ml-2 text-gray-600'>{dive.visibility_rating}/5</span>
+                        <span className='font-medium text-gray-700 dark:text-slate-300'>
+                          Visibility:
+                        </span>
+                        <span className='ml-2 text-gray-600 dark:text-slate-400'>
+                          {dive.visibility_rating}/5
+                        </span>
                       </div>
                     )}
                     {dive.user_rating && (
                       <div>
-                        <span className='font-medium text-gray-700'>Rating:</span>
-                        <span className='ml-2 text-gray-600'>{dive.user_rating}/5</span>
+                        <span className='font-medium text-gray-700 dark:text-slate-300'>
+                          Rating:
+                        </span>
+                        <span className='ml-2 text-gray-600 dark:text-slate-400'>
+                          {dive.user_rating}/5
+                        </span>
                       </div>
                     )}
                     {dive.suit_type && (
                       <div>
-                        <span className='font-medium text-gray-700'>Suit Type:</span>
-                        <span className='ml-2 text-gray-600 capitalize'>
+                        <span className='font-medium text-gray-700 dark:text-slate-300'>
+                          Suit Type:
+                        </span>
+                        <span className='ml-2 text-gray-600 dark:text-slate-400 capitalize'>
                           {dive.suit_type.replace('_', ' ')}
                         </span>
                       </div>
                     )}
                     {dive.gas_bottles_used && (
                       <div className='md:col-span-2'>
-                        <span className='font-medium text-gray-700'>Gas Bottles:</span>
+                        <span className='font-medium text-gray-700 dark:text-slate-300'>
+                          Gas Bottles:
+                        </span>
                         <div className='mt-1'>
                           <GasTanksDisplay
                             gasData={dive.gas_bottles_used}
@@ -1055,17 +1097,20 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                     )}
                     {dive.dive_information && (
                       <div className='md:col-span-2'>
-                        <span className='font-medium text-gray-700'>Dive Info:</span>
-                        <div className='mt-1 text-gray-600 whitespace-pre-line'>
+                        <span className='font-medium text-gray-700 dark:text-slate-300'>
+                          Dive Info:
+                        </span>
+                        <div className='mt-1 text-gray-600 dark:text-slate-400 whitespace-pre-line'>
                           {dive.dive_information}
                         </div>
                       </div>
                     )}
 
-                    <div className='md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-3 mt-1'>
+                    <div className='md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-gray-100 dark:border-slate-700 pt-3 mt-1'>
                       <div>
-                        <span className='font-medium text-gray-700 flex items-center gap-1 mb-1'>
-                          <MapPin size={14} className='text-blue-500' /> Dive Site:
+                        <span className='font-medium text-gray-700 dark:text-slate-300 flex items-center gap-1 mb-1'>
+                          <MapPin size={14} className='text-blue-500 dark:text-sky-400' /> Dive
+                          Site:
                         </span>
                         <div className='mt-1'>
                           {dive.unmatched_dive_site ? (
@@ -1121,7 +1166,7 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                                 {dive.proposed_dive_sites.map((proposedSite, siteIndex) => (
                                   <div
                                     key={siteIndex}
-                                    className='flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-md'
+                                    className='flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800/60 rounded-md'
                                   >
                                     <input
                                       type='radio'
@@ -1134,21 +1179,25 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                                     />
                                     <label
                                       htmlFor={`proposed-${index}-${siteIndex}`}
-                                      className='flex-1 text-sm text-blue-800'
+                                      className='flex-1 text-sm text-blue-800 dark:text-blue-200'
                                     >
                                       <div className='flex flex-col'>
                                         <div>
-                                          <span className='text-gray-600 text-xs'>Original: </span>
-                                          <span className='text-gray-800'>
+                                          <span className='text-gray-600 dark:text-slate-400 text-xs'>
+                                            Original:{' '}
+                                          </span>
+                                          <span className='text-gray-800 dark:text-slate-200 font-medium'>
                                             {proposedSite.original_name}
                                           </span>
                                         </div>
                                         <div>
-                                          <span className='text-blue-600 text-xs'>Proposed: </span>
-                                          <strong className='text-blue-800'>
+                                          <span className='text-blue-600 dark:text-blue-400 text-xs'>
+                                            Proposed:{' '}
+                                          </span>
+                                          <strong className='text-blue-800 dark:text-blue-300'>
                                             {proposedSite.name}
                                           </strong>
-                                          <span className='text-blue-600 ml-2'>
+                                          <span className='text-blue-600 dark:text-blue-400 ml-2'>
                                             {proposedSite.distance !== undefined
                                               ? `(${Math.round(proposedSite.distance)}m away)`
                                               : `(${(proposedSite.similarity * 100).toFixed(0)}% match)`}
@@ -1193,21 +1242,24 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                             </div>
                           ) : dive.dive_site_id ? (
                             <div className='flex items-center gap-2'>
-                              <MapPin size={14} className='text-green-600' />
-                              <span className='text-sm text-gray-600'>
+                              <MapPin size={14} className='text-green-600 dark:text-emerald-400' />
+                              <span className='text-sm text-gray-600 dark:text-slate-300'>
                                 {availableDiveSites.find(site => site.id === dive.dive_site_id)
                                   ?.name || 'Unknown site'}
                               </span>
                             </div>
                           ) : (
-                            <span className='text-sm text-gray-500'>No dive site specified</span>
+                            <span className='text-sm text-gray-500 dark:text-slate-400'>
+                              No dive site specified
+                            </span>
                           )}
                         </div>
                       </div>
 
                       <div>
-                        <span className='font-medium text-gray-700 flex items-center gap-1 mb-1'>
-                          <Anchor size={14} className='text-blue-500' /> Diving Center:
+                        <span className='font-medium text-gray-700 dark:text-slate-300 flex items-center gap-1 mb-1'>
+                          <Anchor size={14} className='text-blue-500 dark:text-sky-400' /> Diving
+                          Center:
                         </span>
                         <div className='mt-1'>
                           <DivingCenterSearchableDropdown
@@ -1226,7 +1278,7 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
               ))}
             </div>
 
-            <div className='flex items-center justify-between sm:justify-end gap-3 pt-4 border-t border-gray-200 w-full'>
+            <div className='flex items-center justify-between sm:justify-end gap-3 pt-4 border-t border-gray-200 dark:border-slate-700 w-full'>
               <Button
                 variant='secondary'
                 onClick={() => setCurrentStep('upload')}
@@ -1254,8 +1306,12 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
         {currentStep === 'importing' && (
           <div className='text-center py-8'>
             <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4'></div>
-            <h3 className='text-lg font-medium text-gray-900 mb-2'>Importing Dives</h3>
-            <p className='text-gray-600'>Please wait while we import your dives...</p>
+            <h3 className='text-lg font-medium text-gray-900 dark:text-slate-100 mb-2'>
+              Importing Dives
+            </h3>
+            <p className='text-gray-600 dark:text-slate-400'>
+              Please wait while we import your dives...
+            </p>
           </div>
         )}
       </div>

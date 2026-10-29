@@ -427,15 +427,15 @@ const EditDivingCenter = () => {
 
   if (isLoading) {
     return (
-      <div className='min-h-screen bg-gray-50 py-8'>
+      <div className='min-h-screen bg-gray-50 dark:bg-slate-900 py-8'>
         <div className='max-w-4xl mx-auto'>
-          <div className='bg-white rounded-lg shadow-md p-6'>
+          <div className='bg-white dark:bg-slate-800 rounded-lg shadow-md border border-gray-100 dark:border-slate-700 p-6'>
             <div className='animate-pulse'>
-              <div className='h-8 bg-gray-200 rounded w-1/4 mb-4'></div>
+              <div className='h-8 bg-gray-200 dark:bg-slate-700 rounded w-1/4 mb-4'></div>
               <div className='space-y-3'>
-                <div className='h-4 bg-gray-200 rounded'></div>
-                <div className='h-4 bg-gray-200 rounded w-5/6'></div>
-                <div className='h-4 bg-gray-200 rounded w-4/6'></div>
+                <div className='h-4 bg-gray-200 dark:bg-slate-700 rounded'></div>
+                <div className='h-4 bg-gray-200 dark:bg-slate-700 rounded w-5/6'></div>
+                <div className='h-4 bg-gray-200 dark:bg-slate-700 rounded w-4/6'></div>
               </div>
             </div>
           </div>
@@ -446,11 +446,15 @@ const EditDivingCenter = () => {
 
   if (!canEdit) {
     return (
-      <div className='min-h-screen bg-gray-50 py-8'>
+      <div className='min-h-screen bg-gray-50 dark:bg-slate-900 py-8'>
         <div className='max-w-4xl mx-auto'>
-          <div className='bg-white rounded-lg shadow-md p-6'>
-            <h1 className='text-2xl font-bold text-gray-900 mb-4'>Access Denied</h1>
-            <p className='text-gray-600'>You don&apos;t have permission to edit diving centers.</p>
+          <div className='bg-white dark:bg-slate-800 rounded-lg shadow-md border border-gray-100 dark:border-slate-700 p-6'>
+            <h1 className='text-2xl font-bold text-gray-900 dark:text-slate-100 mb-4'>
+              Access Denied
+            </h1>
+            <p className='text-gray-600 dark:text-slate-400'>
+              You don&apos;t have permission to edit diving centers.
+            </p>
           </div>
         </div>
       </div>
@@ -459,11 +463,13 @@ const EditDivingCenter = () => {
 
   if (error) {
     return (
-      <div className='min-h-screen bg-gray-50 py-8'>
+      <div className='min-h-screen bg-gray-50 dark:bg-slate-900 py-8'>
         <div className='max-w-4xl mx-auto'>
-          <div className='bg-white rounded-lg shadow-md p-6'>
-            <h1 className='text-2xl font-bold text-red-600 mb-4'>Error</h1>
-            <p className='text-gray-600'>Failed to load diving center: {getErrorMessage(error)}</p>
+          <div className='bg-white dark:bg-slate-800 rounded-lg shadow-md border border-gray-100 dark:border-slate-700 p-6'>
+            <h1 className='text-2xl font-bold text-red-600 dark:text-red-400 mb-4'>Error</h1>
+            <p className='text-gray-600 dark:text-slate-400'>
+              Failed to load diving center: {getErrorMessage(error)}
+            </p>
           </div>
         </div>
       </div>
@@ -476,16 +482,20 @@ const EditDivingCenter = () => {
         title='Edit Diving Center | Divemap'
         description='Update the details, pricing, and media for your diving center or scuba school.'
       />
-      <div className='min-h-screen bg-gray-50 py-8'>
+      <div className='min-h-screen bg-gray-50 dark:bg-slate-900 py-8'>
         <div className='max-w-4xl mx-auto'>
-          <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
+          <div className='bg-white dark:bg-slate-800 rounded-lg shadow-md border border-gray-100 dark:border-slate-700 p-6 mb-6'>
             {/* Header */}
             <div className='flex items-center justify-between mb-6'>
-              <h1 className='text-3xl font-bold text-gray-900'>Edit Diving Center</h1>
+              <h1 className='text-3xl font-bold text-gray-900 dark:text-slate-100'>
+                Edit Diving Center
+              </h1>
             </div>
 
-            <div className='mb-6 pb-6 border-b border-gray-200'>
-              <h3 className='text-lg font-semibold text-gray-900 mb-4'>Center Logo</h3>
+            <div className='mb-6 pb-6 border-b border-gray-200 dark:border-slate-700'>
+              <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4'>
+                Center Logo
+              </h3>
               <div className='flex items-center gap-6'>
                 <Avatar
                   src={divingCenter.logo_full_url || divingCenter.logo_url}
@@ -493,10 +503,10 @@ const EditDivingCenter = () => {
                   size='2xl'
                   shape='rounded'
                   fallbackText={divingCenter.name}
-                  className='border-2 border-gray-100 shadow-sm'
+                  className='border-2 border-gray-100 dark:border-slate-700 shadow-sm'
                 />
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  <label className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2'>
                     Update Logo
                   </label>
                   <div className='flex items-center gap-3'>
@@ -510,11 +520,11 @@ const EditDivingCenter = () => {
                     />
                     <label
                       htmlFor='logo-upload'
-                      className={`cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${logoUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      className={`cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 dark:border-slate-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-650 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${logoUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       {logoUploading ? 'Uploading...' : 'Choose new image'}
                     </label>
-                    <p className='text-xs text-gray-500'>
+                    <p className='text-xs text-gray-500 dark:text-slate-400'>
                       JPEG, PNG, WEBP up to 5MB.
                       <br />
                       Recommended: 512x512px (1:1 aspect ratio)
@@ -532,23 +542,30 @@ const EditDivingCenter = () => {
             />
 
             {/* Media Management */}
-            <div className='border-t pt-6'>
+            <div className='border-t border-gray-100 dark:border-slate-700 pt-6'>
               <div className='flex items-center justify-between mb-4'>
-                <h3 className='text-lg font-semibold text-gray-900'>Media Gallery</h3>
+                <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100'>
+                  Media Gallery
+                </h3>
               </div>
 
               {/* Manage Existing Media */}
               {divingCenter?.media && divingCenter.media.length > 0 && (
                 <div className='mb-6'>
-                  <h4 className='text-md font-medium text-gray-800 mb-3'>Manage Existing Media</h4>
+                  <h4 className='text-md font-medium text-gray-800 dark:text-slate-200 mb-3'>
+                    Manage Existing Media
+                  </h4>
                   <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
                     {divingCenter.media.map(item => (
-                      <div key={item.id} className='border rounded-lg p-4 bg-white relative'>
-                        <div className='flex items-center justify-between mb-2 absolute top-6 right-6 z-10 bg-white/80 p-1 rounded'>
+                      <div
+                        key={item.id}
+                        className='border border-gray-200 dark:border-slate-700 rounded-lg p-4 bg-white dark:bg-slate-750 relative'
+                      >
+                        <div className='flex items-center justify-between mb-2 absolute top-6 right-6 z-10 bg-white/80 dark:bg-slate-800/80 p-1 rounded'>
                           <button
                             type='button'
                             onClick={() => handleMediaRemove({ uid: item.id.toString() })}
-                            className='text-red-600 hover:text-red-800 bg-white p-1 rounded-full shadow-sm'
+                            className='text-red-600 hover:text-red-800 bg-white dark:bg-slate-800 p-1 rounded-full shadow-sm'
                             title='Delete media'
                           >
                             <Trash2 className='w-5 h-5' />
@@ -569,7 +586,9 @@ const EditDivingCenter = () => {
 
               {/* Photo Upload */}
               <div className='mb-3'>
-                <h4 className='text-md font-medium text-gray-800 mb-3'>Upload New Media</h4>
+                <h4 className='text-md font-medium text-gray-800 dark:text-slate-200 mb-3'>
+                  Upload New Media
+                </h4>
                 <UploadPhotosComponent
                   mediaUrls={centerMediaUrls}
                   setMediaUrls={setCenterMediaUrls}
@@ -583,18 +602,20 @@ const EditDivingCenter = () => {
             </div>
 
             {/* Diving Organizations */}
-            <div className='border-t pt-6'>
+            <div className='border-t border-gray-100 dark:border-slate-700 pt-6'>
               <div className='flex items-center justify-between mb-4'>
-                <h3 className='text-lg font-semibold text-gray-900'>Diving Organizations</h3>
+                <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100'>
+                  Diving Organizations
+                </h3>
               </div>
 
               {/* Add Organization Form */}
-              <div className='bg-gray-50 p-4 rounded-lg mb-4'>
+              <div className='bg-gray-50 dark:bg-slate-900/60 p-4 rounded-lg mb-4 border border-gray-100 dark:border-slate-700'>
                 <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
                   <div>
                     <label
                       htmlFor='diving-organization-select'
-                      className='block text-sm font-medium text-gray-700 mb-2'
+                      className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2'
                     >
                       Organization
                     </label>
@@ -603,7 +624,7 @@ const EditDivingCenter = () => {
                       name='diving_organization_id'
                       value={newOrganization.diving_organization_id}
                       onChange={handleOrganizationChange}
-                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                      className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                     >
                       <option value=''>Select Organization</option>
                       {organizations.map(org => (
@@ -622,9 +643,11 @@ const EditDivingCenter = () => {
                         name='is_primary'
                         checked={newOrganization.is_primary}
                         onChange={handleOrganizationChange}
-                        className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+                        className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-slate-600 rounded'
                       />
-                      <span className='ml-2 text-sm text-gray-700'>Primary Organization</span>
+                      <span className='ml-2 text-sm text-gray-700 dark:text-slate-300'>
+                        Primary Organization
+                      </span>
                     </label>
                   </div>
 
@@ -633,7 +656,7 @@ const EditDivingCenter = () => {
                       type='button'
                       onClick={handleAddOrganization}
                       disabled={addOrganizationMutation.isLoading}
-                      className='flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors disabled:opacity-50'
+                      className='flex items-center px-4 py-2 text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-650 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-50'
                     >
                       <Plus className='h-4 w-4 mr-2' />
                       {addOrganizationMutation.isLoading ? 'Adding...' : 'Add Organization'}
@@ -647,24 +670,28 @@ const EditDivingCenter = () => {
                 {orgLoading && (
                   <div className='text-center py-4'>
                     <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto'></div>
-                    <p className='text-gray-600 mt-2'>Loading organizations...</p>
+                    <p className='text-gray-600 dark:text-slate-400 mt-2'>
+                      Loading organizations...
+                    </p>
                   </div>
                 )}
                 {!orgLoading && centerOrganizations.length === 0 && (
-                  <p className='text-gray-500 text-center py-4'>No organizations associated yet.</p>
+                  <p className='text-gray-500 dark:text-slate-400 text-center py-4'>
+                    No organizations associated yet.
+                  </p>
                 )}
                 {!orgLoading &&
                   centerOrganizations.map(org => (
                     <div
                       key={org.id}
-                      className='flex items-center justify-between p-4 border rounded-lg'
+                      className='flex items-center justify-between p-4 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-750 rounded-lg'
                     >
                       <div className='flex items-center space-x-3'>
-                        <span className='font-medium'>
+                        <span className='font-medium text-gray-900 dark:text-slate-100'>
                           {org.diving_organization.acronym} - {org.diving_organization.name}
                         </span>
                         {org.is_primary && (
-                          <span className='px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full'>
+                          <span className='px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 rounded-full'>
                             Primary
                           </span>
                         )}
@@ -676,8 +703,8 @@ const EditDivingCenter = () => {
                           disabled={updateOrganizationMutation.isLoading}
                           className={`px-2 py-1 text-xs rounded ${
                             org.is_primary
-                              ? 'bg-blue-100 text-blue-700'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300'
+                              : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
                           } disabled:opacity-50`}
                         >
                           {org.is_primary ? 'Primary' : 'Set Primary'}
@@ -686,7 +713,7 @@ const EditDivingCenter = () => {
                           type='button'
                           onClick={() => handleRemoveOrganization(org.id)}
                           disabled={deleteOrganizationMutation.isLoading}
-                          className='p-1 text-red-500 hover:text-red-700 disabled:opacity-50'
+                          className='p-1 text-red-500 hover:text-red-700 dark:hover:text-red-400 disabled:opacity-50'
                         >
                           <Trash2 className='h-4 w-4' />
                         </button>
@@ -697,13 +724,15 @@ const EditDivingCenter = () => {
             </div>
 
             {/* Gear Rental Management */}
-            <div className='border-t pt-6'>
+            <div className='border-t border-gray-100 dark:border-slate-700 pt-6'>
               <div className='flex items-center justify-between mb-4'>
-                <h3 className='text-lg font-semibold text-gray-900'>Gear Rental Costs</h3>
+                <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100'>
+                  Gear Rental Costs
+                </h3>
                 <button
                   type='button'
                   onClick={() => setIsAddingGear(!isAddingGear)}
-                  className='flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors'
+                  className='flex items-center px-4 py-2 text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-650 hover:text-gray-900 dark:hover:text-white transition-colors'
                 >
                   <Plus className='w-4 h-4 mr-2' />
                   Add Gear Rental
@@ -712,13 +741,13 @@ const EditDivingCenter = () => {
 
               {/* Add Gear Rental Form */}
               {isAddingGear && (
-                <div className='bg-gray-50 p-4 rounded-md mb-4'>
+                <div className='bg-gray-50 dark:bg-slate-900/60 p-4 rounded-md mb-4 border border-gray-100 dark:border-slate-700'>
                   <div className='space-y-4'>
                     <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
                       <div>
                         <label
                           htmlFor='gear-item-name'
-                          className='block text-sm font-medium text-gray-700 mb-1'
+                          className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
                         >
                           Item Name *
                         </label>
@@ -730,14 +759,14 @@ const EditDivingCenter = () => {
                             setNewGearItem(prev => ({ ...prev, item_name: e.target.value }))
                           }
                           required
-                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                          className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                           placeholder='e.g., Full Set, BCD, Regulator'
                         />
                       </div>
                       <div>
                         <label
                           htmlFor='gear-cost'
-                          className='block text-sm font-medium text-gray-700 mb-1'
+                          className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
                         >
                           Cost *
                         </label>
@@ -750,14 +779,14 @@ const EditDivingCenter = () => {
                             setNewGearItem(prev => ({ ...prev, cost: e.target.value }))
                           }
                           required
-                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                          className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                           placeholder='0.00'
                         />
                       </div>
                       <div>
                         <label
                           htmlFor='gear-currency'
-                          className='block text-sm font-medium text-gray-700 mb-1'
+                          className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
                         >
                           Currency
                         </label>
@@ -767,7 +796,7 @@ const EditDivingCenter = () => {
                           onChange={e =>
                             setNewGearItem(prev => ({ ...prev, currency: e.target.value }))
                           }
-                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                          className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                         >
                           {getCurrencyOptions().map(option => (
                             <option key={option.value} value={option.value}>
@@ -782,7 +811,7 @@ const EditDivingCenter = () => {
                         type='button'
                         onClick={handleAddGear}
                         disabled={addGearMutation.isLoading}
-                        className='px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors disabled:opacity-50'
+                        className='px-4 py-2 text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-650 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-50'
                       >
                         {addGearMutation.isLoading ? 'Adding...' : 'Add Gear Rental'}
                       </button>
@@ -808,28 +837,32 @@ const EditDivingCenter = () => {
                 {gearLoading && (
                   <div className='text-center py-4'>
                     <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto'></div>
-                    <p className='text-gray-600 mt-2'>Loading gear rental...</p>
+                    <p className='text-gray-600 dark:text-slate-400 mt-2'>Loading gear rental...</p>
                   </div>
                 )}
                 {!gearLoading && Array.isArray(gearRentalData) && gearRentalData.length === 0 && (
-                  <p className='text-gray-500 text-center py-4'>No gear rental items added yet.</p>
+                  <p className='text-gray-500 dark:text-slate-400 text-center py-4'>
+                    No gear rental items added yet.
+                  </p>
                 )}
                 {!gearLoading &&
                   Array.isArray(gearRentalData) &&
                   gearRentalData.map(item => (
                     <div
                       key={item.id}
-                      className='flex items-center justify-between p-4 border rounded-lg'
+                      className='flex items-center justify-between p-4 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-750 rounded-lg'
                     >
                       <div>
-                        <h4 className='font-medium text-gray-900'>{item.item_name}</h4>
-                        <p className='text-sm text-gray-600'>
+                        <h4 className='font-medium text-gray-900 dark:text-slate-100'>
+                          {item.item_name}
+                        </h4>
+                        <p className='text-sm text-gray-600 dark:text-slate-400'>
                           {formatCost(item.cost, item.currency || DEFAULT_CURRENCY)}
                         </p>
                       </div>
                       <button
                         onClick={() => handleDeleteGear(item.id)}
-                        className='text-red-600 hover:text-red-800'
+                        className='text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300'
                         title='Delete gear rental'
                       >
                         <Trash2 className='w-4 h-4' />
@@ -844,14 +877,14 @@ const EditDivingCenter = () => {
           {(divingCenter?.owner_username === user?.username ||
             user?.is_admin ||
             user?.is_moderator) && (
-            <div className='bg-white rounded-lg shadow-md p-6 mb-6 border border-gray-100'>
-              <div className='flex justify-between items-center mb-4 border-b border-gray-100 pb-4'>
-                <h2 className='text-2xl font-bold text-gray-900 flex items-center gap-2'>
-                  <Users className='h-6 w-6 text-blue-600' />
+            <div className='bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 mb-6 border border-gray-100 dark:border-slate-700'>
+              <div className='flex justify-between items-center mb-4 border-b border-gray-100 dark:border-slate-700 pb-4'>
+                <h2 className='text-2xl font-bold text-gray-900 dark:text-slate-100 flex items-center gap-2'>
+                  <Users className='h-6 w-6 text-blue-600 dark:text-sky-400' />
                   <span>Team Management</span>
                 </h2>
               </div>
-              <p className='text-sm text-gray-500 mb-6 leading-relaxed'>
+              <p className='text-sm text-gray-500 dark:text-slate-400 mb-6 leading-relaxed'>
                 As the owner, you can authorize other registered users to help manage this diving
                 center profile. Authorized managers can create and edit dive trips, reply to
                 messages, and update announcement broadcasts.
@@ -871,7 +904,7 @@ const EditDivingCenter = () => {
                   placeholder='Enter username of the user to add as manager...'
                   value={managerUsername}
                   onChange={e => setManagerUsername(e.target.value)}
-                  className='w-full px-4 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20'
+                  className='w-full px-4 py-2 text-sm border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20'
                 />
                 <button
                   type='submit'
@@ -887,28 +920,36 @@ const EditDivingCenter = () => {
               {managersLoading && (
                 <div className='text-center py-4'>
                   <div className='animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto'></div>
-                  <p className='text-gray-600 mt-2 text-sm'>Loading managers...</p>
+                  <p className='text-gray-600 dark:text-slate-400 mt-2 text-sm'>
+                    Loading managers...
+                  </p>
                 </div>
               )}
 
               {!managersLoading && managers.length === 0 ? (
-                <div className='text-center py-6 border border-dashed border-gray-200 rounded-xl bg-gray-50/50'>
-                  <p className='text-sm text-gray-400 font-medium'>
+                <div className='text-center py-6 border border-dashed border-gray-200 dark:border-slate-700 rounded-xl bg-gray-50/50 dark:bg-slate-900/40'>
+                  <p className='text-sm text-gray-400 dark:text-slate-500 font-medium'>
                     No authorized managers added yet.
                   </p>
                 </div>
               ) : (
-                <div className='divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden'>
+                <div className='divide-y divide-gray-100 dark:divide-slate-700 border border-gray-100 dark:border-slate-700 rounded-xl overflow-hidden'>
                   {managers.map(manager => (
                     <div
                       key={manager.user_id}
-                      className='flex items-center justify-between p-4 bg-white hover:bg-gray-50/50 transition-colors'
+                      className='flex items-center justify-between p-4 bg-white dark:bg-slate-800 hover:bg-gray-50/50 dark:hover:bg-slate-750 transition-colors'
                     >
                       <div className='flex items-center gap-3'>
                         <Avatar src={manager.avatar_url} alt={manager.username} size='md' />
                         <div>
-                          <p className='text-sm font-bold text-gray-900'>{manager.username}</p>
-                          {manager.name && <p className='text-xs text-gray-500'>{manager.name}</p>}
+                          <p className='text-sm font-bold text-gray-900 dark:text-slate-100'>
+                            {manager.username}
+                          </p>
+                          {manager.name && (
+                            <p className='text-xs text-gray-500 dark:text-slate-400'>
+                              {manager.name}
+                            </p>
+                          )}
                         </div>
                       </div>
                       <button
@@ -922,7 +963,7 @@ const EditDivingCenter = () => {
                             removeManagerMutation.mutate(manager.user_id);
                           }
                         }}
-                        className='p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors'
+                        className='p-2 text-gray-400 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl transition-colors'
                         title='Revoke access'
                       >
                         <Trash2 className='h-4 w-4' />

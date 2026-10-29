@@ -52,7 +52,7 @@ const GasMixInput = ({ value, onChange }) => {
         <select
           value={selectedPresetId}
           onChange={handlePresetChange}
-          className='flex-1 min-w-[120px] rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs sm:text-sm p-1.5 sm:p-2 border'
+          className='flex-1 min-w-[120px] rounded-md border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs sm:text-sm p-1.5 sm:p-2 border'
           aria-label='Select gas mix preset'
         >
           {GAS_MIXES.map(mix => (
@@ -71,11 +71,11 @@ const GasMixInput = ({ value, onChange }) => {
                 max='100'
                 value={value?.o2 || ''}
                 onChange={e => handleCustomChange('o2', e.target.value)}
-                className='w-full rounded-md border-gray-300 pr-8 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs sm:text-sm p-1.5 sm:p-2 border'
+                className='w-full rounded-md border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 pr-8 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs sm:text-sm p-1.5 sm:p-2 border'
                 placeholder='O₂'
                 aria-label='Oxygen percentage'
               />
-              <span className='absolute right-2 top-1.5 sm:top-2 text-gray-500 text-[10px] sm:text-xs'>
+              <span className='absolute right-2 top-1.5 sm:top-2 text-gray-500 dark:text-slate-400 text-[10px] sm:text-xs'>
                 %O<sub>2</sub>
               </span>
             </div>
@@ -86,11 +86,11 @@ const GasMixInput = ({ value, onChange }) => {
                 max='100'
                 value={value?.he || 0}
                 onChange={e => handleCustomChange('he', e.target.value)}
-                className='w-full rounded-md border-gray-300 pr-8 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs sm:text-sm p-1.5 sm:p-2 border'
+                className='w-full rounded-md border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 pr-8 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs sm:text-sm p-1.5 sm:p-2 border'
                 placeholder='He'
                 aria-label='Helium percentage'
               />
-              <span className='absolute right-2 top-1.5 sm:top-2 text-gray-500 text-[10px] sm:text-xs'>
+              <span className='absolute right-2 top-1.5 sm:top-2 text-gray-500 dark:text-slate-400 text-[10px] sm:text-xs'>
                 %He
               </span>
             </div>
@@ -98,7 +98,7 @@ const GasMixInput = ({ value, onChange }) => {
         )}
       </div>
       {/* Display computed mix label for clarity */}
-      <div className='text-xs text-gray-500'>
+      <div className='text-xs text-gray-500 dark:text-slate-400'>
         {value?.he > 0 ? (
           <span>
             Trimix {value.o2}/{value.he}
