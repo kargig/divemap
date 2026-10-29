@@ -13,18 +13,20 @@ const DiveSidebar = ({ dive, formatDate }) => {
     <div className='space-y-6'>
       {/* Dive Site Information */}
       {dive.dive_site && (
-        <div className='bg-white rounded-lg shadow p-6'>
-          <h2 className='text-xl font-semibold mb-4'>Dive Site</h2>
+        <div className='bg-white dark:bg-slate-800 rounded-lg shadow border border-gray-100 dark:border-slate-700 p-6'>
+          <h2 className='text-xl font-semibold mb-4 text-gray-900 dark:text-slate-100'>
+            Dive Site
+          </h2>
           <div className='space-y-3'>
             <div className='flex items-center gap-2'>
-              <MapPin size={15} className='text-gray-500' />
-              <span className='font-medium'>
+              <MapPin size={15} className='text-gray-500 dark:text-slate-400' />
+              <span className='font-medium text-gray-900 dark:text-slate-100'>
                 {dive.dive_site.name}
                 {dive.dive_site.deleted_at && ' (Archived)'}
               </span>
             </div>
             {dive.dive_site.description && (
-              <p className='text-sm text-gray-600'>
+              <p className='text-sm text-gray-600 dark:text-slate-400'>
                 {renderTextWithLinks(decodeHtmlEntities(dive.dive_site.description))}
               </p>
             )}
@@ -32,7 +34,7 @@ const DiveSidebar = ({ dive, formatDate }) => {
               <RouterLink
                 to={`/dive-sites/${dive.dive_site.id}/${getDiveSiteSlug(dive.dive_site)}`}
                 state={{ from: window.location.pathname + window.location.search }}
-                className='text-blue-600 hover:text-blue-800 text-sm'
+                className='text-blue-600 dark:text-sky-400 hover:text-blue-800 dark:hover:text-sky-300 text-sm'
               >
                 View dive site details →
               </RouterLink>
@@ -43,8 +45,10 @@ const DiveSidebar = ({ dive, formatDate }) => {
 
       {/* Diving Center Information */}
       {dive.diving_center && (
-        <div className='bg-white rounded-lg shadow p-6'>
-          <h2 className='text-xl font-semibold mb-4'>Diving Center</h2>
+        <div className='bg-white dark:bg-slate-800 rounded-lg shadow border border-gray-100 dark:border-slate-700 p-6'>
+          <h2 className='text-xl font-semibold mb-4 text-gray-900 dark:text-slate-100'>
+            Diving Center
+          </h2>
           <div className='space-y-4'>
             <RouterLink
               to={`/diving-centers/${dive.diving_center.id}/${getDivingCenterSlug(dive.diving_center)}`}
@@ -57,9 +61,9 @@ const DiveSidebar = ({ dive, formatDate }) => {
                 size='xl'
                 shape='rounded'
                 fallbackText={dive.diving_center.name}
-                className='border border-gray-100 shadow-sm transition-transform duration-200 group-hover:scale-105'
+                className='border border-gray-100 dark:border-slate-700 shadow-sm transition-transform duration-200 group-hover:scale-105'
               />
-              <span className='font-bold text-gray-900 leading-tight group-hover:text-blue-600 transition-colors'>
+              <span className='font-bold text-gray-900 dark:text-slate-100 leading-tight group-hover:text-blue-600 dark:group-hover:text-sky-400 transition-colors'>
                 {dive.diving_center.name}
               </span>
             </RouterLink>

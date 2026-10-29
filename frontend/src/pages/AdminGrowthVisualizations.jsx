@@ -65,8 +65,10 @@ const AdminGrowthVisualizations = () => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className='bg-white p-3 border border-gray-200 rounded-lg shadow-lg'>
-          <p className='text-sm text-gray-600'>{formatDateFunc(data.date, true)}</p>
+        <div className='bg-white p-3 border border-gray-200 dark:border-slate-700 rounded-lg shadow-lg'>
+          <p className='text-sm text-gray-600 dark:text-slate-300'>
+            {formatDateFunc(data.date, true)}
+          </p>
           <p className='text-lg font-bold' style={{ color }}>
             {formatNumberFunc(data.value)}
           </p>
@@ -119,8 +121,8 @@ const AdminGrowthVisualizations = () => {
     }));
 
     return (
-      <div className='bg-white p-6 rounded-lg border shadow-sm mb-6'>
-        <h3 className='text-lg font-semibold text-gray-900 mb-4 flex items-center'>
+      <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm mb-6'>
+        <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4 flex items-center'>
           <LineChartIcon className='h-5 w-5 mr-2' />
           {label}
         </h3>
@@ -168,13 +170,13 @@ const AdminGrowthVisualizations = () => {
         {growthData?.growth_rates && (
           <div className='mt-4 flex items-center justify-between'>
             <div>
-              <p className='text-sm text-gray-600'>Current Count</p>
-              <p className='text-2xl font-bold text-gray-900'>
+              <p className='text-sm text-gray-600 dark:text-slate-300'>Current Count</p>
+              <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                 {formatNumber(validData[validData.length - 1]?.count || 0)}
               </p>
             </div>
             <div className='text-right'>
-              <p className='text-sm text-gray-600'>Growth Rate</p>
+              <p className='text-sm text-gray-600 dark:text-slate-300'>Growth Rate</p>
               <div className='flex items-center'>
                 {(growthData.growth_rates[dataKey] || 0) >= 0 ? (
                   <TrendingUp className='h-4 w-4 text-green-600 mr-1' />
@@ -229,7 +231,7 @@ const AdminGrowthVisualizations = () => {
                 <select
                   value={period}
                   onChange={e => setPeriod(e.target.value)}
-                  className='border border-gray-300 rounded-lg px-4 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                  className='border border-gray-300 rounded-lg px-4 py-2 text-sm font-medium text-gray-700 dark:text-slate-200 bg-white hover:bg-gray-50 dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500'
                 >
                   <option value='week'>Last Week</option>
                   <option value='month'>Last Month</option>

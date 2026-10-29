@@ -361,7 +361,7 @@ const AdminNewsletters = () => {
 
         {/* Tab Navigation */}
         <div className='bg-white rounded-lg shadow-md mb-6'>
-          <div className='border-b border-gray-200'>
+          <div className='border-b border-gray-200 dark:border-slate-700'>
             <nav className='flex space-x-8 px-6'>
               <button
                 onClick={() => handleTabChange('create')}
@@ -403,7 +403,9 @@ const AdminNewsletters = () => {
             {/* Newsletters Section */}
             <div className='bg-white rounded-lg shadow-md p-6 mb-8'>
               <div className='flex justify-between items-center mb-4'>
-                <h2 className='text-xl font-semibold text-gray-900'>Newsletters</h2>
+                <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100'>
+                  Newsletters
+                </h2>
                 {selectedNewsletters.size > 0 && (
                   <button
                     onClick={handleMassDeleteNewsletters}
@@ -439,14 +441,14 @@ const AdminNewsletters = () => {
               {newsletters && newsletters.length > 0 && (
                 <div className='space-y-4'>
                   {/* Select All */}
-                  <div className='flex items-center space-x-2 p-2 bg-gray-50 rounded'>
+                  <div className='flex items-center space-x-2 p-2 bg-gray-50 dark:bg-slate-900/60 rounded'>
                     <input
                       type='checkbox'
                       checked={selectedNewsletters.size === newsletters.length}
                       onChange={handleSelectAllNewsletters}
                       className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
                     />
-                    <span className='text-sm text-gray-700'>Select All</span>
+                    <span className='text-sm text-gray-700 dark:text-slate-300'>Select All</span>
                   </div>
 
                   {newsletters.map(newsletter => {
@@ -469,7 +471,10 @@ const AdminNewsletters = () => {
                       .map(date => formatDate(date));
 
                     return (
-                      <div key={newsletter.id} className='border rounded-lg p-4 hover:bg-gray-50'>
+                      <div
+                        key={newsletter.id}
+                        className='border rounded-lg p-4 hover:bg-gray-50 dark:bg-slate-900/60'
+                      >
                         <div className='flex items-center space-x-4'>
                           <input
                             type='checkbox'
@@ -481,22 +486,22 @@ const AdminNewsletters = () => {
                           <div className='flex-1'>
                             <div className='flex items-center justify-between'>
                               <div>
-                                <h3 className='text-lg font-semibold text-gray-900'>
+                                <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100'>
                                   Newsletter #{newsletter.id}
                                 </h3>
-                                <p className='text-sm text-gray-600'>
+                                <p className='text-sm text-gray-600 dark:text-slate-300'>
                                   Received: {formatDate(newsletter.received_at)}
                                 </p>
-                                <p className='text-sm text-gray-600'>
+                                <p className='text-sm text-gray-600 dark:text-slate-300'>
                                   Trips extracted: {newsletter.trips_count}
                                 </p>
                                 {divingCenterNames.length > 0 && (
-                                  <p className='text-sm text-gray-700 font-medium mt-1'>
+                                  <p className='text-sm text-gray-700 dark:text-slate-300 font-medium mt-1'>
                                     Diving Center: {divingCenterNames.join(', ')}
                                   </p>
                                 )}
                                 {tripDates.length > 0 && (
-                                  <p className='text-sm text-gray-600 mt-1'>
+                                  <p className='text-sm text-gray-600 dark:text-slate-300 mt-1'>
                                     Trip dates:{' '}
                                     {tripDates.length <= 3
                                       ? tripDates.join(', ')
@@ -598,7 +603,7 @@ const AdminNewsletters = () => {
             return (
               <div className='space-y-4'>
                 <div className='flex justify-between items-center mb-4'>
-                  <p className='text-sm text-gray-600'>
+                  <p className='text-sm text-gray-600 dark:text-slate-300'>
                     Found {newsletterTrips.length} trip{newsletterTrips.length !== 1 ? 's' : ''}
                   </p>
                   <button
@@ -611,11 +616,14 @@ const AdminNewsletters = () => {
                 </div>
 
                 {newsletterTrips.map(trip => (
-                  <div key={trip.id} className='border rounded-lg p-4 hover:bg-gray-50'>
+                  <div
+                    key={trip.id}
+                    className='border rounded-lg p-4 hover:bg-gray-50 dark:bg-slate-900/60'
+                  >
                     <div className='flex justify-between items-start'>
                       <div className='flex-1'>
                         <div className='flex items-center space-x-4 mb-2'>
-                          <h4 className='text-lg font-semibold text-gray-900'>
+                          <h4 className='text-lg font-semibold text-gray-900 dark:text-slate-100'>
                             {trip.diving_center_name || 'Unknown Center'}
                           </h4>
                           <span
@@ -635,7 +643,7 @@ const AdminNewsletters = () => {
                           </span>
                         </div>
 
-                        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-600'>
+                        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-600 dark:text-slate-300'>
                           <div className='flex items-center'>
                             <Calendar className='h-4 w-4 mr-2' />
                             <span>{formatDate(trip.trip_date)}</span>
@@ -671,7 +679,9 @@ const AdminNewsletters = () => {
                         {/* Display multiple dives */}
                         {trip.dives && trip.dives.length > 0 && (
                           <div className='mt-3'>
-                            <h5 className='text-sm font-medium text-gray-700 mb-2'>Dives:</h5>
+                            <h5 className='text-sm font-medium text-gray-700 dark:text-slate-200 mb-2'>
+                              Dives:
+                            </h5>
                             <div className='space-y-2'>
                               {trip.dives.map((dive, _index) => (
                                 <div
@@ -680,27 +690,27 @@ const AdminNewsletters = () => {
                                 >
                                   <div className='flex items-center'>
                                     <MapPin className='h-4 w-4 mr-2 text-blue-600' />
-                                    <span className='text-sm font-medium text-gray-700'>
+                                    <span className='text-sm font-medium text-gray-700 dark:text-slate-200'>
                                       Dive {dive.dive_number}:
                                     </span>
                                   </div>
                                   <div className='flex-1'>
-                                    <span className='text-sm text-gray-600'>
+                                    <span className='text-sm text-gray-600 dark:text-slate-300'>
                                       {dive.dive_site_name || 'No dive site specified'}
                                     </span>
                                     {dive.dive_time && (
-                                      <span className='text-sm text-gray-500 ml-2'>
+                                      <span className='text-sm text-gray-500 dark:text-slate-400 ml-2'>
                                         at {formatTime(dive.dive_time)}
                                       </span>
                                     )}
                                     {dive.dive_duration && (
-                                      <span className='text-sm text-gray-500 ml-2'>
+                                      <span className='text-sm text-gray-500 dark:text-slate-400 ml-2'>
                                         ({dive.dive_duration} min)
                                       </span>
                                     )}
                                   </div>
                                   {dive.dive_description && (
-                                    <div className='text-xs text-gray-500 mt-1'>
+                                    <div className='text-xs text-gray-500 dark:text-slate-400 mt-1'>
                                       {dive.dive_description}
                                     </div>
                                   )}
@@ -714,7 +724,9 @@ const AdminNewsletters = () => {
                         {(!trip.dives || trip.dives.length === 0) && trip.dive_site_name && (
                           <div className='flex items-center mt-2'>
                             <MapPin className='h-4 w-4 mr-2' />
-                            <span className='text-sm text-gray-600'>{trip.dive_site_name}</span>
+                            <span className='text-sm text-gray-600 dark:text-slate-300'>
+                              {trip.dive_site_name}
+                            </span>
                           </div>
                         )}
 
@@ -748,7 +760,7 @@ const AdminNewsletters = () => {
                       </div>
                     </div>
 
-                    <div className='mt-2 text-xs text-gray-500'>
+                    <div className='mt-2 text-xs text-gray-500 dark:text-slate-400'>
                       <span>Extracted: {new Date(trip.extracted_at).toLocaleString()}</span>
                     </div>
                   </div>
@@ -775,7 +787,7 @@ const AdminNewsletters = () => {
           <div className='flex justify-end space-x-2 mt-4'>
             <button
               onClick={() => setEditingNewsletter(null)}
-              className='px-4 py-2 text-gray-600 border rounded-md hover:bg-gray-50'
+              className='px-4 py-2 text-gray-600 border rounded-md hover:bg-gray-50 dark:bg-slate-900/60'
             >
               Cancel
             </button>
@@ -797,19 +809,19 @@ const AdminNewsletters = () => {
           title={viewingNewsletter ? `Newsletter #${viewingNewsletter.id}` : 'View Newsletter'}
           className='max-w-4xl max-h-[80vh] overflow-y-auto'
         >
-          <div className='mb-4 text-sm text-gray-600'>
+          <div className='mb-4 text-sm text-gray-600 dark:text-slate-300'>
             <p>Received: {viewingNewsletter && formatDate(viewingNewsletter.received_at)}</p>
             <p>Trips extracted: {viewingNewsletter?.trips_count}</p>
           </div>
 
-          <pre className='w-full p-4 bg-gray-50 rounded-md font-mono text-sm overflow-x-auto'>
+          <pre className='w-full p-4 bg-gray-50 dark:bg-slate-900/60 rounded-md font-mono text-sm overflow-x-auto'>
             {viewingNewsletter?.content}
           </pre>
 
           <div className='flex justify-end mt-4'>
             <button
               onClick={() => setViewingNewsletter(null)}
-              className='px-4 py-2 text-gray-600 border rounded-md hover:bg-gray-50'
+              className='px-4 py-2 text-gray-600 border rounded-md hover:bg-gray-50 dark:bg-slate-900/60'
             >
               Close
             </button>

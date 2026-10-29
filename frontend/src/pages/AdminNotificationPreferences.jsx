@@ -403,7 +403,7 @@ const AdminNotificationPreferences = () => {
                           ? 'bg-blue-50 border-blue-500'
                           : selectedUserIds.has(u.id)
                             ? 'bg-indigo-50 border-indigo-300'
-                            : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                            : 'bg-gray-50 dark:bg-slate-900/60 border-gray-200 dark:border-slate-700 hover:bg-gray-100'
                       }`}
                     >
                       <div className='flex items-center'>
@@ -428,7 +428,9 @@ const AdminNotificationPreferences = () => {
                           <User className='h-5 w-5 text-gray-400 mr-2 flex-shrink-0' />
                           <div className='flex-1 min-w-0'>
                             <p className='font-medium text-gray-900 truncate'>{u.username}</p>
-                            <p className='text-sm text-gray-500 truncate'>{u.email}</p>
+                            <p className='text-sm text-gray-500 dark:text-slate-400 truncate'>
+                              {u.email}
+                            </p>
                           </div>
                         </button>
                       </div>
@@ -450,13 +452,15 @@ const AdminNotificationPreferences = () => {
               </div>
             ) : (
               <div className='bg-white rounded-lg shadow'>
-                <div className='p-6 border-b border-gray-200'>
+                <div className='p-6 border-b border-gray-200 dark:border-slate-700'>
                   <div className='flex items-center justify-between'>
                     <div>
-                      <h2 className='text-xl font-semibold text-gray-900'>
+                      <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100'>
                         {selectedUser?.username}'s Preferences
                       </h2>
-                      <p className='text-sm text-gray-500 mt-1'>{selectedUser?.email}</p>
+                      <p className='text-sm text-gray-500 dark:text-slate-400 mt-1'>
+                        {selectedUser?.email}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -475,21 +479,21 @@ const AdminNotificationPreferences = () => {
                             key={category.value}
                             className={`border rounded-lg p-4 transition-colors ${
                               pref
-                                ? 'border-gray-200 hover:border-gray-300 bg-white'
-                                : 'border-gray-100 bg-gray-50'
+                                ? 'border-gray-200 dark:border-slate-700 hover:border-gray-300 bg-white'
+                                : 'border-gray-100 bg-gray-50 dark:bg-slate-900/60'
                             }`}
                           >
                             {isEditing ? (
                               <div className='space-y-4'>
                                 <div>
-                                  <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                  <label className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-2'>
                                     Category
                                   </label>
                                   <input
                                     type='text'
                                     value={category.value}
                                     disabled
-                                    className='w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50'
+                                    className='w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 dark:bg-slate-900/60'
                                   />
                                 </div>
                                 <div className='flex items-center space-x-6'>
@@ -506,7 +510,9 @@ const AdminNotificationPreferences = () => {
                                       className='mr-2'
                                     />
                                     <Globe className='h-4 w-4 text-gray-400 mr-1' />
-                                    <span className='text-sm text-gray-700'>Website</span>
+                                    <span className='text-sm text-gray-700 dark:text-slate-300'>
+                                      Website
+                                    </span>
                                   </label>
                                   <label className='flex items-center'>
                                     <input
@@ -521,11 +527,13 @@ const AdminNotificationPreferences = () => {
                                       className='mr-2'
                                     />
                                     <Mail className='h-4 w-4 text-gray-400 mr-1' />
-                                    <span className='text-sm text-gray-700'>Email</span>
+                                    <span className='text-sm text-gray-700 dark:text-slate-300'>
+                                      Email
+                                    </span>
                                   </label>
                                 </div>
                                 <div>
-                                  <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                  <label className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-2'>
                                     Frequency
                                   </label>
                                   <select
@@ -576,7 +584,7 @@ const AdminNotificationPreferences = () => {
                             ) : (
                               <div>
                                 <div className='flex items-center justify-between mb-3'>
-                                  <h3 className='text-lg font-semibold text-gray-900'>
+                                  <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100'>
                                     {category.label}
                                   </h3>
                                   <div className='flex items-center space-x-2'>
@@ -663,14 +671,14 @@ const AdminNotificationPreferences = () => {
                                       </div>
                                     </div>
                                     {pref.area_filter && (
-                                      <div className='mt-3 flex items-center text-sm text-gray-600'>
+                                      <div className='mt-3 flex items-center text-sm text-gray-600 dark:text-slate-300'>
                                         <MapPin className='h-4 w-4 mr-1' />
                                         <span>Area filter configured</span>
                                       </div>
                                     )}
                                   </>
                                 ) : (
-                                  <p className='text-sm text-gray-500 italic'>
+                                  <p className='text-sm text-gray-500 dark:text-slate-400 italic'>
                                     No preference configured
                                   </p>
                                 )}
@@ -699,7 +707,9 @@ const AdminNotificationPreferences = () => {
         >
           <div className='space-y-4'>
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>Category</label>
+              <label className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-2'>
+                Category
+              </label>
               <select
                 value={preferenceForm.category}
                 onChange={e => setPreferenceForm({ ...preferenceForm, category: e.target.value })}
@@ -724,7 +734,7 @@ const AdminNotificationPreferences = () => {
                   className='mr-2'
                 />
                 <Globe className='h-4 w-4 text-gray-400 mr-1' />
-                <span className='text-sm text-gray-700'>Website</span>
+                <span className='text-sm text-gray-700 dark:text-slate-300'>Website</span>
               </label>
               <label className='flex items-center'>
                 <input
@@ -736,11 +746,13 @@ const AdminNotificationPreferences = () => {
                   className='mr-2'
                 />
                 <Mail className='h-4 w-4 text-gray-400 mr-1' />
-                <span className='text-sm text-gray-700'>Email</span>
+                <span className='text-sm text-gray-700 dark:text-slate-300'>Email</span>
               </label>
             </div>
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>Frequency</label>
+              <label className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-2'>
+                Frequency
+              </label>
               <select
                 value={preferenceForm.frequency}
                 onChange={e => setPreferenceForm({ ...preferenceForm, frequency: e.target.value })}
@@ -791,7 +803,9 @@ const AdminNotificationPreferences = () => {
         >
           <div className='space-y-6'>
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-3'>Operation</label>
+              <label className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-3'>
+                Operation
+              </label>
               <div className='flex space-x-2'>
                 <button
                   type='button'
@@ -799,7 +813,7 @@ const AdminNotificationPreferences = () => {
                   className={`flex-1 px-4 py-2 rounded-lg border-2 transition-colors ${
                     batchForm.operation === 'update'
                       ? 'bg-blue-50 border-blue-500 text-blue-700 font-medium'
-                      : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                      : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-slate-900/60'
                   }`}
                 >
                   Update Existing
@@ -810,13 +824,13 @@ const AdminNotificationPreferences = () => {
                   className={`flex-1 px-4 py-2 rounded-lg border-2 transition-colors ${
                     batchForm.operation === 'create'
                       ? 'bg-blue-50 border-blue-500 text-blue-700 font-medium'
-                      : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                      : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-slate-900/60'
                   }`}
                 >
                   Create New
                 </button>
               </div>
-              <p className='text-xs text-gray-500 mt-2'>
+              <p className='text-xs text-gray-500 dark:text-slate-400 mt-2'>
                 {batchForm.operation === 'update'
                   ? 'Updates existing preferences. Only specified fields will be changed.'
                   : 'Creates new preferences. If preference exists, it will be updated instead.'}
@@ -824,7 +838,7 @@ const AdminNotificationPreferences = () => {
             </div>
 
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-3'>
+              <label className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-3'>
                 Category <span className='text-red-500'>*</span>
               </label>
               <div className='grid grid-cols-2 gap-2'>
@@ -836,7 +850,7 @@ const AdminNotificationPreferences = () => {
                     className={`px-4 py-2 rounded-lg border-2 transition-colors text-sm ${
                       batchForm.category === cat.value
                         ? 'bg-blue-50 border-blue-500 text-blue-700 font-medium'
-                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-slate-900/60'
                     }`}
                   >
                     {cat.label}
@@ -847,7 +861,7 @@ const AdminNotificationPreferences = () => {
 
             <div className='space-y-4'>
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-3'>
+                <label className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-3'>
                   Enable Website Notifications
                 </label>
                 <div className='flex space-x-2'>
@@ -857,7 +871,7 @@ const AdminNotificationPreferences = () => {
                     className={`flex-1 px-4 py-2 rounded-lg border-2 transition-colors ${
                       batchForm.enable_website === null
                         ? 'bg-blue-50 border-blue-500 text-blue-700 font-medium'
-                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-slate-900/60'
                     }`}
                   >
                     No change
@@ -868,7 +882,7 @@ const AdminNotificationPreferences = () => {
                     className={`flex-1 px-4 py-2 rounded-lg border-2 transition-colors ${
                       batchForm.enable_website === true
                         ? 'bg-green-50 border-green-500 text-green-700 font-medium'
-                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-slate-900/60'
                     }`}
                   >
                     Enable
@@ -879,7 +893,7 @@ const AdminNotificationPreferences = () => {
                     className={`flex-1 px-4 py-2 rounded-lg border-2 transition-colors ${
                       batchForm.enable_website === false
                         ? 'bg-red-50 border-red-500 text-red-700 font-medium'
-                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-slate-900/60'
                     }`}
                   >
                     Disable
@@ -888,7 +902,7 @@ const AdminNotificationPreferences = () => {
               </div>
 
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-3'>
+                <label className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-3'>
                   Enable Email Notifications
                 </label>
                 <div className='flex space-x-2'>
@@ -898,7 +912,7 @@ const AdminNotificationPreferences = () => {
                     className={`flex-1 px-4 py-2 rounded-lg border-2 transition-colors ${
                       batchForm.enable_email === null
                         ? 'bg-blue-50 border-blue-500 text-blue-700 font-medium'
-                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-slate-900/60'
                     }`}
                   >
                     No change
@@ -909,7 +923,7 @@ const AdminNotificationPreferences = () => {
                     className={`flex-1 px-4 py-2 rounded-lg border-2 transition-colors ${
                       batchForm.enable_email === true
                         ? 'bg-green-50 border-green-500 text-green-700 font-medium'
-                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-slate-900/60'
                     }`}
                   >
                     Enable
@@ -920,7 +934,7 @@ const AdminNotificationPreferences = () => {
                     className={`flex-1 px-4 py-2 rounded-lg border-2 transition-colors ${
                       batchForm.enable_email === false
                         ? 'bg-red-50 border-red-500 text-red-700 font-medium'
-                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-slate-900/60'
                     }`}
                   >
                     Disable
@@ -929,7 +943,9 @@ const AdminNotificationPreferences = () => {
               </div>
 
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-3'>Frequency</label>
+                <label className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-3'>
+                  Frequency
+                </label>
                 <div className='flex space-x-2'>
                   <button
                     type='button'
@@ -937,7 +953,7 @@ const AdminNotificationPreferences = () => {
                     className={`flex-1 px-4 py-2 rounded-lg border-2 transition-colors ${
                       batchForm.frequency === null
                         ? 'bg-blue-50 border-blue-500 text-blue-700 font-medium'
-                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-slate-900/60'
                     }`}
                   >
                     No change
@@ -948,7 +964,7 @@ const AdminNotificationPreferences = () => {
                     className={`flex-1 px-4 py-2 rounded-lg border-2 transition-colors ${
                       batchForm.frequency === 'immediate'
                         ? 'bg-blue-50 border-blue-500 text-blue-700 font-medium'
-                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-slate-900/60'
                     }`}
                   >
                     Immediate
@@ -959,7 +975,7 @@ const AdminNotificationPreferences = () => {
                     className={`flex-1 px-4 py-2 rounded-lg border-2 transition-colors ${
                       batchForm.frequency === 'daily_digest'
                         ? 'bg-blue-50 border-blue-500 text-blue-700 font-medium'
-                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-slate-900/60'
                     }`}
                   >
                     Daily Digest
@@ -970,7 +986,7 @@ const AdminNotificationPreferences = () => {
                     className={`flex-1 px-4 py-2 rounded-lg border-2 transition-colors ${
                       batchForm.frequency === 'weekly_digest'
                         ? 'bg-blue-50 border-blue-500 text-blue-700 font-medium'
-                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-slate-900/60'
                     }`}
                   >
                     Weekly Digest

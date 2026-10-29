@@ -23,16 +23,16 @@ const AIChatHistoryDetail = () => {
 
   if (isLoading) {
     return (
-      <div className='min-h-screen bg-gray-50 flex items-center justify-center'>
-        <Loader2 className='w-8 h-8 text-blue-600 animate-spin' />
+      <div className='min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center'>
+        <Loader2 className='w-8 h-8 text-blue-600 dark:text-sky-400 animate-spin' />
       </div>
     );
   }
 
   if (error || !session) {
     return (
-      <div className='min-h-screen bg-gray-50 py-8 px-4'>
-        <div className='max-w-4xl mx-auto bg-white rounded-lg shadow p-6 text-center text-red-600'>
+      <div className='min-h-screen bg-gray-50 dark:bg-slate-900 py-8 px-4'>
+        <div className='max-w-4xl mx-auto bg-white dark:bg-slate-800 rounded-lg shadow border border-gray-100 dark:border-slate-700 p-6 text-center text-red-600 dark:text-red-400'>
           Error loading chat session. Please try again later.
         </div>
       </div>
@@ -43,7 +43,7 @@ const AIChatHistoryDetail = () => {
   const displayMessages = session.messages.filter(m => m.role !== 'system' && m.content);
 
   return (
-    <div className='min-h-screen bg-gray-50 py-4 sm:py-8 flex flex-col'>
+    <div className='min-h-screen bg-gray-50 dark:bg-slate-900 py-4 sm:py-8 flex flex-col'>
       <SEO title='Divemap Assistant Session' description='Chat session details' />
 
       <div className='max-w-4xl mx-auto w-full flex-1 flex flex-col'>
@@ -57,7 +57,7 @@ const AIChatHistoryDetail = () => {
           ]}
         />
 
-        <div className='bg-white shadow rounded-lg flex-1 overflow-hidden flex flex-col mb-8'>
+        <div className='bg-white dark:bg-slate-800 shadow rounded-lg border border-gray-100 dark:border-slate-700 flex-1 overflow-hidden flex flex-col mb-8'>
           <div className='flex-1 overflow-y-auto p-4 space-y-4'>
             {displayMessages.map((msg, index) => (
               <MessageBubble

@@ -169,21 +169,25 @@ const AdminRecentActivity = () => {
 
         {/* Activity Statistics */}
         <div className='grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8'>
-          <div className='bg-white p-6 rounded-lg border shadow-sm'>
+          <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
             <div className='flex items-center justify-between'>
               <div>
-                <p className='text-sm font-medium text-gray-600'>Total Activities</p>
-                <p className='text-2xl font-bold text-gray-900'>{activityStats.total}</p>
+                <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                  Total Activities
+                </p>
+                <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
+                  {activityStats.total}
+                </p>
               </div>
               <Activity className='h-8 w-8 text-blue-600' />
             </div>
           </div>
 
-          <div className='bg-white p-6 rounded-lg border shadow-sm'>
+          <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
             <div className='flex items-center justify-between'>
               <div>
-                <p className='text-sm font-medium text-gray-600'>New Users</p>
-                <p className='text-2xl font-bold text-gray-900'>
+                <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>New Users</p>
+                <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                   {activityStats.user_registrations}
                 </p>
               </div>
@@ -191,31 +195,41 @@ const AdminRecentActivity = () => {
             </div>
           </div>
 
-          <div className='bg-white p-6 rounded-lg border shadow-sm'>
+          <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
             <div className='flex items-center justify-between'>
               <div>
-                <p className='text-sm font-medium text-gray-600'>Content Created</p>
-                <p className='text-2xl font-bold text-gray-900'>{activityStats.content_creation}</p>
+                <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                  Content Created
+                </p>
+                <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
+                  {activityStats.content_creation}
+                </p>
               </div>
               <FileText className='h-8 w-8 text-purple-600' />
             </div>
           </div>
 
-          <div className='bg-white p-6 rounded-lg border shadow-sm'>
+          <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
             <div className='flex items-center justify-between'>
               <div>
-                <p className='text-sm font-medium text-gray-600'>Content Updated</p>
-                <p className='text-2xl font-bold text-gray-900'>{activityStats.content_update}</p>
+                <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                  Content Updated
+                </p>
+                <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
+                  {activityStats.content_update}
+                </p>
               </div>
               <Edit className='h-8 w-8 text-yellow-600' />
             </div>
           </div>
 
-          <div className='bg-white p-6 rounded-lg border shadow-sm'>
+          <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
             <div className='flex items-center justify-between'>
               <div>
-                <p className='text-sm font-medium text-gray-600'>Engagement</p>
-                <p className='text-2xl font-bold text-gray-900'>{activityStats.engagement}</p>
+                <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>Engagement</p>
+                <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
+                  {activityStats.engagement}
+                </p>
               </div>
               <MessageSquare className='h-8 w-8 text-orange-600' />
             </div>
@@ -224,13 +238,15 @@ const AdminRecentActivity = () => {
 
         {/* Filters */}
         <div className='bg-white p-6 rounded-lg border shadow-sm mb-8'>
-          <h2 className='text-lg font-semibold text-gray-900 mb-4 flex items-center'>
+          <h2 className='text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4 flex items-center'>
             <Filter className='h-5 w-5 mr-2' />
             Filters
           </h2>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>Time Range</label>
+              <label className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-2'>
+                Time Range
+              </label>
               <select
                 value={timeFilter}
                 onChange={e => setTimeFilter(Number(e.target.value))}
@@ -244,7 +260,9 @@ const AdminRecentActivity = () => {
               </select>
             </div>
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>Activity Type</label>
+              <label className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-2'>
+                Activity Type
+              </label>
               <select
                 value={activityFilter}
                 onChange={e => setActivityFilter(e.target.value)}
@@ -261,14 +279,14 @@ const AdminRecentActivity = () => {
         </div>
 
         {/* Activity List */}
-        <div className='bg-white rounded-lg border shadow-sm'>
-          <div className='px-6 py-4 border-b border-gray-200'>
-            <h2 className='text-lg font-semibold text-gray-900 flex items-center'>
+        <div className='bg-white dark:bg-slate-800 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
+          <div className='px-6 py-4 border-b border-gray-200 dark:border-slate-700'>
+            <h2 className='text-lg font-semibold text-gray-900 dark:text-slate-100 flex items-center'>
               <Clock className='h-5 w-5 mr-2' />
               Recent Activities ({filteredActivities.length})
             </h2>
           </div>
-          <div className='divide-y divide-gray-200'>
+          <div className='divide-y divide-gray-200 dark:divide-slate-700'>
             {filteredActivities.length === 0 ? (
               <div className='px-6 py-12 text-center'>
                 <Activity className='h-12 w-12 text-gray-400 mx-auto mb-4' />
@@ -276,7 +294,10 @@ const AdminRecentActivity = () => {
               </div>
             ) : (
               filteredActivities.map((activity, index) => (
-                <div key={index} className='px-6 py-4 hover:bg-gray-50 transition-colors'>
+                <div
+                  key={index}
+                  className='px-6 py-4 hover:bg-gray-50 dark:bg-slate-900/60 transition-colors'
+                >
                   <div className='flex items-start space-x-4'>
                     <div className={`p-2 rounded-full ${getActivityColor(activity.type)}`}>
                       {getActivityIcon(activity.type)}
@@ -284,15 +305,21 @@ const AdminRecentActivity = () => {
                     <div className='flex-1 min-w-0'>
                       <div className='flex items-center justify-between'>
                         <div>
-                          <p className='text-sm font-medium text-gray-900'>{activity.action}</p>
-                          <p className='text-sm text-gray-600'>{activity.details}</p>
+                          <p className='text-sm font-medium text-gray-900 dark:text-slate-100'>
+                            {activity.action}
+                          </p>
+                          <p className='text-sm text-gray-600 dark:text-slate-300'>
+                            {activity.details}
+                          </p>
                           {activity.username && (
-                            <p className='text-xs text-gray-500'>by {activity.username}</p>
+                            <p className='text-xs text-gray-500 dark:text-slate-400'>
+                              by {activity.username}
+                            </p>
                           )}
                         </div>
                         <div className='flex items-center space-x-2'>
                           {getStatusIcon(activity.status)}
-                          <span className='text-xs text-gray-500'>
+                          <span className='text-xs text-gray-500 dark:text-slate-400'>
                             {formatTimestamp(activity.timestamp)}
                           </span>
                         </div>
@@ -307,7 +334,9 @@ const AdminRecentActivity = () => {
 
         {/* Last Updated */}
         <div className='mt-6 text-center'>
-          <p className='text-sm text-gray-500'>Last updated: {new Date().toLocaleString()}</p>
+          <p className='text-sm text-gray-500 dark:text-slate-400'>
+            Last updated: {new Date().toLocaleString()}
+          </p>
         </div>
       </div>
     </>

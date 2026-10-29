@@ -37,13 +37,13 @@ export const TagSelection = ({ selectedTags, setSelectedTags }) => {
   });
 
   return (
-    <div className='border-t pt-6'>
+    <div className='border-t border-gray-100 dark:border-slate-700 pt-6'>
       <div className='flex items-center justify-between mb-4'>
-        <h3 className='text-lg font-semibold text-gray-900'>Tags</h3>
+        <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100'>Tags</h3>
         <button
           type='button'
           onClick={() => setShowTagForm(!showTagForm)}
-          className='flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors'
+          className='flex items-center px-4 py-2 text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-650 hover:text-gray-900 dark:hover:text-white transition-colors'
         >
           <Tag className='w-4 h-4 mr-2' />
           Add Tag
@@ -52,13 +52,13 @@ export const TagSelection = ({ selectedTags, setSelectedTags }) => {
 
       {/* Add Tag Form */}
       {showTagForm && (
-        <div className='bg-gray-50 p-4 rounded-md mb-4'>
+        <div className='bg-gray-50 dark:bg-slate-900/60 p-4 rounded-md mb-4 border border-gray-100 dark:border-slate-700'>
           <div className='space-y-4'>
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               <div>
                 <label
                   htmlFor='new_tag_name'
-                  className='block text-sm font-medium text-gray-700 mb-1'
+                  className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
                 >
                   Tag Name *
                 </label>
@@ -68,13 +68,13 @@ export const TagSelection = ({ selectedTags, setSelectedTags }) => {
                   value={newTagName}
                   onChange={e => setNewTagName(e.target.value)}
                   required
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                  className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                 />
               </div>
               <div>
                 <label
                   htmlFor='new_tag_description'
-                  className='block text-sm font-medium text-gray-700 mb-1'
+                  className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
                 >
                   Description
                 </label>
@@ -83,7 +83,7 @@ export const TagSelection = ({ selectedTags, setSelectedTags }) => {
                   type='text'
                   value={newTagDescription}
                   onChange={e => setNewTagDescription(e.target.value)}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                  className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                 />
               </div>
             </div>
@@ -101,7 +101,7 @@ export const TagSelection = ({ selectedTags, setSelectedTags }) => {
                   });
                 }}
                 disabled={createTagMutation.isLoading}
-                className='px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors disabled:opacity-50'
+                className='px-4 py-2 text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-650 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-50'
               >
                 {createTagMutation.isLoading ? 'Adding...' : 'Add Tag'}
               </button>
@@ -120,7 +120,7 @@ export const TagSelection = ({ selectedTags, setSelectedTags }) => {
 
       {/* Available Tags */}
       <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-6'>
-        <h4 className='text-md font-semibold text-gray-800'>Select Tags</h4>
+        <h4 className='text-md font-semibold text-gray-800 dark:text-slate-200'>Select Tags</h4>
         <div className='grid grid-cols-1 md:grid-cols-2 gap-2'>
           {Array.isArray(availableTags) && availableTags.length > 0 ? (
             availableTags.map(tag => (
@@ -135,20 +135,22 @@ export const TagSelection = ({ selectedTags, setSelectedTags }) => {
                       setSelectedTags(prev => prev.filter(id => id !== tag.id));
                     }
                   }}
-                  className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                  className='rounded border-gray-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500'
                 />
-                <span className='text-sm font-medium text-gray-700'>{tag.name}</span>
+                <span className='text-sm font-medium text-gray-700 dark:text-slate-200'>
+                  {tag.name}
+                </span>
               </label>
             ))
           ) : (
-            <p className='text-gray-500 text-sm'>No tags available</p>
+            <p className='text-gray-500 dark:text-slate-400 text-sm'>No tags available</p>
           )}
         </div>
       </div>
 
       {/* Selected Tags Summary */}
       <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-6'>
-        <h4 className='text-md font-semibold text-gray-800'>
+        <h4 className='text-md font-semibold text-gray-800 dark:text-slate-200'>
           Selected Tags ({selectedTags.length})
         </h4>
         <div className='grid grid-cols-1 md:grid-cols-2 gap-2'>
@@ -165,7 +167,7 @@ export const TagSelection = ({ selectedTags, setSelectedTags }) => {
               ) : null;
             })
           ) : (
-            <p className='text-gray-500 text-sm'>No tags selected</p>
+            <p className='text-gray-500 dark:text-slate-400 text-sm'>No tags selected</p>
           )}
         </div>
       </div>

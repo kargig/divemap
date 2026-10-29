@@ -221,7 +221,7 @@ const AdminTags = () => {
         <div className='bg-white rounded-lg shadow-md'>
           <div className='overflow-x-auto'>
             <table className='min-w-full divide-y divide-gray-200'>
-              <thead className='bg-gray-50'>
+              <thead className='bg-gray-50 dark:bg-slate-900/60'>
                 <tr>
                   <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                     <input
@@ -252,11 +252,11 @@ const AdminTags = () => {
                   </th>
                 </tr>
               </thead>
-              <tbody className='bg-white divide-y divide-gray-200'>
+              <tbody className='bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700'>
                 {tags?.map((tag, index) => (
                   <tr
                     key={tag.id}
-                    className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100`}
+                    className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50 dark:bg-slate-900/60'} hover:bg-gray-100`}
                   >
                     <td className='px-6 py-4 whitespace-nowrap'>
                       <input
@@ -268,10 +268,12 @@ const AdminTags = () => {
                       />
                     </td>
                     <td className='px-6 py-4 whitespace-nowrap'>
-                      <div className='text-sm font-medium text-gray-900'>{tag.name}</div>
+                      <div className='text-sm font-medium text-gray-900 dark:text-slate-100'>
+                        {tag.name}
+                      </div>
                     </td>
                     <td className='px-6 py-4 whitespace-nowrap'>
-                      <div className='text-sm text-gray-500'>
+                      <div className='text-sm text-gray-500 dark:text-slate-400'>
                         {tag.description ? decodeHtmlEntities(tag.description) : 'No description'}
                       </div>
                     </td>
@@ -280,7 +282,7 @@ const AdminTags = () => {
                         {tag.dive_site_count} sites
                       </span>
                     </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
+                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-slate-400'>
                       {formatDate(tag.created_at)}
                     </td>
                     <td className='px-6 py-4 whitespace-nowrap text-sm font-medium'>
@@ -333,7 +335,7 @@ const AdminTags = () => {
             <div>
               <label
                 htmlFor='create-tag-name'
-                className='block text-sm font-medium text-gray-700 mb-1'
+                className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
               >
                 Tag Name *
               </label>
@@ -350,7 +352,7 @@ const AdminTags = () => {
             <div>
               <label
                 htmlFor='create-tag-description'
-                className='block text-sm font-medium text-gray-700 mb-1'
+                className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
               >
                 Description
               </label>
@@ -403,7 +405,7 @@ const AdminTags = () => {
             <div>
               <label
                 htmlFor='edit-tag-name'
-                className='block text-sm font-medium text-gray-700 mb-1'
+                className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
               >
                 Tag Name *
               </label>
@@ -420,7 +422,7 @@ const AdminTags = () => {
             <div>
               <label
                 htmlFor='edit-tag-description'
-                className='block text-sm font-medium text-gray-700 mb-1'
+                className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
               >
                 Description
               </label>

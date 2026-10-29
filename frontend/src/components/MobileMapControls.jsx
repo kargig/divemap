@@ -87,13 +87,13 @@ const MobileMapControls = ({
         showCloseButton={true}
       >
         {/* Tab Navigation */}
-        <div className='flex border-b border-gray-200 bg-white'>
+        <div className='flex border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800'>
           <button
             onClick={() => setActiveTab('tools')}
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
               activeTab === 'tools'
-                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                ? 'text-blue-600 dark:text-sky-400 border-b-2 border-blue-600 dark:border-sky-400 bg-blue-50 dark:bg-blue-900/40'
+                : 'text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700'
             }`}
           >
             <Wrench className='h-4 w-4 inline mr-2' />
@@ -103,8 +103,8 @@ const MobileMapControls = ({
             onClick={() => setActiveTab('settings')}
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
               activeTab === 'settings'
-                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                ? 'text-blue-600 dark:text-sky-400 border-b-2 border-blue-600 dark:border-sky-400 bg-blue-50 dark:bg-blue-900/40'
+                : 'text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700'
             }`}
           >
             <Settings className='h-4 w-4 inline mr-2' />
@@ -113,47 +113,51 @@ const MobileMapControls = ({
         </div>
 
         {/* Tab Content */}
-        <div className='flex-1 overflow-y-auto min-h-0'>
+        <div className='flex-1 overflow-y-auto min-h-0 bg-white dark:bg-slate-800'>
           {/* Tools Tab */}
           {activeTab === 'tools' && (
             <div className='p-4 space-y-6 pb-4'>
               {/* Map Controls */}
               <div>
-                <h4 className='text-sm font-medium text-gray-700 mb-3'>Map Controls</h4>
+                <h4 className='text-sm font-medium text-gray-700 dark:text-slate-300 mb-3'>
+                  Map Controls
+                </h4>
                 <div className='grid grid-cols-2 gap-3'>
                   <button
                     onClick={onToggleFilters}
                     className={`flex flex-col items-center gap-2 p-4 rounded-lg border transition-colors min-h-[80px] ${
                       showFilters
-                        ? 'bg-blue-50 border-blue-200 text-blue-900'
+                        ? 'bg-blue-50 dark:bg-blue-900/50 border-blue-200 dark:border-blue-700 text-blue-900 dark:text-blue-100'
                         : hasActiveFilters
-                          ? 'bg-orange-50 border-orange-200 text-orange-900'
-                          : 'bg-white border-gray-200 hover:bg-gray-50'
+                          ? 'bg-orange-50 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800 text-orange-900 dark:text-orange-200'
+                          : 'bg-white dark:bg-slate-750 border-gray-200 dark:border-slate-700 text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700'
                     }`}
                   >
                     <Filter className='w-6 h-6' />
                     <span className='text-sm font-medium'>Filters</span>
-                    {hasActiveFilters && <span className='text-xs text-orange-600'>Active</span>}
+                    {hasActiveFilters && (
+                      <span className='text-xs text-orange-600 dark:text-orange-400'>Active</span>
+                    )}
                   </button>
 
                   <button
                     onClick={onToggleLayers}
                     className={`flex flex-col items-center gap-2 p-4 rounded-lg border transition-colors min-h-[80px] ${
                       showLayers
-                        ? 'bg-blue-50 border-blue-200 text-blue-900'
-                        : 'bg-white border-gray-200 hover:bg-gray-50'
+                        ? 'bg-blue-50 dark:bg-blue-900/50 border-blue-200 dark:border-blue-700 text-blue-900 dark:text-blue-100'
+                        : 'bg-white dark:bg-slate-750 border-gray-200 dark:border-slate-700 text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700'
                     }`}
                   >
                     <Layers className='w-6 h-6' />
                     <span className='text-sm font-medium'>Layers</span>
                   </button>
 
-                  <button className='flex flex-col items-center gap-2 p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors min-h-[80px]'>
+                  <button className='flex flex-col items-center gap-2 p-4 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-750 text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors min-h-[80px]'>
                     <Search className='w-6 h-6' />
                     <span className='text-sm font-medium'>Search</span>
                   </button>
 
-                  <button className='flex flex-col items-center gap-2 p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors min-h-[80px]'>
+                  <button className='flex flex-col items-center gap-2 p-4 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-750 text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors min-h-[80px]'>
                     <MapPin className='w-6 h-6' />
                     <span className='text-sm font-medium'>Location</span>
                   </button>
@@ -162,18 +166,20 @@ const MobileMapControls = ({
 
               {/* Zoom Controls */}
               <div>
-                <h4 className='text-sm font-medium text-gray-700 mb-3'>Zoom Controls</h4>
+                <h4 className='text-sm font-medium text-gray-700 dark:text-slate-300 mb-3'>
+                  Zoom Controls
+                </h4>
                 <div className='flex gap-3'>
                   <button
                     onClick={handleZoomIn}
-                    className='flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors min-h-[48px]'
+                    className='flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-slate-750 border border-gray-200 dark:border-slate-700 text-gray-800 dark:text-slate-200 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors min-h-[48px]'
                   >
                     <ZoomIn className='w-5 h-5' />
                     <span className='text-sm font-medium'>Zoom In</span>
                   </button>
                   <button
                     onClick={handleZoomOut}
-                    className='flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors min-h-[48px]'
+                    className='flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-slate-750 border border-gray-200 dark:border-slate-700 text-gray-800 dark:text-slate-200 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors min-h-[48px]'
                   >
                     <ZoomOut className='w-5 h-5' />
                     <span className='text-sm font-medium'>Zoom Out</span>
@@ -183,22 +189,24 @@ const MobileMapControls = ({
 
               {/* Quick Actions */}
               <div>
-                <h4 className='text-sm font-medium text-gray-700 mb-3'>Quick Actions</h4>
+                <h4 className='text-sm font-medium text-gray-700 dark:text-slate-300 mb-3'>
+                  Quick Actions
+                </h4>
                 <div className='space-y-2'>
                   <button
                     onClick={handleResetView}
-                    className='w-full flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors min-h-[48px]'
+                    className='w-full flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors min-h-[48px]'
                   >
-                    <RotateCcw className='w-5 h-5 text-gray-600' />
-                    <span className='text-sm text-gray-700'>Reset View</span>
+                    <RotateCcw className='w-5 h-5 text-gray-600 dark:text-slate-400' />
+                    <span className='text-sm text-gray-700 dark:text-slate-300'>Reset View</span>
                   </button>
-                  <button className='w-full flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors min-h-[48px]'>
-                    <Share className='w-5 h-5 text-gray-600' />
-                    <span className='text-sm text-gray-700'>Share Map</span>
+                  <button className='w-full flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors min-h-[48px]'>
+                    <Share className='w-5 h-5 text-gray-600 dark:text-slate-400' />
+                    <span className='text-sm text-gray-700 dark:text-slate-300'>Share Map</span>
                   </button>
-                  <button className='w-full flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors min-h-[48px]'>
-                    <Maximize className='w-5 h-5 text-gray-600' />
-                    <span className='text-sm text-gray-700'>Fullscreen</span>
+                  <button className='w-full flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors min-h-[48px]'>
+                    <Maximize className='w-5 h-5 text-gray-600 dark:text-slate-400' />
+                    <span className='text-sm text-gray-700 dark:text-slate-300'>Fullscreen</span>
                   </button>
                 </div>
               </div>
@@ -210,60 +218,74 @@ const MobileMapControls = ({
             <div className='p-4 space-y-6 pb-4'>
               {/* Map Settings */}
               <div>
-                <h4 className='text-sm font-medium text-gray-700 mb-3'>Map Settings</h4>
+                <h4 className='text-sm font-medium text-gray-700 dark:text-slate-300 mb-3'>
+                  Map Settings
+                </h4>
                 <div className='space-y-2'>
-                  <label className='flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors'>
+                  <label className='flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors'>
                     <input
                       type='checkbox'
-                      className='w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+                      className='w-4 h-4 text-blue-600 border-gray-300 dark:border-slate-600 rounded focus:ring-blue-500'
                       defaultChecked
                     />
-                    <span className='text-sm text-gray-700'>Show dive sites</span>
+                    <span className='text-sm text-gray-700 dark:text-slate-300'>
+                      Show dive sites
+                    </span>
                   </label>
-                  <label className='flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors'>
+                  <label className='flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors'>
                     <input
                       type='checkbox'
-                      className='w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+                      className='w-4 h-4 text-blue-600 border-gray-300 dark:border-slate-600 rounded focus:ring-blue-500'
                       defaultChecked
                     />
-                    <span className='text-sm text-gray-700'>Show dive centers</span>
+                    <span className='text-sm text-gray-700 dark:text-slate-300'>
+                      Show dive centers
+                    </span>
                   </label>
-                  <label className='flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors'>
+                  <label className='flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors'>
                     <input
                       type='checkbox'
-                      className='w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+                      className='w-4 h-4 text-blue-600 border-gray-300 dark:border-slate-600 rounded focus:ring-blue-500'
                     />
-                    <span className='text-sm text-gray-700'>Show my dives</span>
+                    <span className='text-sm text-gray-700 dark:text-slate-300'>Show my dives</span>
                   </label>
                 </div>
               </div>
 
               {/* Display Options */}
               <div>
-                <h4 className='text-sm font-medium text-gray-700 mb-3'>Display Options</h4>
+                <h4 className='text-sm font-medium text-gray-700 dark:text-slate-300 mb-3'>
+                  Display Options
+                </h4>
                 <div className='space-y-2'>
-                  <label className='flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors'>
+                  <label className='flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors'>
                     <input
                       type='checkbox'
-                      className='w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+                      className='w-4 h-4 text-blue-600 border-gray-300 dark:border-slate-600 rounded focus:ring-blue-500'
                       defaultChecked
                     />
-                    <span className='text-sm text-gray-700'>Show cluster labels</span>
+                    <span className='text-sm text-gray-700 dark:text-slate-300'>
+                      Show cluster labels
+                    </span>
                   </label>
-                  <label className='flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors'>
+                  <label className='flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors'>
                     <input
                       type='checkbox'
-                      className='w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+                      className='w-4 h-4 text-blue-600 border-gray-300 dark:border-slate-600 rounded focus:ring-blue-500'
                     />
-                    <span className='text-sm text-gray-700'>Auto-zoom to fit</span>
+                    <span className='text-sm text-gray-700 dark:text-slate-300'>
+                      Auto-zoom to fit
+                    </span>
                   </label>
                 </div>
               </div>
 
               {/* Gesture Hints */}
-              <div className='bg-blue-50 border border-blue-200 rounded-lg p-4'>
-                <h4 className='text-sm font-medium text-blue-900 mb-2'>Touch Gestures</h4>
-                <div className='space-y-1 text-sm text-blue-800'>
+              <div className='bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 rounded-lg p-4'>
+                <h4 className='text-sm font-medium text-blue-900 dark:text-blue-200 mb-2'>
+                  Touch Gestures
+                </h4>
+                <div className='space-y-1 text-sm text-blue-800 dark:text-blue-300'>
                   <div className='flex items-center gap-2'>
                     <div className='w-2 h-2 bg-blue-600 rounded-full'></div>
                     <span>Pinch to zoom in/out</span>
@@ -283,7 +305,7 @@ const MobileMapControls = ({
         </div>
 
         {/* Footer Actions */}
-        <div className='border-t border-gray-200 p-4 bg-gray-50'>
+        <div className='border-t border-gray-200 dark:border-slate-700 p-4 bg-gray-50 dark:bg-slate-900'>
           <button
             onClick={handleToggleExpanded}
             className='w-full px-4 py-3 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors min-h-[48px]'

@@ -166,13 +166,17 @@ const DiveSiteSidebar = ({
                   {dive.max_depth && (
                     <div className='flex items-center gap-1'>
                       <DepthIcon className='text-divemap-blue font-bold' size={12} />
-                      <span className='text-gray-700 font-medium'>{dive.max_depth}m</span>
+                      <span className='text-gray-700 dark:text-slate-200 font-medium'>
+                        {dive.max_depth}m
+                      </span>
                     </div>
                   )}
                   {dive.duration && (
                     <div className='flex items-center gap-1'>
-                      <Clock className='w-3 h-3 text-gray-400' />
-                      <span className='text-gray-700 font-medium'>{dive.duration}min</span>
+                      <Clock className='w-3 h-3 text-gray-400 dark:text-slate-500' />
+                      <span className='text-gray-700 dark:text-slate-200 font-medium'>
+                        {dive.duration}min
+                      </span>
                     </div>
                   )}
                   {dive.difficulty_code && (
@@ -185,7 +189,7 @@ const DiveSiteSidebar = ({
                 </div>
 
                 {dive.dive_information && (
-                  <p className='text-[11px] text-gray-600 line-clamp-2 leading-relaxed border-t border-gray-100 pt-1.5 mt-1.5'>
+                  <p className='text-[11px] text-gray-600 dark:text-slate-300 line-clamp-2 leading-relaxed border-t border-gray-100 dark:border-slate-700 pt-1.5 mt-1.5'>
                     {decodeHtmlEntities(dive.dive_information)}
                   </p>
                 )}

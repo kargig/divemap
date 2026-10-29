@@ -985,27 +985,29 @@ const DivingCenterDetail = () => {
                 )}
               </div>
               {center.owner_username && (
-                <p className='text-sm text-gray-600 mt-2'>Owner: {center.owner_username}</p>
+                <p className='text-sm text-gray-600 dark:text-slate-400 mt-2'>
+                  Owner: {center.owner_username}
+                </p>
               )}
             </div>
           )}
 
           {/* Diving Organizations */}
           {orgLoading ? (
-            <div className='border-t pt-4'>
-              <h3 className='text-lg font-semibold text-gray-900 mb-3 flex items-center'>
+            <div className='border-t border-gray-100 dark:border-slate-700 pt-4'>
+              <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 mb-3 flex items-center'>
                 <Award className='h-5 w-5 mr-2' />
                 Associated Diving Organizations
               </h3>
               <div className='animate-pulse'>
-                <div className='h-8 bg-gray-200 rounded w-1/4'></div>
+                <div className='h-8 bg-gray-200 dark:bg-slate-700 rounded w-1/4'></div>
               </div>
             </div>
           ) : (
             organizations &&
             organizations.length > 0 && (
-              <div className='border-t pt-4'>
-                <h3 className='text-lg font-semibold text-gray-900 mb-3 flex items-center'>
+              <div className='border-t border-gray-100 dark:border-slate-700 pt-4'>
+                <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 mb-3 flex items-center'>
                   <Award className='h-5 w-5 mr-2' />
                   Associated Diving Organizations
                 </h3>
@@ -1017,15 +1019,15 @@ const DivingCenterDetail = () => {
                         key={org.id}
                         className={`flex items-center px-3 py-2 rounded-lg border ${
                           org.is_primary
-                            ? 'bg-blue-50 border-blue-200 text-blue-800'
-                            : 'bg-gray-50 border-gray-200 text-gray-700'
+                            ? 'bg-blue-50 dark:bg-blue-900/40 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200'
+                            : 'bg-gray-50 dark:bg-slate-750 border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-200'
                         }`}
                       >
                         <span className='font-medium'>
                           {org.diving_organization?.acronym || 'Unknown Organization'}
                         </span>
                         {org.is_primary && (
-                          <span className='ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full'>
+                          <span className='ml-2 px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 rounded-full'>
                             Primary
                           </span>
                         )}
@@ -1038,10 +1040,12 @@ const DivingCenterDetail = () => {
 
           {/* Rating Section */}
           {user && reviewsEnabled && (
-            <div className='border-t pt-4'>
-              <h3 className='text-lg font-semibold text-gray-900 mb-2'>Rate this diving center</h3>
+            <div className='border-t border-gray-100 dark:border-slate-700 pt-4'>
+              <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 mb-2'>
+                Rate this diving center
+              </h3>
               <div className='flex items-center space-x-2'>
-                <span className='text-sm text-gray-600'>Your rating:</span>
+                <span className='text-sm text-gray-600 dark:text-slate-400'>Your rating:</span>
                 {renderStars(rating, true)}
               </div>
             </div>
@@ -1336,10 +1340,10 @@ const DivingCenterDetail = () => {
               </Link>
             </div>
           </div>
-          <div className='bg-white rounded-lg shadow-md p-6 border border-gray-100'>
+          <div className='bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 border border-gray-100 dark:border-slate-700'>
             <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4'>
-              <h2 className='text-2xl font-bold text-gray-900 flex items-center'>
-                <Bell className='h-6 w-6 mr-2 text-blue-600' />
+              <h2 className='text-2xl font-bold text-gray-900 dark:text-slate-100 flex items-center'>
+                <Bell className='h-6 w-6 mr-2 text-blue-600 dark:text-sky-400' />
                 Broadcast Announcement
               </h2>
               <Link
@@ -1350,7 +1354,7 @@ const DivingCenterDetail = () => {
                 Create New Trip
               </Link>
             </div>
-            <p className='text-gray-600 mb-6'>
+            <p className='text-gray-600 dark:text-slate-400 mb-6'>
               Send a custom text message to all your followers. It will appear in their Business
               Inbox and they will receive a push notification.
             </p>
@@ -1359,7 +1363,7 @@ const DivingCenterDetail = () => {
               <div>
                 <label
                   htmlFor='broadcast-message'
-                  className='block text-sm font-medium text-gray-700 mb-1'
+                  className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
                 >
                   Message
                 </label>
@@ -1367,12 +1371,12 @@ const DivingCenterDetail = () => {
                   id='broadcast-message'
                   value={broadcastMessage}
                   onChange={e => setBroadcastMessage(e.target.value)}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px]'
+                  className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px]'
                   placeholder='Type your announcement here...'
                   required
                   maxLength={2000}
                 />
-                <div className='flex justify-between mt-1 text-xs text-gray-500'>
+                <div className='flex justify-between mt-1 text-xs text-gray-500 dark:text-slate-400'>
                   <span>Keep it relevant to your followers.</span>
                   <span>{broadcastMessage.length}/2000</span>
                 </div>
@@ -1389,24 +1393,24 @@ const DivingCenterDetail = () => {
               </div>
             </form>
           </div>
-          <div className='bg-white rounded-lg shadow-md p-6 border border-gray-100'>
+          <div className='bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 border border-gray-100 dark:border-slate-700'>
             <div className='flex justify-between items-center mb-4'>
-              <h2 className='text-xl font-bold text-gray-900 flex items-center gap-2'>
-                <Users className='h-5 w-5 text-blue-600' />
+              <h2 className='text-xl font-bold text-gray-900 dark:text-slate-100 flex items-center gap-2'>
+                <Users className='h-5 w-5 text-blue-600 dark:text-sky-400' />
                 <span>Followers & Managers</span>
               </h2>
-              <div className='bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm font-semibold'>
+              <div className='bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-sky-300 px-3 py-1 rounded-full text-sm font-semibold'>
                 {center?.follower_count || 0} Follower{center?.follower_count !== 1 ? 's' : ''}
               </div>
             </div>
 
             {/* Manager administration tools inside card */}
             {isOwner || isAdmin || isModerator ? (
-              <div className='mt-6 border-t border-gray-100 pt-6'>
-                <h3 className='text-md font-bold text-gray-800 mb-2 flex items-center gap-2'>
+              <div className='mt-6 border-t border-gray-100 dark:border-slate-700 pt-6'>
+                <h3 className='text-md font-bold text-gray-800 dark:text-slate-100 mb-2 flex items-center gap-2'>
                   <span>Team Management</span>
                 </h3>
-                <p className='text-sm text-gray-500 mb-6 leading-relaxed'>
+                <p className='text-sm text-gray-500 dark:text-slate-400 mb-6 leading-relaxed'>
                   As the owner, you can authorize other registered users to help manage this diving
                   center profile. Authorized managers can create and edit dive trips, reply to
                   messages, and update announcement broadcasts.
@@ -1426,7 +1430,7 @@ const DivingCenterDetail = () => {
                     placeholder='Enter username of the user to add as manager...'
                     value={managerUsername}
                     onChange={e => setManagerUsername(e.target.value)}
-                    className='w-full px-4 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20'
+                    className='w-full px-4 py-2 text-sm border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20'
                   />
                   <button
                     type='submit'
@@ -1440,24 +1444,28 @@ const DivingCenterDetail = () => {
 
                 {/* Managers List */}
                 {managers.length === 0 ? (
-                  <div className='text-center py-6 border border-dashed border-gray-200 rounded-xl bg-gray-50/50'>
-                    <p className='text-sm text-gray-400 font-medium'>
+                  <div className='text-center py-6 border border-dashed border-gray-200 dark:border-slate-700 rounded-xl bg-gray-50/50 dark:bg-slate-900/40'>
+                    <p className='text-sm text-gray-400 dark:text-slate-500 font-medium'>
                       No authorized managers added yet.
                     </p>
                   </div>
                 ) : (
-                  <div className='divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden'>
+                  <div className='divide-y divide-gray-100 dark:divide-slate-700 border border-gray-100 dark:border-slate-700 rounded-xl overflow-hidden'>
                     {managers.map(manager => (
                       <div
                         key={manager.user_id}
-                        className='flex items-center justify-between p-4 bg-white hover:bg-gray-50/50 transition-colors'
+                        className='flex items-center justify-between p-4 bg-white dark:bg-slate-800 hover:bg-gray-50/50 dark:hover:bg-slate-700/50 transition-colors'
                       >
                         <div className='flex items-center gap-3'>
                           <Avatar src={manager.avatar_url} alt={manager.username} size='md' />
                           <div>
-                            <p className='text-sm font-bold text-gray-900'>{manager.username}</p>
+                            <p className='text-sm font-bold text-gray-900 dark:text-slate-100'>
+                              {manager.username}
+                            </p>
                             {manager.name && (
-                              <p className='text-xs text-gray-500'>{manager.name}</p>
+                              <p className='text-xs text-gray-500 dark:text-slate-400'>
+                                {manager.name}
+                              </p>
                             )}
                           </div>
                         </div>
@@ -1472,7 +1480,7 @@ const DivingCenterDetail = () => {
                               removeManagerMutation.mutate(manager.user_id);
                             }
                           }}
-                          className='p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors'
+                          className='p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl transition-colors'
                           title='Revoke access'
                         >
                           <Trash2 className='h-4 w-4' />
@@ -1483,7 +1491,7 @@ const DivingCenterDetail = () => {
                 )}
               </div>
             ) : (
-              <p className='text-gray-500 italic mt-4'>
+              <p className='text-gray-500 dark:text-slate-400 italic mt-4'>
                 Roster is private to the owner and staff administrators.
               </p>
             )}
@@ -1501,7 +1509,7 @@ const DivingCenterDetail = () => {
           <div className='mb-4'>
             <label
               htmlFor='ownership-reason'
-              className='block text-sm font-medium text-gray-700 mb-2'
+              className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2'
             >
               Reason for Claim *
             </label>
@@ -1509,7 +1517,7 @@ const DivingCenterDetail = () => {
               id='ownership-reason'
               value={ownershipReason}
               onChange={e => setOwnershipReason(e.target.value)}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
               rows='4'
               placeholder='Please explain how to verify that you are the owner of this diving center. Provide email/telephone contact details if necessary...'
               required
@@ -1517,7 +1525,7 @@ const DivingCenterDetail = () => {
           </div>
           <div className='flex items-center space-x-2 mb-4'>
             <AlertCircle className='h-5 w-5 text-yellow-600' />
-            <p className='text-sm text-gray-600'>
+            <p className='text-sm text-gray-600 dark:text-slate-300'>
               Your claim will be reviewed by administrators. You&apos;ll be notified once a decision
               is made.
             </p>
@@ -1526,7 +1534,7 @@ const DivingCenterDetail = () => {
             <button
               type='button'
               onClick={() => setShowOwnershipClaim(false)}
-              className='px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50'
+              className='px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-200 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700'
             >
               Cancel
             </button>

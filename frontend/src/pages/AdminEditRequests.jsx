@@ -69,7 +69,7 @@ const DiffViewer = ({ oldText, newText }) => {
   const diff = diffWords(oldText, newText);
 
   return (
-    <div className='font-sans whitespace-pre-wrap break-words text-sm leading-relaxed p-2 rounded bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 max-h-60 overflow-y-auto text-gray-900 dark:text-gray-100'>
+    <div className='font-sans whitespace-pre-wrap break-words text-sm leading-relaxed p-2 rounded bg-gray-50 dark:bg-slate-900/60 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 max-h-60 overflow-y-auto text-gray-900 dark:text-gray-100'>
       {diff.map((part, index) => {
         if (part.type === 'add') {
           return (
@@ -277,7 +277,7 @@ const AdminEditRequests = () => {
         </div>
 
         {requests.length === 0 ? (
-          <div className='bg-white p-8 text-center rounded-lg border border-gray-200 shadow-sm'>
+          <div className='bg-white p-8 text-center rounded-lg border border-gray-200 dark:border-slate-700 shadow-sm'>
             <Check className='w-12 h-12 text-green-500 mx-auto mb-4' />
             <h3 className='text-lg font-medium text-gray-900'>All caught up!</h3>
             <p className='text-gray-500'>There are no pending edit requests to moderate.</p>
@@ -295,7 +295,7 @@ const AdminEditRequests = () => {
                 />
                 <label
                   htmlFor='selectAll'
-                  className='ml-2 text-sm font-medium text-gray-700 cursor-pointer'
+                  className='ml-2 text-sm font-medium text-gray-700 dark:text-slate-200 cursor-pointer'
                 >
                   Select All ({selectedIds.length} selected)
                 </label>
@@ -335,9 +335,9 @@ const AdminEditRequests = () => {
               {requests.map(req => (
                 <div
                   key={req.id}
-                  className={`bg-white rounded-lg border shadow-sm overflow-hidden flex flex-col md:flex-row transition-colors ${selectedIds.includes(req.id) ? 'border-blue-400 ring-1 ring-blue-400' : 'border-gray-200'}`}
+                  className={`bg-white rounded-lg border shadow-sm overflow-hidden flex flex-col md:flex-row transition-colors ${selectedIds.includes(req.id) ? 'border-blue-400 ring-1 ring-blue-400' : 'border-gray-200 dark:border-slate-700'}`}
                 >
-                  <div className='bg-gray-50 p-6 md:w-1/3 border-b md:border-b-0 md:border-r border-gray-200 relative'>
+                  <div className='bg-gray-50 dark:bg-slate-900/60 p-6 md:w-1/3 border-b md:border-b-0 md:border-r border-gray-200 dark:border-slate-700 relative'>
                     <div className='absolute top-4 right-4 flex flex-col items-end'>
                       <input
                         type='checkbox'
@@ -345,7 +345,9 @@ const AdminEditRequests = () => {
                         onChange={e => handleSelectOne(req.id, e.target.checked)}
                         className='w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer'
                       />
-                      <span className='text-xs text-gray-400 mt-2 font-mono'>ID: {req.id}</span>
+                      <span className='text-xs text-gray-400 dark:text-slate-400 mt-2 font-mono'>
+                        ID: {req.id}
+                      </span>
                     </div>
 
                     <div className='flex items-center space-x-2 text-primary-600 font-medium mb-4 pr-8'>
@@ -355,7 +357,7 @@ const AdminEditRequests = () => {
 
                     <div className='space-y-4'>
                       <div>
-                        <div className='text-xs text-gray-500 uppercase tracking-wider font-semibold mb-1'>
+                        <div className='text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wider font-semibold mb-1'>
                           Target Site
                         </div>
                         <div className='flex items-center text-gray-900'>
@@ -372,7 +374,7 @@ const AdminEditRequests = () => {
                       </div>
 
                       <div>
-                        <div className='text-xs text-gray-500 uppercase tracking-wider font-semibold mb-1'>
+                        <div className='text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wider font-semibold mb-1'>
                           Proposed By
                         </div>
                         <div className='flex items-center text-gray-900'>
@@ -389,7 +391,7 @@ const AdminEditRequests = () => {
                       </div>
 
                       <div>
-                        <div className='text-xs text-gray-500 uppercase tracking-wider font-semibold mb-1'>
+                        <div className='text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wider font-semibold mb-1'>
                           Submitted At
                         </div>
                         <div className='flex items-center text-gray-900 text-sm'>
@@ -401,12 +403,12 @@ const AdminEditRequests = () => {
                   </div>
 
                   <div className='p-6 md:w-2/3 flex flex-col'>
-                    <h4 className='text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3'>
+                    <h4 className='text-sm font-semibold text-gray-900 dark:text-slate-100 uppercase tracking-wider mb-3'>
                       Proposed Changes
                     </h4>
                     <div className='flex-grow border rounded-md overflow-hidden'>
                       <table className='min-w-full divide-y divide-gray-200'>
-                        <thead className='bg-gray-50'>
+                        <thead className='bg-gray-50 dark:bg-slate-900/60'>
                           <tr>
                             <th
                               scope='col'
@@ -428,7 +430,7 @@ const AdminEditRequests = () => {
                             </th>
                           </tr>
                         </thead>
-                        <tbody className='bg-white divide-y divide-gray-200'>
+                        <tbody className='bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700'>
                           {(() => {
                             if (req.edit_type === 'site_data' && req.proposed_data) {
                               return Object.entries(req.proposed_data).map(([key, newValue]) => {
@@ -453,7 +455,7 @@ const AdminEditRequests = () => {
                                 if (!isChanged) {
                                   return (
                                     <tr key={key} className='bg-white opacity-60'>
-                                      <td className='px-4 py-2 text-sm text-gray-500'>
+                                      <td className='px-4 py-2 text-sm text-gray-500 dark:text-slate-400'>
                                         {key.replace(/_/g, ' ')}
                                       </td>
                                       <td className='px-4 py-2 text-sm text-gray-400'>
@@ -468,7 +470,7 @@ const AdminEditRequests = () => {
                                 if (key === 'description') {
                                   return (
                                     <tr key={key} className='bg-yellow-50/30'>
-                                      <td className='px-4 py-2 text-sm font-medium text-gray-900'>
+                                      <td className='px-4 py-2 text-sm font-medium text-gray-900 dark:text-slate-100'>
                                         <div className='flex items-center'>
                                           description
                                           <span className='ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800'>
@@ -490,7 +492,7 @@ const AdminEditRequests = () => {
 
                                 return (
                                   <tr key={key} className='bg-yellow-50/30'>
-                                    <td className='px-4 py-2 text-sm font-medium text-gray-900'>
+                                    <td className='px-4 py-2 text-sm font-medium text-gray-900 dark:text-slate-100'>
                                       <div className='flex items-center'>
                                         {key.replace(/_/g, ' ')}
                                         <span className='ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800'>
@@ -514,7 +516,7 @@ const AdminEditRequests = () => {
                                 .filter(([key, val]) => val !== null && val !== '')
                                 .map(([key, val]) => (
                                   <tr key={key} className='bg-green-50/10'>
-                                    <td className='px-4 py-2 text-sm font-medium text-gray-900'>
+                                    <td className='px-4 py-2 text-sm font-medium text-gray-900 dark:text-slate-100'>
                                       {key.replace(/_/g, ' ')}
                                     </td>
                                     <td className='px-4 py-2 text-sm text-gray-400'>-</td>
@@ -550,7 +552,7 @@ const AdminEditRequests = () => {
                                   if (String(currentValue) === String(newValue)) return null;
                                   return (
                                     <tr key={key} className='bg-yellow-50/30'>
-                                      <td className='px-4 py-2 text-sm font-medium text-gray-900'>
+                                      <td className='px-4 py-2 text-sm font-medium text-gray-900 dark:text-slate-100'>
                                         <div className='flex items-center'>
                                           {key.replace(/_/g, ' ')}
                                           <span className='ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800'>
@@ -587,7 +589,7 @@ const AdminEditRequests = () => {
                               );
                               return (
                                 <tr className='bg-red-50/30'>
-                                  <td className='px-4 py-2 text-sm font-medium text-gray-900'>
+                                  <td className='px-4 py-2 text-sm font-medium text-gray-900 dark:text-slate-100'>
                                     Media Record
                                   </td>
                                   <td className='px-4 py-2 text-sm text-red-600 line-through'>
@@ -614,7 +616,7 @@ const AdminEditRequests = () => {
                                       : 'bg-red-50/10'
                                   }
                                 >
-                                  <td className='px-4 py-2 text-sm font-medium text-gray-900'>
+                                  <td className='px-4 py-2 text-sm font-medium text-gray-900 dark:text-slate-100'>
                                     <div className='flex items-center'>
                                       Tag
                                       <span
@@ -650,7 +652,7 @@ const AdminEditRequests = () => {
                                         : 'bg-red-50/10'
                                     }
                                   >
-                                    <td className='px-4 py-2 text-sm font-medium text-gray-900'>
+                                    <td className='px-4 py-2 text-sm font-medium text-gray-900 dark:text-slate-100'>
                                       <div className='flex items-center'>
                                         Diving Center
                                         <span
@@ -672,7 +674,7 @@ const AdminEditRequests = () => {
                                   {req.edit_type === 'center_association' &&
                                     req.proposed_data.dive_cost && (
                                       <tr className='bg-green-50/10'>
-                                        <td className='px-4 py-2 text-sm font-medium text-gray-900 pl-8'>
+                                        <td className='px-4 py-2 text-sm font-medium text-gray-900 dark:text-slate-100 pl-8'>
                                           └ Dive Cost
                                         </td>
                                         <td className='px-4 py-2 text-sm text-gray-400'>-</td>
@@ -689,10 +691,10 @@ const AdminEditRequests = () => {
                             return (
                               <tr>
                                 <td colSpan={3} className='px-4 py-4 text-sm text-gray-900'>
-                                  <div className='mb-2 font-semibold text-xs text-gray-500 uppercase'>
+                                  <div className='mb-2 font-semibold text-xs text-gray-500 dark:text-slate-400 uppercase'>
                                     Raw Request Data:
                                   </div>
-                                  <pre className='text-xs whitespace-pre-wrap font-mono bg-gray-50 p-3 rounded border border-gray-200'>
+                                  <pre className='text-xs whitespace-pre-wrap font-mono bg-gray-50 dark:bg-slate-900/60 p-3 rounded border border-gray-200 dark:border-slate-700'>
                                     {JSON.stringify(req.proposed_data, null, 2)}
                                   </pre>
                                 </td>

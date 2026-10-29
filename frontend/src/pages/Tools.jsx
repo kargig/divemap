@@ -130,12 +130,14 @@ const Tools = () => {
             </div>
           </Tabs>
         </div>
-        <div className='p-4 sm:p-6 bg-amber-50 border-t border-amber-100 mt-auto'>
+        <div className='p-4 sm:p-6 bg-amber-50 dark:bg-amber-950/40 border-t border-amber-100 dark:border-amber-900/60 mt-auto'>
           <div className='flex items-start'>
-            <AlertTriangle className='h-6 w-6 text-amber-600 mr-3 mt-0.5' />
+            <AlertTriangle className='h-6 w-6 text-amber-600 dark:text-amber-400 mr-3 mt-0.5' />
             <div>
-              <h3 className='text-sm font-bold text-amber-800'>SAFETY WARNING</h3>
-              <p className='mt-1 text-sm text-amber-700'>
+              <h3 className='text-sm font-bold text-amber-800 dark:text-amber-300'>
+                SAFETY WARNING
+              </h3>
+              <p className='mt-1 text-sm text-amber-700 dark:text-amber-200/90'>
                 These tools are for educational purposes only. Diving involves inherent risks. Never
                 dive beyond your certification level or physical capabilities. Always use a
                 calibrated dive computer and have your dive plan verified by your buddy or dive

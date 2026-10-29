@@ -578,7 +578,7 @@ const DiverDetailsModal = ({
                         className={`px-2.5 py-1 rounded text-[10px] font-bold transition-all ${
                           editableAnswers[q.id] === false
                             ? 'bg-emerald-600 text-white shadow-sm'
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-200 hover:bg-gray-300 dark:hover:bg-slate-600'
                         }`}
                       >
                         NO
@@ -589,7 +589,7 @@ const DiverDetailsModal = ({
                         className={`px-2.5 py-1 rounded text-[10px] font-bold transition-all ${
                           editableAnswers[q.id] === true
                             ? 'bg-red-600 text-white shadow-sm'
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-200 hover:bg-gray-300 dark:hover:bg-slate-600'
                         }`}
                       >
                         YES
@@ -600,7 +600,7 @@ const DiverDetailsModal = ({
               </div>
 
               <div>
-                <label className='block font-semibold mb-1 text-[11px] text-gray-700 dark:text-gray-300'>
+                <label className='block font-semibold mb-1 text-[11px] text-gray-700 dark:text-slate-300'>
                   Manager Audit Reason *
                 </label>
                 <input
@@ -609,15 +609,15 @@ const DiverDetailsModal = ({
                   value={modificationReason}
                   onChange={e => setModificationReason(e.target.value)}
                   placeholder='e.g. Diver confirmed no history of cardiovascular issues; misclick on mobile questionnaire'
-                  className='w-full px-2.5 py-1.5 border rounded-lg text-xs bg-white dark:bg-gray-700'
+                  className='w-full px-2.5 py-1.5 border border-gray-300 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100'
                 />
               </div>
 
-              <div className='flex justify-end gap-2 pt-2 border-t'>
+              <div className='flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-slate-700'>
                 <button
                   type='button'
                   onClick={() => setShowEditAnswers(false)}
-                  className='px-3 py-1.5 text-gray-600 rounded-lg text-xs'
+                  className='px-3 py-1.5 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 rounded-lg text-xs'
                 >
                   Cancel
                 </button>
@@ -719,11 +719,11 @@ const DiverDetailsModal = ({
                 </span>
               </label>
 
-              <div className='flex justify-end gap-2 pt-2 border-t'>
+              <div className='flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-slate-700'>
                 <button
                   type='button'
                   onClick={() => setShowClearanceForm(false)}
-                  className='px-3 py-1.5 text-gray-600 rounded-lg text-xs font-semibold'
+                  className='px-3 py-1.5 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 rounded-lg text-xs font-semibold'
                 >
                   Cancel
                 </button>
@@ -942,7 +942,7 @@ const DiverDetailsModal = ({
           <button
             type='button'
             onClick={onClose}
-            className='px-4 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold text-xs'
+            className='px-4 py-1.5 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-700 dark:text-slate-200 rounded-lg font-semibold text-xs transition-colors'
           >
             Close
           </button>

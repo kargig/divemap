@@ -254,7 +254,7 @@ const AdminDivingOrganizations = () => {
         <div className='bg-white rounded-lg shadow overflow-hidden'>
           <div className='overflow-x-auto'>
             <table className='min-w-full divide-y divide-gray-200'>
-              <thead className='bg-gray-50'>
+              <thead className='bg-gray-50 dark:bg-slate-900/60'>
                 <tr>
                   <th className='px-2 py-3 text-left'>
                     <input
@@ -281,7 +281,7 @@ const AdminDivingOrganizations = () => {
                   </th>
                 </tr>
               </thead>
-              <tbody className='bg-white divide-y divide-gray-200'>
+              <tbody className='bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700'>
                 {isLoading ? (
                   <tr>
                     <td colSpan='7' className='px-6 py-4 text-center'>
@@ -298,7 +298,7 @@ const AdminDivingOrganizations = () => {
                   filteredOrganizations.map((org, index) => (
                     <tr
                       key={org.id}
-                      className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100`}
+                      className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50 dark:bg-slate-900/60'} hover:bg-gray-100`}
                     >
                       <td className='px-2 py-4 whitespace-nowrap'>
                         <input
@@ -310,7 +310,7 @@ const AdminDivingOrganizations = () => {
                       </td>
                       <td className='px-2 py-4 whitespace-nowrap'>
                         <div className='flex items-center'>
-                          <div className='flex-shrink-0 h-14 w-24 flex items-center justify-center bg-gray-50 rounded-md border border-gray-100 overflow-hidden'>
+                          <div className='flex-shrink-0 h-14 w-24 flex items-center justify-center bg-gray-50 dark:bg-slate-900/60 rounded-md border border-gray-100 overflow-hidden'>
                             {org.logo_url ? (
                               <img
                                 className='max-h-full max-w-full object-contain p-1'
@@ -326,7 +326,9 @@ const AdminDivingOrganizations = () => {
                             )}
                           </div>
                           <div className='ml-4'>
-                            <div className='text-sm font-medium text-gray-900'>{org.name}</div>
+                            <div className='text-sm font-medium text-gray-900 dark:text-slate-100'>
+                              {org.name}
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -386,7 +388,10 @@ const AdminDivingOrganizations = () => {
           <div className='space-y-4'>
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               <div>
-                <label htmlFor='org-name' className='block text-sm font-medium text-gray-700 mb-1'>
+                <label
+                  htmlFor='org-name'
+                  className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
+                >
                   Name *
                 </label>
                 <input
@@ -401,7 +406,7 @@ const AdminDivingOrganizations = () => {
               <div>
                 <label
                   htmlFor='org-acronym'
-                  className='block text-sm font-medium text-gray-700 mb-1'
+                  className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
                 >
                   Acronym *
                 </label>
@@ -420,7 +425,7 @@ const AdminDivingOrganizations = () => {
               <div>
                 <label
                   htmlFor='org-country'
-                  className='block text-sm font-medium text-gray-700 mb-1'
+                  className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
                 >
                   Country
                 </label>
@@ -436,7 +441,7 @@ const AdminDivingOrganizations = () => {
               <div>
                 <label
                   htmlFor='org-founded-year'
-                  className='block text-sm font-medium text-gray-700 mb-1'
+                  className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
                 >
                   Founded Year
                 </label>
@@ -454,7 +459,10 @@ const AdminDivingOrganizations = () => {
             </div>
 
             <div>
-              <label htmlFor='org-website' className='block text-sm font-medium text-gray-700 mb-1'>
+              <label
+                htmlFor='org-website'
+                className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
+              >
                 Website
               </label>
               <input
@@ -470,7 +478,7 @@ const AdminDivingOrganizations = () => {
             <div>
               <label
                 htmlFor='org-logo-url'
-                className='block text-sm font-medium text-gray-700 mb-1'
+                className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
               >
                 Logo URL
               </label>
@@ -487,7 +495,7 @@ const AdminDivingOrganizations = () => {
             <div>
               <label
                 htmlFor='org-description'
-                className='block text-sm font-medium text-gray-700 mb-1'
+                className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
               >
                 Description
               </label>
@@ -539,7 +547,7 @@ const AdminDivingOrganizations = () => {
               <div>
                 <label
                   htmlFor='edit-org-name'
-                  className='block text-sm font-medium text-gray-700 mb-1'
+                  className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
                 >
                   Name *
                 </label>
@@ -555,7 +563,7 @@ const AdminDivingOrganizations = () => {
               <div>
                 <label
                   htmlFor='edit-org-acronym'
-                  className='block text-sm font-medium text-gray-700 mb-1'
+                  className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
                 >
                   Acronym *
                 </label>
@@ -574,7 +582,7 @@ const AdminDivingOrganizations = () => {
               <div>
                 <label
                   htmlFor='edit-org-country'
-                  className='block text-sm font-medium text-gray-700 mb-1'
+                  className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
                 >
                   Country
                 </label>
@@ -590,7 +598,7 @@ const AdminDivingOrganizations = () => {
               <div>
                 <label
                   htmlFor='edit-org-founded-year'
-                  className='block text-sm font-medium text-gray-700 mb-1'
+                  className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
                 >
                   Founded Year
                 </label>
@@ -610,7 +618,7 @@ const AdminDivingOrganizations = () => {
             <div>
               <label
                 htmlFor='edit-org-website'
-                className='block text-sm font-medium text-gray-700 mb-1'
+                className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
               >
                 Website
               </label>
@@ -627,7 +635,7 @@ const AdminDivingOrganizations = () => {
             <div>
               <label
                 htmlFor='edit-org-logo-url'
-                className='block text-sm font-medium text-gray-700 mb-1'
+                className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
               >
                 Logo URL
               </label>
@@ -644,7 +652,7 @@ const AdminDivingOrganizations = () => {
             <div>
               <label
                 htmlFor='edit-org-description'
-                className='block text-sm font-medium text-gray-700 mb-1'
+                className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
               >
                 Description
               </label>

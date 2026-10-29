@@ -22,10 +22,12 @@ const CountryDistributionChart = ({ data }) => {
       const entry = payload[0].payload;
       const percentage = ((entry.count / totalDives) * 100).toFixed(1);
       return (
-        <div className='bg-white p-3 border border-gray-100 shadow-lg rounded-md text-sm text-left'>
-          <p className='font-semibold text-gray-800'>{entry.country}</p>
-          <p className='text-gray-600 text-xs mt-1'>
-            Dives: <span className='font-semibold'>{entry.count}</span> ({percentage}%)
+        <div className='bg-white dark:bg-slate-800 p-3 border border-gray-100 dark:border-slate-700 shadow-lg rounded-md text-sm text-left'>
+          <p className='font-semibold text-gray-800 dark:text-slate-100'>{entry.country}</p>
+          <p className='text-gray-600 dark:text-slate-400 text-xs mt-1'>
+            Dives:{' '}
+            <span className='font-semibold text-gray-900 dark:text-slate-100'>{entry.count}</span> (
+            {percentage}%)
           </p>
         </div>
       );
@@ -34,12 +36,12 @@ const CountryDistributionChart = ({ data }) => {
   };
 
   return (
-    <div className='bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-6 hover:shadow-md transition-shadow animate-fade-in text-center'>
-      <h3 className='text-md font-semibold text-gray-800 mb-1 flex items-center justify-center gap-2'>
-        <Globe className='w-5 h-5 text-blue-600' />
+    <div className='bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-3 sm:p-6 hover:shadow-md transition-shadow animate-fade-in text-center'>
+      <h3 className='text-md font-semibold text-gray-800 dark:text-slate-100 mb-1 flex items-center justify-center gap-2'>
+        <Globe className='w-5 h-5 text-blue-600 dark:text-sky-400' />
         Global Dive Travel Distribution
       </h3>
-      <p className='text-xs text-gray-500 mb-6'>
+      <p className='text-xs text-gray-500 dark:text-slate-400 mb-6'>
         Proportion of logged dives across visited nations.
       </p>
 
@@ -67,8 +69,10 @@ const CountryDistributionChart = ({ data }) => {
           </ResponsiveContainer>
           {/* Inner Donut Text */}
           <div className='absolute inset-0 flex flex-col items-center justify-center pointer-events-none'>
-            <span className='text-2xl font-bold text-gray-800'>{totalDives}</span>
-            <span className='text-[10px] text-gray-400 uppercase tracking-wider font-semibold'>
+            <span className='text-2xl font-bold text-gray-800 dark:text-slate-100'>
+              {totalDives}
+            </span>
+            <span className='text-[10px] text-gray-400 dark:text-slate-400 uppercase tracking-wider font-semibold'>
               Total Dives
             </span>
           </div>
@@ -81,26 +85,28 @@ const CountryDistributionChart = ({ data }) => {
             return (
               <div
                 key={entry.country}
-                className='flex items-center justify-between text-xs pb-1.5 border-b border-gray-50'
+                className='flex items-center justify-between text-xs pb-1.5 border-b border-gray-50 dark:border-slate-700/60'
               >
                 <div className='flex items-center gap-2'>
                   <span
                     className='w-3 h-3 rounded-full shrink-0'
                     style={{ backgroundColor: COLORS[index % COLORS.length] }}
                   />
-                  <span className='font-medium text-gray-700 truncate max-w-[120px]'>
+                  <span className='font-medium text-gray-700 dark:text-slate-300 truncate max-w-[120px]'>
                     {entry.country}
                   </span>
                 </div>
-                <span className='text-gray-500 font-semibold'>
+                <span className='text-gray-500 dark:text-slate-400 font-semibold'>
                   {entry.count}{' '}
-                  <span className='text-gray-400 font-normal text-[10px]'>({pct}%)</span>
+                  <span className='text-gray-400 dark:text-slate-500 font-normal text-[10px]'>
+                    ({pct}%)
+                  </span>
                 </span>
               </div>
             );
           })}
           {sortedData.length > 6 && (
-            <div className='text-[10px] text-gray-400 font-medium text-center pt-1.5'>
+            <div className='text-[10px] text-gray-400 dark:text-slate-500 font-medium text-center pt-1.5'>
               + {sortedData.length - 6} other countries visited
             </div>
           )}

@@ -280,9 +280,11 @@ const AdminDiveRoutes = () => {
         size: 250,
         cell: ({ row }) => (
           <div className='max-w-[250px]'>
-            <div className='text-sm font-medium text-gray-900 break-words'>{row.original.name}</div>
+            <div className='text-sm font-medium text-gray-900 dark:text-slate-100 break-words'>
+              {row.original.name}
+            </div>
             {row.original.description && (
-              <div className='text-xs text-gray-500 break-words line-clamp-2 mt-1'>
+              <div className='text-xs text-gray-500 dark:text-slate-400 break-words line-clamp-2 mt-1'>
                 {decodeHtmlEntities(row.original.description)}
               </div>
             )}
@@ -405,7 +407,7 @@ const AdminDiveRoutes = () => {
               Manage all dive routes in the system
             </p>
             {paginationInfo.totalCount !== undefined && (
-              <p className='text-xs sm:text-sm text-gray-500 mt-1'>
+              <p className='text-xs sm:text-sm text-gray-500 dark:text-slate-400 mt-1'>
                 Total dive routes: {paginationInfo.totalCount}
               </p>
             )}
@@ -442,12 +444,12 @@ const AdminDiveRoutes = () => {
         )}
 
         {/* Filters */}
-        <div className='mb-4 sm:mb-6 bg-gray-50 p-3 sm:p-4 rounded-lg'>
+        <div className='mb-4 sm:mb-6 bg-gray-50 dark:bg-slate-900/60 p-3 sm:p-4 rounded-lg'>
           <div className='flex items-center justify-between mb-3 sm:mb-4'>
             <h3 className='text-base sm:text-lg font-semibold'>Filters</h3>
             <button
               onClick={clearFilters}
-              className='text-xs sm:text-sm text-gray-600 hover:text-gray-800'
+              className='text-xs sm:text-sm text-gray-600 dark:text-slate-300 hover:text-gray-800'
             >
               Clear Filters
             </button>
@@ -505,7 +507,7 @@ const AdminDiveRoutes = () => {
           {/* Column Visibility Toggle */}
           <div className='relative'>
             <button
-              className='flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium text-gray-700 w-full sm:w-auto'
+              className='flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-slate-900/60 text-sm font-medium text-gray-700 dark:text-slate-200 w-full sm:w-auto'
               onClick={e => {
                 e.stopPropagation();
                 const menu = document.getElementById('column-visibility-menu');
@@ -519,7 +521,7 @@ const AdminDiveRoutes = () => {
             </button>
             <div
               id='column-visibility-menu'
-              className='hidden absolute left-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg z-50'
+              className='hidden absolute left-0 mt-2 w-56 bg-white border border-gray-200 dark:border-slate-700 rounded-md shadow-lg z-50'
               onClick={e => e.stopPropagation()}
             >
               <div className='p-2'>
@@ -537,7 +539,7 @@ const AdminDiveRoutes = () => {
                     return (
                       <label
                         key={columnId}
-                        className='flex items-center px-2 py-1.5 hover:bg-gray-50 cursor-pointer rounded'
+                        className='flex items-center px-2 py-1.5 hover:bg-gray-50 dark:bg-slate-900/60 cursor-pointer rounded'
                       >
                         <input
                           type='checkbox'
@@ -550,7 +552,7 @@ const AdminDiveRoutes = () => {
                           }}
                           className='mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
                         />
-                        <span className='text-sm text-gray-700'>
+                        <span className='text-sm text-gray-700 dark:text-slate-300'>
                           {typeof column.header === 'string'
                             ? column.header
                             : columnId.charAt(0).toUpperCase() +

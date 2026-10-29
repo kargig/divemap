@@ -407,8 +407,8 @@ const RouteDisplay = ({ route, diveSite, showBearings, onToggleBearings }) => {
           >
             <Popup>
               <div className='text-center'>
-                <h3 className='font-semibold text-gray-800'>{diveSite.name}</h3>
-                <p className='text-sm text-gray-600 mt-1'>Dive Site</p>
+                <h3 className='font-semibold text-gray-800 dark:text-slate-100'>{diveSite.name}</h3>
+                <p className='text-sm text-gray-600 dark:text-slate-400 mt-1'>Dive Site</p>
               </div>
             </Popup>
           </Marker>
@@ -1154,7 +1154,7 @@ const RouteDetail = () => {
       >
         <div className='flex items-start mb-4'>
           <AlertCircle className='w-6 h-6 text-red-600 mr-3 mt-0.5' />
-          <p className='text-gray-600'>
+          <p className='text-gray-600 dark:text-slate-300'>
             Are you sure you want to hide this route? This action can be undone by restoring the
             route later.
           </p>
@@ -1163,7 +1163,7 @@ const RouteDetail = () => {
         <div className='flex justify-end gap-3'>
           <button
             onClick={() => setShowDeleteConfirm(false)}
-            className='px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors'
+            className='px-4 py-2 text-gray-700 dark:text-slate-200 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-md transition-colors'
           >
             Cancel
           </button>
@@ -1191,17 +1191,19 @@ const RouteDetail = () => {
         title='Export Route'
         className='max-w-md'
       >
-        <p className='text-gray-600 mb-4'>Choose a format to download your route:</p>
+        <p className='text-gray-600 dark:text-slate-300 mb-4'>
+          Choose a format to download your route:
+        </p>
 
         <div className='space-y-2'>
           {exportFormats.map(format => (
             <button
               key={format.format}
               onClick={() => handleExportRoute(format.format)}
-              className='w-full text-left p-3 border rounded hover:bg-gray-50 transition-colors'
+              className='w-full text-left p-3 border border-gray-200 dark:border-slate-700 rounded hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors'
             >
-              <div className='font-medium text-gray-900'>{format.name}</div>
-              <div className='text-sm text-gray-600'>{format.description}</div>
+              <div className='font-medium text-gray-900 dark:text-slate-100'>{format.name}</div>
+              <div className='text-sm text-gray-600 dark:text-slate-400'>{format.description}</div>
             </button>
           ))}
         </div>
@@ -1209,7 +1211,7 @@ const RouteDetail = () => {
         <div className='flex justify-end mt-6'>
           <button
             onClick={() => setShowExportModal(false)}
-            className='px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors'
+            className='px-4 py-2 text-gray-700 dark:text-slate-200 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-md transition-colors'
           >
             Cancel
           </button>

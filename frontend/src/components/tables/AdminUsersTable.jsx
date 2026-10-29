@@ -93,7 +93,7 @@ const AdminUsersTable = ({
         {/* Mobile: Card View, Desktop: Table View */}
         <div className='hidden md:block overflow-x-auto'>
           <table className='min-w-full divide-y divide-gray-200'>
-            <thead className='bg-gray-50'>
+            <thead className='bg-gray-50 dark:bg-slate-900/60'>
               {table.getHeaderGroups().map(headerGroup => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map(header => (
@@ -137,7 +137,7 @@ const AdminUsersTable = ({
                 </tr>
               ))}
             </thead>
-            <tbody className='bg-white divide-y divide-gray-200'>
+            <tbody className='bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700'>
               {table.getRowModel().rows.length === 0 ? (
                 <tr>
                   <td
@@ -153,7 +153,7 @@ const AdminUsersTable = ({
                 table.getRowModel().rows.map((row, index) => (
                   <tr
                     key={row.id}
-                    className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100`}
+                    className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50 dark:bg-slate-900/60'} hover:bg-gray-100`}
                   >
                     {row.getVisibleCells().map(cell => (
                       <td
@@ -181,7 +181,10 @@ const AdminUsersTable = ({
               const user = row.original;
               const isCurrentUser = user.id === currentUserId;
               return (
-                <div key={row.id} className='bg-gray-50 rounded-lg p-4 space-y-3'>
+                <div
+                  key={row.id}
+                  className='bg-gray-50 dark:bg-slate-900/60 rounded-lg p-4 space-y-3'
+                >
                   <div className='flex items-start justify-between'>
                     <div className='flex-1'>
                       <div className='flex items-center space-x-2 mb-2'>
@@ -197,7 +200,9 @@ const AdminUsersTable = ({
                           disabled={isCurrentUser}
                           className='rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50'
                         />
-                        <h3 className='text-sm font-semibold text-gray-900'>{user.username}</h3>
+                        <h3 className='text-sm font-semibold text-gray-900 dark:text-slate-100'>
+                          {user.username}
+                        </h3>
                         {user.deleted_at && (
                           <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-red-100 text-red-800 uppercase tracking-wider ml-2'>
                             Archived

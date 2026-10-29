@@ -297,10 +297,10 @@ const DiveSocialShare = () => {
 
   if (diveLoading || mediaLoading) {
     return (
-      <div className='min-h-screen flex items-center justify-center bg-gray-50'>
+      <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900'>
         <div className='text-center'>
-          <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4'></div>
-          <p className='text-gray-600'>Loading editor...</p>
+          <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-sky-400 mx-auto mb-4'></div>
+          <p className='text-gray-600 dark:text-slate-400'>Loading editor...</p>
         </div>
       </div>
     );
@@ -309,11 +309,13 @@ const DiveSocialShare = () => {
   if (diveError || mediaError) {
     const error = diveError || mediaError;
     return (
-      <div className='min-h-screen flex items-center justify-center bg-gray-50 p-4'>
-        <div className='max-w-md w-full bg-white rounded-lg shadow-lg p-6 text-center'>
+      <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900 p-4'>
+        <div className='max-w-md w-full bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-100 dark:border-slate-700 p-6 text-center'>
           <AlertCircle className='h-12 w-12 text-red-500 mx-auto mb-4' />
-          <h1 className='text-xl font-bold text-gray-900 mb-2'>Error Loading Photos</h1>
-          <p className='text-gray-600 mb-6'>{extractErrorMessage(error)}</p>
+          <h1 className='text-xl font-bold text-gray-900 dark:text-slate-100 mb-2'>
+            Error Loading Photos
+          </h1>
+          <p className='text-gray-600 dark:text-slate-400 mb-6'>{extractErrorMessage(error)}</p>
           <Button onClick={handleBack} variant='primary'>
             Back to Dive Details
           </Button>
@@ -325,7 +327,7 @@ const DiveSocialShare = () => {
   const diveName = dive?.name || dive?.dive_site?.name || 'Unnamed Dive';
 
   return (
-    <div className='min-h-screen bg-gray-50 flex flex-col relative'>
+    <div className='min-h-screen bg-gray-50 dark:bg-slate-900 flex flex-col relative'>
       <SEO
         title={`Share ${diveName} - Social Image Creator`}
         description={`Create a social-ready share image for ${diveName}.`}
@@ -334,19 +336,21 @@ const DiveSocialShare = () => {
 
       {!user && (
         <div
-          className='fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[100] w-[calc(100%-2rem)] max-w-4xl bg-blue-50 border border-blue-200 rounded-2xl p-6 shadow-2xl backdrop-blur-sm'
+          className='fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[100] w-[calc(100%-2rem)] max-w-4xl bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 rounded-2xl p-6 shadow-2xl backdrop-blur-sm'
           style={{
             userSelect: 'text',
             WebkitUserSelect: 'text',
           }}
         >
           <div className='flex flex-col sm:flex-row items-center gap-4 sm:gap-6'>
-            <div className='w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0'>
-              <LogIn className='h-7 w-7 text-blue-600' />
+            <div className='w-14 h-14 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center flex-shrink-0'>
+              <LogIn className='h-7 w-7 text-blue-600 dark:text-sky-400' />
             </div>
             <div className='flex-1 text-center sm:text-left'>
-              <h3 className='text-lg font-bold text-blue-900 mb-1'>Login Required</h3>
-              <p className='text-sm text-blue-700 mb-4 sm:mb-0'>
+              <h3 className='text-lg font-bold text-blue-900 dark:text-slate-100 mb-1'>
+                Login Required
+              </h3>
+              <p className='text-sm text-blue-700 dark:text-slate-300 mb-4 sm:mb-0'>
                 The Social Image Creator is a member-only feature. Please log in or register to
                 create beautiful shareable cards.
               </p>
@@ -375,21 +379,21 @@ const DiveSocialShare = () => {
       )}
 
       {/* Header Navigation */}
-      <header className='bg-white border-b border-gray-200 sticky top-0 z-10'>
-        <div className='max-w-[1600px] mx-auto h-16 flex items-center justify-between'>
+      <header className='bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 sticky top-0 z-10'>
+        <div className='max-w-[1600px] mx-auto h-16 flex items-center justify-between px-4'>
           <div className='flex items-center gap-4 min-w-0'>
             <button
               onClick={handleBack}
-              className='p-2 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0'
+              className='p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex-shrink-0'
               aria-label='Back to dive details'
             >
-              <ArrowLeft className='h-6 w-6 text-gray-600' />
+              <ArrowLeft className='h-6 w-6 text-gray-600 dark:text-slate-300' />
             </button>
             <div className='min-w-0'>
-              <h1 className='text-lg font-bold text-gray-900 truncate'>
+              <h1 className='text-lg font-bold text-gray-900 dark:text-slate-100 truncate'>
                 {generatedImageUrl ? 'Preview Shared Image' : 'Create Social Image'}
               </h1>
-              <p className='text-xs text-gray-500 truncate'>{diveName}</p>
+              <p className='text-xs text-gray-500 dark:text-slate-400 truncate'>{diveName}</p>
             </div>
           </div>
           <div className='flex items-center gap-2'>
@@ -426,12 +430,14 @@ const DiveSocialShare = () => {
           /* Preview View */
           <>
             {/* Left Side: Preview Actions */}
-            <aside className='w-full md:w-80 lg:w-96 bg-white border-r border-gray-200 overflow-y-auto p-4 sm:p-6'>
+            <aside className='w-full md:w-80 lg:w-96 bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700 overflow-y-auto p-4 sm:p-6'>
               <div className='space-y-6'>
-                <div className='hidden md:block bg-green-50 border border-green-100 rounded-xl p-4 text-center'>
+                <div className='hidden md:block bg-green-50 dark:bg-emerald-950/40 border border-green-100 dark:border-emerald-800 rounded-xl p-4 text-center'>
                   <Check className='w-8 h-8 text-green-500 mx-auto mb-2' />
-                  <h3 className='font-bold text-green-900'>Your image is ready!</h3>
-                  <p className='text-xs text-green-700 mt-1'>
+                  <h3 className='font-bold text-green-900 dark:text-emerald-200'>
+                    Your image is ready!
+                  </h3>
+                  <p className='text-xs text-green-700 dark:text-emerald-300 mt-1'>
                     Download it now to share on your social media.
                   </p>
                 </div>
@@ -455,11 +461,11 @@ const DiveSocialShare = () => {
                   </Button>
                 </div>
 
-                <div className='pt-6 border-t border-gray-100'>
-                  <h4 className='text-xs font-bold text-gray-400 uppercase tracking-widest mb-4'>
+                <div className='pt-6 border-t border-gray-100 dark:border-slate-700'>
+                  <h4 className='text-xs font-bold text-gray-400 dark:text-slate-400 uppercase tracking-widest mb-4'>
                     Sharing Tips
                   </h4>
-                  <ul className='space-y-3 text-xs text-gray-500'>
+                  <ul className='space-y-3 text-xs text-gray-500 dark:text-slate-400'>
                     <li className='flex gap-2'>
                       <div className='w-1 h-1 rounded-full bg-blue-400 mt-1.5 flex-shrink-0' />
                       <span>
@@ -468,7 +474,7 @@ const DiveSocialShare = () => {
                           href='https://www.instagram.com/divemap.blue'
                           target='_blank'
                           rel='noopener noreferrer'
-                          className='text-blue-600 hover:text-blue-700 font-bold transition-colors'
+                          className='text-blue-600 dark:text-sky-400 hover:text-blue-700 dark:hover:text-sky-300 font-bold transition-colors'
                         >
                           @divemap.blue
                         </a>{' '}
@@ -513,17 +519,17 @@ const DiveSocialShare = () => {
           /* Editor View (Original) */
           <>
             {/* Left Side: Photo Selection & Options (Sidebar) */}
-            <aside className='w-full md:w-80 lg:w-96 bg-white border-r border-gray-200 overflow-y-auto p-4 sm:p-6'>
+            <aside className='w-full md:w-80 lg:w-96 bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700 overflow-y-auto p-4 sm:p-6'>
               <div className='space-y-8'>
                 <section>
                   <div className='flex items-center justify-between mb-3'>
-                    <label className='text-sm font-bold text-gray-900 uppercase tracking-wider'>
+                    <label className='text-sm font-bold text-gray-900 dark:text-slate-100 uppercase tracking-wider'>
                       1. Select Photo
                     </label>
                     <button
                       onClick={() => uploadInputRef.current?.click()}
                       disabled={isUploading}
-                      className='text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors'
+                      className='text-xs font-bold text-blue-600 dark:text-sky-400 hover:text-blue-700 dark:hover:text-sky-300 flex items-center gap-1 transition-colors'
                     >
                       <Upload className='w-3 h-3' />
                       UPLOAD NEW
@@ -543,8 +549,8 @@ const DiveSocialShare = () => {
                         onClick={() => setSelectedImage(photo)}
                         className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
                           selectedImage?.id === photo.id
-                            ? 'border-blue-500 ring-4 ring-blue-50'
-                            : 'border-transparent hover:border-gray-200'
+                            ? 'border-blue-500 ring-4 ring-blue-50 dark:ring-blue-900/40'
+                            : 'border-transparent hover:border-gray-200 dark:hover:border-slate-700'
                         }`}
                       >
                         <img src={photo.url} alt='' className='w-full h-full object-cover' />
@@ -558,9 +564,9 @@ const DiveSocialShare = () => {
                       </button>
                     ))}
                     {photos.length === 0 && (
-                      <div className='col-span-3 py-12 text-center bg-gray-50 rounded-xl border-2 border-dashed border-gray-200'>
-                        <ImageIcon className='w-8 h-8 text-gray-300 mx-auto mb-2' />
-                        <p className='text-sm text-gray-500 px-4'>
+                      <div className='col-span-3 py-12 text-center bg-gray-50 dark:bg-slate-900/60 rounded-xl border-2 border-dashed border-gray-200 dark:border-slate-700'>
+                        <ImageIcon className='w-8 h-8 text-gray-300 dark:text-slate-600 mx-auto mb-2' />
+                        <p className='text-sm text-gray-500 dark:text-slate-400 px-4'>
                           No photos available for this dive.
                         </p>
                       </div>
@@ -569,7 +575,7 @@ const DiveSocialShare = () => {
                 </section>
 
                 <section>
-                  <label className='text-sm font-bold text-gray-900 mb-3 block uppercase tracking-wider'>
+                  <label className='text-sm font-bold text-gray-900 dark:text-slate-100 mb-3 block uppercase tracking-wider'>
                     2. Choose Aspect Ratio
                   </label>
 
@@ -578,7 +584,7 @@ const DiveSocialShare = () => {
                     <select
                       value={aspect}
                       onChange={e => handleAspectChange(parseFloat(e.target.value))}
-                      className='w-full p-3 bg-white border-2 border-gray-200 rounded-xl text-sm font-medium text-gray-700 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all outline-none appearance-none'
+                      className='w-full p-3 bg-white dark:bg-slate-700 border-2 border-gray-200 dark:border-slate-600 rounded-xl text-sm font-medium text-gray-700 dark:text-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all outline-none appearance-none'
                       style={{
                         backgroundImage:
                           "url(\"data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e\")",
@@ -615,8 +621,8 @@ const DiveSocialShare = () => {
                         onClick={() => handleAspectChange(opt.val)}
                         className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 text-sm transition-all ${
                           aspect === opt.val
-                            ? 'bg-blue-50 border-blue-500 text-blue-700 font-semibold'
-                            : 'bg-white border-gray-100 text-gray-600 hover:border-gray-200'
+                            ? 'bg-blue-50 dark:bg-blue-900/40 border-blue-500 text-blue-700 dark:text-sky-300 font-semibold'
+                            : 'bg-white dark:bg-slate-750 border-gray-100 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:border-gray-200 dark:hover:border-slate-600'
                         }`}
                       >
                         <div className='flex items-center gap-3'>
@@ -637,10 +643,10 @@ const DiveSocialShare = () => {
 
                 <section>
                   <div className='flex items-center justify-between mb-3'>
-                    <label className='text-sm font-bold text-gray-900 uppercase tracking-wider'>
+                    <label className='text-sm font-bold text-gray-900 dark:text-slate-100 uppercase tracking-wider'>
                       3. Zoom In
                     </label>
-                    <span className='text-xs font-mono text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100'>
+                    <span className='text-xs font-mono text-blue-600 dark:text-sky-300 bg-blue-50 dark:bg-blue-900/40 px-2 py-0.5 rounded-full border border-blue-100 dark:border-blue-800'>
                       {zoom.toFixed(1)}x
                     </span>
                   </div>
@@ -652,9 +658,9 @@ const DiveSocialShare = () => {
                       step='0.1'
                       value={zoom}
                       onInput={e => handleZoomChange(parseFloat(e.target.value))}
-                      className='w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600'
+                      className='w-full h-2 bg-gray-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600'
                     />
-                    <div className='flex justify-between mt-2 text-[10px] text-gray-400 font-medium'>
+                    <div className='flex justify-between mt-2 text-[10px] text-gray-400 dark:text-slate-400 font-medium'>
                       <span>NORMAL</span>
                       <span>3.0x ZOOM</span>
                     </div>
@@ -663,10 +669,10 @@ const DiveSocialShare = () => {
 
                 <section>
                   <div className='flex items-center justify-between mb-3'>
-                    <label className='text-sm font-bold text-gray-900 uppercase tracking-wider'>
+                    <label className='text-sm font-bold text-gray-900 dark:text-slate-100 uppercase tracking-wider'>
                       4. Select Features
                     </label>
-                    <span className='text-[10px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full'>
+                    <span className='text-[10px] font-medium text-gray-500 dark:text-slate-400 bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded-full'>
                       {selectedMetrics.length}/{metricLimit}
                     </span>
                   </div>
@@ -675,7 +681,7 @@ const DiveSocialShare = () => {
                   <div className='block sm:hidden relative'>
                     <button
                       onClick={() => setIsFeatureDropdownOpen(!isFeatureDropdownOpen)}
-                      className='w-full flex items-center justify-between p-3 bg-white border-2 border-gray-200 rounded-xl text-sm font-medium text-gray-700 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all outline-none'
+                      className='w-full flex items-center justify-between p-3 bg-white dark:bg-slate-750 border-2 border-gray-200 dark:border-slate-600 rounded-xl text-sm font-medium text-gray-700 dark:text-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all outline-none'
                     >
                       <span className='truncate mr-2'>
                         {selectedMetrics.length === 0
@@ -700,10 +706,10 @@ const DiveSocialShare = () => {
                     >
                       <div className='space-y-4'>
                         <div className='flex items-center justify-between'>
-                          <p className='text-xs text-gray-500'>
+                          <p className='text-xs text-gray-500 dark:text-slate-400'>
                             Choose up to 6 features to overlay on your image.
                           </p>
-                          <span className='text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full'>
+                          <span className='text-xs font-bold text-blue-600 dark:text-sky-300 bg-blue-50 dark:bg-blue-900/40 px-2 py-1 rounded-full'>
                             {selectedMetrics.length}/6
                           </span>
                         </div>
@@ -714,8 +720,8 @@ const DiveSocialShare = () => {
                               onClick={() => toggleMetric(metric.id)}
                               className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm transition-colors ${
                                 selectedMetrics.includes(metric.id)
-                                  ? 'bg-blue-50 text-blue-700 font-semibold'
-                                  : 'hover:bg-gray-50 text-gray-600'
+                                  ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-sky-300 font-semibold'
+                                  : 'hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-300'
                               }`}
                             >
                               <span>{metric.label}</span>
@@ -749,14 +755,14 @@ const DiveSocialShare = () => {
                         className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs transition-all ${
                           selectedMetrics.includes(metric.id)
                             ? 'bg-blue-600 border-blue-600 text-white font-semibold shadow-sm'
-                            : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                            : 'bg-white dark:bg-slate-750 border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:border-gray-300 dark:hover:border-slate-600'
                         }`}
                       >
                         <div
                           className={`w-3 h-3 rounded-full border-2 flex items-center justify-center ${
                             selectedMetrics.includes(metric.id)
                               ? 'border-white bg-white'
-                              : 'border-gray-300'
+                              : 'border-gray-300 dark:border-slate-500'
                           }`}
                         >
                           {selectedMetrics.includes(metric.id) && (
@@ -769,8 +775,8 @@ const DiveSocialShare = () => {
                   </div>
                 </section>
 
-                <div className='hidden md:block pt-6 border-t border-gray-100 text-center'>
-                  <p className='text-xs text-gray-400'>
+                <div className='hidden md:block pt-6 border-t border-gray-100 dark:border-slate-700 text-center'>
+                  <p className='text-xs text-gray-400 dark:text-slate-400'>
                     Your dive profile and metadata will be overlaid on the final image
                     automatically.
                   </p>

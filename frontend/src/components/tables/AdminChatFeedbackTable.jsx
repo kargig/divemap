@@ -67,8 +67,8 @@ const AdminChatFeedbackTable = ({
     <div className='space-y-4'>
       <div className='bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden border border-gray-100 dark:border-gray-700'>
         <div className='overflow-x-auto'>
-          <table className='min-w-full divide-y divide-gray-200 dark:divide-gray-700'>
-            <thead className='bg-gray-50 dark:bg-gray-700/50'>
+          <table className='min-w-full divide-y divide-gray-200 dark:divide-slate-700 dark:divide-gray-700'>
+            <thead className='bg-gray-50 dark:bg-slate-900/60 dark:bg-gray-700/50'>
               {table.getHeaderGroups().map(headerGroup => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map(header => (
@@ -124,7 +124,7 @@ const AdminChatFeedbackTable = ({
                 table.getRowModel().rows.map(row => (
                   <tr
                     key={row.id}
-                    className='hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors'
+                    className='hover:bg-gray-50 dark:bg-slate-900/60 dark:hover:bg-gray-700/30 transition-colors'
                   >
                     {row.getVisibleCells().map(cell => (
                       <td

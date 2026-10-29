@@ -17,13 +17,13 @@ const EmptyState = ({
   actionText,
 }) => {
   return (
-    <div className='bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center'>
-      <div className='bg-gray-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6'>
-        <Icon className='w-10 h-10 text-gray-300' />
+    <div className='bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-12 text-center'>
+      <div className='bg-gray-50 dark:bg-slate-900 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6'>
+        <Icon className='w-10 h-10 text-gray-300 dark:text-slate-600' />
       </div>
 
-      <h3 className='text-2xl font-bold text-gray-900 mb-2'>{title}</h3>
-      <p className='text-gray-500 max-w-sm mx-auto mb-8'>{message}</p>
+      <h3 className='text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2'>{title}</h3>
+      <p className='text-gray-500 dark:text-slate-400 max-w-sm mx-auto mb-8'>{message}</p>
 
       <div className='flex flex-col sm:flex-row items-center justify-center gap-4'>
         {onClearFilters && (
@@ -39,7 +39,7 @@ const EmptyState = ({
         {actionLink && actionText && (
           <Link
             to={actionLink}
-            className='inline-flex items-center gap-2 px-6 py-2 bg-white text-gray-700 border border-gray-200 font-bold rounded-lg hover:bg-gray-50 transition-colors'
+            className='inline-flex items-center gap-2 px-6 py-2 bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 border border-gray-200 dark:border-slate-600 font-bold rounded-lg hover:bg-gray-50 dark:hover:bg-slate-650 transition-colors'
           >
             <Plus className='w-4 h-4' />
             {actionText}

@@ -176,8 +176,10 @@ const AdminDivesDesktop = () => {
             <div className='flex items-center'>
               <Notebook className='h-5 w-5 text-blue-600 mr-2' />
               <div>
-                <div className='text-sm font-medium text-gray-900'>{dive.name}</div>
-                <div className='text-sm text-gray-500'>
+                <div className='text-sm font-medium text-gray-900 dark:text-slate-100'>
+                  {dive.name}
+                </div>
+                <div className='text-sm text-gray-500 dark:text-slate-400'>
                   {dive.max_depth && `${dive.max_depth}m`}
                   {dive.duration && ` • ${dive.duration}min`}
                 </div>
@@ -216,7 +218,7 @@ const AdminDivesDesktop = () => {
               <span className='text-sm text-gray-900'>{dive.dive_site.name}</span>
             </div>
           ) : (
-            <span className='text-sm text-gray-500'>No dive site</span>
+            <span className='text-sm text-gray-500 dark:text-slate-400'>No dive site</span>
           );
         },
         enableSorting: true,
@@ -346,7 +348,9 @@ const AdminDivesDesktop = () => {
               <PageTitle>Dive Management</PageTitle>
               <p className='text-gray-600 mt-2'>Manage all dives in the system</p>
               {totalCount !== undefined && (
-                <p className='text-sm text-gray-500 mt-1'>Total dives: {totalCount}</p>
+                <p className='text-sm text-gray-500 dark:text-slate-400 mt-1'>
+                  Total dives: {totalCount}
+                </p>
               )}
             </div>
             <div className='flex items-center space-x-4'>
@@ -369,16 +373,22 @@ const AdminDivesDesktop = () => {
         </div>
 
         {/* Filters */}
-        <div className='mb-4 sm:mb-6 bg-gray-50 p-3 sm:p-4 rounded-lg'>
+        <div className='mb-4 sm:mb-6 bg-gray-50 dark:bg-slate-900/60 p-3 sm:p-4 rounded-lg'>
           <div className='flex items-center justify-between mb-4'>
             <h3 className='text-lg font-semibold'>Filters</h3>
-            <button onClick={clearFilters} className='text-sm text-gray-600 hover:text-gray-800'>
+            <button
+              onClick={clearFilters}
+              className='text-sm text-gray-600 dark:text-slate-300 hover:text-gray-800'
+            >
               Clear Filters
             </button>
           </div>
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
             <div className='flex flex-col gap-1'>
-              <label htmlFor='user-filter-select' className='text-sm font-medium text-gray-700'>
+              <label
+                htmlFor='user-filter-select'
+                className='text-sm font-medium text-gray-700 dark:text-slate-200'
+              >
                 User
               </label>
               <AntdSelect
@@ -401,7 +411,10 @@ const AdminDivesDesktop = () => {
             </div>
 
             <div className='flex flex-col gap-1 relative' id='dive-site-filter-container'>
-              <label htmlFor='dive-site-input' className='text-sm font-medium text-gray-700'>
+              <label
+                htmlFor='dive-site-input'
+                className='text-sm font-medium text-gray-700 dark:text-slate-200'
+              >
                 Dive Site
               </label>
               <div className='relative'>
@@ -459,7 +472,7 @@ const AdminDivesDesktop = () => {
                 {/* Custom Dropdown */}
                 {(diveSiteSearchResults.length > 0 || isDiveSiteLoading) &&
                   diveSiteSearchTerm.length > 0 && (
-                    <div className='absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto'>
+                    <div className='absolute z-50 mt-1 w-full bg-white border border-gray-200 dark:border-slate-700 rounded-md shadow-lg max-h-60 overflow-y-auto'>
                       {diveSiteSearchResults.map(site => {
                         const isSelected = filters.dive_site_ids?.includes(site.id.toString());
                         return (
@@ -497,7 +510,9 @@ const AdminDivesDesktop = () => {
                         );
                       })}
                       {!isDiveSiteLoading && diveSiteSearchResults.length === 0 && (
-                        <div className='px-4 py-2 text-sm text-gray-500'>No results found</div>
+                        <div className='px-4 py-2 text-sm text-gray-500 dark:text-slate-400'>
+                          No results found
+                        </div>
                       )}
                     </div>
                   )}
@@ -507,7 +522,7 @@ const AdminDivesDesktop = () => {
             <div className='flex flex-col gap-1'>
               <label
                 htmlFor='difficulty-filter-select'
-                className='text-sm font-medium text-gray-700'
+                className='text-sm font-medium text-gray-700 dark:text-slate-200'
               >
                 Difficulty
               </label>
@@ -531,7 +546,7 @@ const AdminDivesDesktop = () => {
             <div className='flex flex-col gap-1'>
               <label
                 htmlFor='suit-type-filter-select'
-                className='text-sm font-medium text-gray-700'
+                className='text-sm font-medium text-gray-700 dark:text-slate-200'
               >
                 Suit Type
               </label>
@@ -554,7 +569,7 @@ const AdminDivesDesktop = () => {
             <div>
               <label
                 htmlFor='min-rating-filter'
-                className='block text-sm font-medium text-gray-700 mb-1'
+                className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
               >
                 Min Rating
               </label>
@@ -581,7 +596,7 @@ const AdminDivesDesktop = () => {
             <div>
               <label
                 htmlFor='max-rating-filter'
-                className='block text-sm font-medium text-gray-700 mb-1'
+                className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
               >
                 Max Rating
               </label>

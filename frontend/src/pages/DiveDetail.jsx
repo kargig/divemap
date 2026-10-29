@@ -843,12 +843,14 @@ const DiveDetail = () => {
                             <div className='flex-1 min-w-0'>
                               <RouterLink
                                 to={`/users/${buddy.username}`}
-                                className='text-sm font-medium text-blue-700 hover:text-blue-900'
+                                className='text-sm font-medium text-blue-700 dark:text-sky-400 hover:text-blue-900 dark:hover:text-sky-300'
                               >
                                 {buddy.username}
                               </RouterLink>
                               {buddy.name && (
-                                <div className='text-xs text-gray-600'>{buddy.name}</div>
+                                <div className='text-xs text-gray-600 dark:text-slate-400'>
+                                  {buddy.name}
+                                </div>
                               )}
                             </div>
                             {/* Show "Remove me" button if current user is a buddy (not the owner) */}
@@ -929,13 +931,18 @@ const DiveDetail = () => {
                               {media.media_type === 'dive_plan' && (
                                 <div className='w-full h-full flex items-center justify-center'>
                                   <div className='text-center'>
-                                    <Download size={32} className='mx-auto text-gray-400 mb-2' />
-                                    <p className='text-sm text-gray-600'>Dive Plan</p>
+                                    <Download
+                                      size={32}
+                                      className='mx-auto text-gray-400 dark:text-slate-500 mb-2'
+                                    />
+                                    <p className='text-sm text-gray-600 dark:text-slate-300'>
+                                      Dive Plan
+                                    </p>
                                     <a
                                       href={media.url}
                                       target='_blank'
                                       rel='noopener noreferrer'
-                                      className='text-blue-600 hover:text-blue-800 text-sm'
+                                      className='text-blue-600 dark:text-sky-400 hover:text-blue-800 dark:hover:text-sky-300 text-sm'
                                     >
                                       Download
                                     </a>
@@ -945,15 +952,18 @@ const DiveDetail = () => {
                               {media.media_type === 'external_link' && (
                                 <div className='w-full h-full flex items-center justify-center'>
                                   <div className='text-center'>
-                                    <Link size={32} className='mx-auto text-gray-400 mb-2' />
-                                    <p className='text-sm text-gray-600'>
+                                    <Link
+                                      size={32}
+                                      className='mx-auto text-gray-400 dark:text-slate-500 mb-2'
+                                    />
+                                    <p className='text-sm text-gray-600 dark:text-slate-300'>
                                       {media.title || 'External Link'}
                                     </p>
                                     <a
                                       href={media.url}
                                       target='_blank'
                                       rel='noopener noreferrer'
-                                      className='text-blue-600 hover:text-blue-800 text-sm'
+                                      className='text-blue-600 dark:text-sky-400 hover:text-blue-800 dark:hover:text-sky-300 text-sm'
                                     >
                                       Visit Link
                                     </a>
@@ -971,7 +981,7 @@ const DiveDetail = () => {
                               </button>
                             </div>
                             {media.description && (
-                              <p className='text-xs text-gray-600 mt-1'>
+                              <p className='text-xs text-gray-600 dark:text-slate-400 mt-1'>
                                 {decodeHtmlEntities(media.description)}
                               </p>
                             )}
@@ -991,7 +1001,7 @@ const DiveDetail = () => {
                     Dive Profile
                   </h2>
                   {hasDeco && (
-                    <span className='text-red-500 font-medium text-sm border border-red-200 bg-red-50 px-2 py-0.5 rounded flex items-center gap-1 ml-1'>
+                    <span className='text-red-500 dark:text-red-400 font-medium text-sm border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-2 py-0.5 rounded flex items-center gap-1 ml-1'>
                       <Droplets className='w-3 h-3' />
                       Deco
                     </span>
@@ -1051,8 +1061,10 @@ const DiveDetail = () => {
                 </div>
 
                 {dive.gas_bottles_used && (
-                  <div className='px-4 sm:px-0 py-4 border-t border-gray-100'>
-                    <h3 className='text-base font-semibold text-gray-900 mb-3'>Gas Bottles Used</h3>
+                  <div className='px-4 sm:px-0 py-4 border-t border-gray-100 dark:border-slate-700'>
+                    <h3 className='text-base font-semibold text-gray-900 dark:text-slate-100 mb-3'>
+                      Gas Bottles Used
+                    </h3>
                     <GasTanksDisplay
                       gasData={dive.gas_bottles_used}
                       averageDepth={dive.average_depth}
@@ -1235,15 +1247,15 @@ const DiveDetail = () => {
                         {dive.selected_route.name}
                       </h3>
                       <div className='flex items-center gap-2 mt-1'>
-                        <span className='px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full'>
+                        <span className='px-2 py-1 text-xs bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-full'>
                           {dive.selected_route.route_type}
                         </span>
-                        <span className='text-sm text-gray-500'>
+                        <span className='text-sm text-gray-500 dark:text-slate-400'>
                           Created by {dive.selected_route.creator_username}
                         </span>
                       </div>
                       {dive.selected_route.description && (
-                        <p className='text-gray-600 mt-2'>
+                        <p className='text-gray-600 dark:text-slate-300 mt-2'>
                           {renderTextWithLinks(
                             decodeHtmlEntities(dive.selected_route.description),
                             {
@@ -1258,9 +1270,11 @@ const DiveDetail = () => {
                 </div>
 
                 {/* Route Map */}
-                <div className='bg-gray-50 rounded-lg p-4'>
+                <div className='bg-gray-50 dark:bg-slate-750 rounded-lg p-4 border border-gray-100 dark:border-slate-700'>
                   <div className='flex items-center justify-between mb-3'>
-                    <h4 className='text-sm font-medium text-gray-700'>Route Map</h4>
+                    <h4 className='text-sm font-medium text-gray-700 dark:text-slate-200'>
+                      Route Map
+                    </h4>
                     {/* Route Legend - Horizontal */}
                     {dive.selected_route.route_data && (
                       <div className='flex items-center gap-4 text-xs'>
@@ -1269,21 +1283,21 @@ const DiveDetail = () => {
                             className='w-3 h-3 rounded-full'
                             style={{ backgroundColor: getRouteTypeColor('scuba') }}
                           ></div>
-                          <span className='text-gray-700'>Scuba Route</span>
+                          <span className='text-gray-700 dark:text-slate-300'>Scuba Route</span>
                         </div>
                         <div className='flex items-center gap-1'>
                           <div
                             className='w-3 h-3 rounded-full'
                             style={{ backgroundColor: getRouteTypeColor('swim') }}
                           ></div>
-                          <span className='text-gray-700'>Swim Route</span>
+                          <span className='text-gray-700 dark:text-slate-300'>Swim Route</span>
                         </div>
                         <div className='flex items-center gap-1'>
                           <div
                             className='w-3 h-3 rounded-full'
                             style={{ backgroundColor: getRouteTypeColor('walk') }}
                           ></div>
-                          <span className='text-gray-700'>Walk Route</span>
+                          <span className='text-gray-700 dark:text-slate-300'>Walk Route</span>
                         </div>
                       </div>
                     )}

@@ -184,7 +184,7 @@ const AdminChatHistory = () => {
           </div>
           <Link
             to='/admin/chat-feedback'
-            className='flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm'
+            className='flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-slate-700 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-slate-200 dark:text-gray-200 hover:bg-gray-50 dark:bg-slate-900/60 dark:hover:bg-gray-700 transition-colors shadow-sm'
           >
             <ChatbotIcon size={16} />
             View Feedback
@@ -204,7 +204,7 @@ const AdminChatHistory = () => {
                 setUsernameFilter(e.target.value);
                 setPagination(prev => ({ ...prev, pageIndex: 0 }));
               }}
-              className='w-full bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 rounded-lg text-sm pl-10 pr-3 py-2'
+              className='w-full bg-gray-50 dark:bg-slate-900/60 dark:bg-gray-700 border-gray-200 dark:border-slate-700 dark:border-gray-600 rounded-lg text-sm pl-10 pr-3 py-2'
             />
           </div>
         </div>
@@ -235,7 +235,7 @@ const AdminChatHistory = () => {
               <div className='p-12 text-center text-gray-500'>Loading transcript...</div>
             ) : (
               <div className='flex flex-col h-full overflow-hidden'>
-                <div className='flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg'>
+                <div className='flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-slate-900/60 dark:bg-gray-900/50 rounded-lg'>
                   <div className='mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-xs'>
                     <span className='font-bold'>User:</span>{' '}
                     {sessionDetail?.user?.username || `ID: ${sessionDetail?.user_id}`}
@@ -299,7 +299,7 @@ const AdminChatHistory = () => {
                   ))}
                 </div>
 
-                <div className='pt-4 flex justify-between items-center text-xs text-gray-400'>
+                <div className='pt-4 flex justify-between items-center text-xs text-gray-400 dark:text-slate-400'>
                   <span>Session ID: {selectedSessionId}</span>
                   <button
                     onClick={() => setSelectedSessionId(null)}

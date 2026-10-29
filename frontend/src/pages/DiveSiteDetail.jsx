@@ -674,7 +674,7 @@ const DiveSiteDetail = () => {
                 navigate('/dive-sites');
               }
             }}
-            className='text-gray-500 hover:text-gray-800 p-1.5 -ml-1.5 rounded-full hover:bg-gray-100 transition-colors'
+            className='text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-100 p-1.5 -ml-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors'
             aria-label='Go back'
           >
             <ArrowLeft className='w-5 h-5' />
@@ -685,7 +685,7 @@ const DiveSiteDetail = () => {
               <button
                 type='button'
                 onClick={() => setIsSaveOpen(true)}
-                className='p-2 rounded-full border border-gray-200 text-gray-600 hover:text-blue-600 hover:bg-blue-50 active:scale-95 transition-all'
+                className='p-2 rounded-full border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-sky-400 hover:bg-blue-50 dark:hover:bg-blue-900/40 active:scale-95 transition-all'
                 aria-label='Save to List'
                 title='Save to List'
               >
@@ -697,13 +697,13 @@ const DiveSiteDetail = () => {
                 entityType='dive-site'
                 entityData={diveSite}
                 variant='icon-only'
-                className='!p-2 !rounded-full !border !border-gray-200 !text-gray-600 hover:!text-blue-600 hover:!bg-blue-50 active:scale-95 transition-all'
+                className='!p-2 !rounded-full !border !border-gray-200 dark:!border-slate-700 !text-gray-600 dark:!text-slate-300 hover:!text-blue-600 dark:hover:!text-sky-400 hover:!bg-blue-50 dark:hover:!bg-blue-900/40 active:scale-95 transition-all'
               />
             )}
             {shouldShowEdit && (
               <RouterLink
                 to={`/dive-sites/${id}/edit`}
-                className='p-2 rounded-full border border-gray-200 text-gray-600 hover:text-blue-600 hover:bg-blue-50 active:scale-95 transition-all inline-flex items-center justify-center'
+                className='p-2 rounded-full border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-sky-400 hover:bg-blue-50 dark:hover:bg-blue-900/40 active:scale-95 transition-all inline-flex items-center justify-center'
                 aria-label='Edit dive site'
                 title='Edit dive site'
               >
@@ -714,7 +714,7 @@ const DiveSiteDetail = () => {
               <button
                 type='button'
                 onClick={handleDelete}
-                className='p-2 rounded-full border border-gray-200 text-gray-600 hover:text-red-600 hover:bg-red-50 active:scale-95 transition-all'
+                className='p-2 rounded-full border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 active:scale-95 transition-all'
                 aria-label='Archive dive site'
                 title='Archive dive site'
               >
@@ -725,7 +725,7 @@ const DiveSiteDetail = () => {
               <button
                 type='button'
                 onClick={handleRestore}
-                className='p-2 rounded-full border border-gray-200 text-gray-600 hover:text-amber-600 hover:bg-amber-50 active:scale-95 transition-all'
+                className='p-2 rounded-full border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 active:scale-95 transition-all'
                 aria-label='Restore dive site'
                 title='Restore dive site'
               >
@@ -906,68 +906,68 @@ const DiveSiteDetail = () => {
       </div>
 
       {/* Mobile Horizontal Tabs Navigation */}
-      <div className='lg:hidden -mx-2.5 px-2.5 sm:-mx-4 sm:px-4 mb-4 sticky top-0 bg-gray-50/90 backdrop-blur-sm z-40 py-2 border-b border-gray-200/50'>
+      <div className='lg:hidden -mx-2.5 px-2.5 sm:-mx-4 sm:px-4 mb-4 sticky top-0 bg-gray-50/90 dark:bg-slate-900/90 backdrop-blur-sm z-40 py-2 border-b border-gray-200/50 dark:border-slate-800'>
         <nav className='grid grid-cols-3 gap-2 px-1' aria-label='Mobile Sections'>
           <a
             href='#overview'
-            className='flex flex-col items-center justify-center p-1.5 rounded-xl bg-white border border-gray-200 shadow-sm active:scale-95 transition-transform flex-1 min-w-0 group'
+            className='flex flex-col items-center justify-center p-1.5 rounded-xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-sm active:scale-95 transition-transform flex-1 min-w-0 group'
             title='Overview'
           >
-            <Info className='w-4 h-4 sm:w-5 sm:h-5 text-blue-600 group-hover:text-blue-800' />
-            <span className='text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-tight mt-0.5 truncate max-w-full'>
+            <Info className='w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-sky-400 group-hover:text-blue-800 dark:group-hover:text-sky-300' />
+            <span className='text-[10px] sm:text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-tight mt-0.5 truncate max-w-full'>
               Info
             </span>
           </a>
           <a
             href='#location'
             onClick={() => setIsNearbyExpanded(true)}
-            className='flex flex-col items-center justify-center p-1.5 rounded-xl bg-white border border-gray-200 shadow-sm active:scale-95 transition-transform flex-1 min-w-0 group'
+            className='flex flex-col items-center justify-center p-1.5 rounded-xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-sm active:scale-95 transition-transform flex-1 min-w-0 group'
             title='Location'
           >
-            <MapPin className='w-4 h-4 sm:w-5 sm:h-5 text-blue-600 group-hover:text-blue-800' />
-            <span className='text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-tight mt-0.5 truncate max-w-full'>
+            <MapPin className='w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-sky-400 group-hover:text-blue-800 dark:group-hover:text-sky-300' />
+            <span className='text-[10px] sm:text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-tight mt-0.5 truncate max-w-full'>
               Map
             </span>
           </a>
           <a
             href='#weather'
             onClick={() => setIsMarineExpanded(true)}
-            className='flex flex-col items-center justify-center p-1.5 rounded-xl bg-white border border-gray-200 shadow-sm active:scale-95 transition-transform flex-1 min-w-0 group'
+            className='flex flex-col items-center justify-center p-1.5 rounded-xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-sm active:scale-95 transition-transform flex-1 min-w-0 group'
             title='Weather Conditions'
           >
-            <CloudSun className='w-4 h-4 sm:w-5 sm:h-5 text-blue-600 group-hover:text-blue-800' />
-            <span className='text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-tight mt-0.5 truncate max-w-full'>
+            <CloudSun className='w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-sky-400 group-hover:text-blue-800 dark:group-hover:text-sky-300' />
+            <span className='text-[10px] sm:text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-tight mt-0.5 truncate max-w-full'>
               Weather
             </span>
           </a>
           <a
             href='#routes'
             onClick={() => setIsRoutesExpanded(true)}
-            className='flex flex-col items-center justify-center p-1.5 rounded-xl bg-white border border-gray-200 shadow-sm active:scale-95 transition-transform flex-1 min-w-0 group'
+            className='flex flex-col items-center justify-center p-1.5 rounded-xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-sm active:scale-95 transition-transform flex-1 min-w-0 group'
             title='Available Routes'
           >
-            <Route className='w-4 h-4 sm:w-5 sm:h-5 text-blue-600 group-hover:text-blue-800' />
-            <span className='text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-tight mt-0.5 truncate max-w-full'>
+            <Route className='w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-sky-400 group-hover:text-blue-800 dark:group-hover:text-sky-300' />
+            <span className='text-[10px] sm:text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-tight mt-0.5 truncate max-w-full'>
               Routes
             </span>
           </a>
           <a
             href='#dives'
-            className='flex flex-col items-center justify-center p-1.5 rounded-xl bg-white border border-gray-200 shadow-sm active:scale-95 transition-transform flex-1 min-w-0 group'
+            className='flex flex-col items-center justify-center p-1.5 rounded-xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-sm active:scale-95 transition-transform flex-1 min-w-0 group'
             title='Recent Dives'
           >
-            <TrendingUp className='w-4 h-4 sm:w-5 sm:h-5 text-blue-600 group-hover:text-blue-800' />
-            <span className='text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-tight mt-0.5 truncate max-w-full'>
+            <TrendingUp className='w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-sky-400 group-hover:text-blue-800 dark:group-hover:text-sky-300' />
+            <span className='text-[10px] sm:text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-tight mt-0.5 truncate max-w-full'>
               Dives
             </span>
           </a>
           <a
             href='#comments'
-            className='flex flex-col items-center justify-center p-1.5 rounded-xl bg-white border border-gray-200 shadow-sm active:scale-95 transition-transform flex-1 min-w-0 group'
+            className='flex flex-col items-center justify-center p-1.5 rounded-xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-sm active:scale-95 transition-transform flex-1 min-w-0 group'
             title='Comments'
           >
-            <MessageCircle className='w-4 h-4 sm:w-5 sm:h-5 text-blue-600 group-hover:text-blue-800' />
-            <span className='text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-tight mt-0.5 truncate max-w-full'>
+            <MessageCircle className='w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-sky-400 group-hover:text-blue-800 dark:group-hover:text-sky-300' />
+            <span className='text-[10px] sm:text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-tight mt-0.5 truncate max-w-full'>
               Comments
             </span>
           </a>
@@ -1204,7 +1204,7 @@ const DiveSiteDetail = () => {
           {/* Weather Conditions - Mobile Only (Desktop is in Sidebar) */}
           <div
             id='weather'
-            className='lg:hidden bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden scroll-mt-16'
+            className='lg:hidden bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden scroll-mt-16'
           >
             <Collapse
               ghost
@@ -1214,7 +1214,7 @@ const DiveSiteDetail = () => {
                 {
                   key: 'weather-mobile',
                   label: (
-                    <span className='text-base sm:text-xl font-bold text-gray-900'>
+                    <span className='text-base sm:text-xl font-bold text-gray-900 dark:text-slate-100'>
                       Weather Conditions
                     </span>
                   ),
@@ -1236,7 +1236,7 @@ const DiveSiteDetail = () => {
             </div>
 
             {/* Mobile View */}
-            <div className='lg:hidden bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden'>
+            <div className='lg:hidden bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden'>
               <Collapse
                 ghost
                 activeKey={isRoutesExpanded ? ['routes-mobile'] : []}
@@ -1245,7 +1245,7 @@ const DiveSiteDetail = () => {
                   {
                     key: 'routes-mobile',
                     label: (
-                      <span className='text-base sm:text-xl font-bold text-gray-900'>
+                      <span className='text-base sm:text-xl font-bold text-gray-900 dark:text-slate-100'>
                         Available Routes
                       </span>
                     ),

@@ -470,25 +470,25 @@ const UserGearProfileModal = ({
       footer={null}
       width={780}
       title={
-        <div className='flex items-center justify-between pr-8 border-b pb-3'>
+        <div className='flex items-center justify-between pr-8 border-b border-gray-100 dark:border-slate-700 pb-3'>
           <div>
-            <h3 className='text-base font-bold text-gray-900'>
+            <h3 className='text-base font-bold text-gray-900 dark:text-slate-100'>
               {isEditing ? `Edit Configuration: ${profile?.name}` : 'New Gear Configuration'}
             </h3>
-            <p className='text-xs text-gray-500 font-normal mt-0.5'>
+            <p className='text-xs text-gray-500 dark:text-slate-400 font-normal mt-0.5'>
               Customize your gear specs, cylinder choice, and lead weights for specific diving
               conditions.
             </p>
           </div>
           {/* Unit Switcher */}
-          <div className='flex items-center bg-gray-100 p-0.5 rounded-lg border border-gray-200'>
+          <div className='flex items-center bg-gray-100 dark:bg-slate-700 p-0.5 rounded-lg border border-gray-200 dark:border-slate-600'>
             <button
               type='button'
               onClick={() => handleUnitToggle('METRIC')}
               className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
                 unitSystem === 'METRIC'
                   ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                  : 'text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
               Metric
@@ -499,7 +499,7 @@ const UserGearProfileModal = ({
               className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
                 unitSystem === 'IMPERIAL'
                   ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                  : 'text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
               Imperial
@@ -512,7 +512,7 @@ const UserGearProfileModal = ({
         {/* Preset Chips (Only when creating new profile) */}
         {!isEditing && (
           <div>
-            <span className='block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5'>
+            <span className='block text-xs font-bold text-gray-400 dark:text-slate-400 uppercase tracking-wider mb-1.5'>
               Quick Start from Preset
             </span>
             <div className='flex flex-wrap gap-2'>
@@ -521,7 +521,7 @@ const UserGearProfileModal = ({
                   key={preset.name}
                   type='button'
                   onClick={() => applyPreset(preset)}
-                  className='text-xs font-medium px-2.5 py-1 rounded-full border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors'
+                  className='text-xs font-medium px-2.5 py-1 rounded-full border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-sky-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors'
                 >
                   + {preset.name}
                 </button>
@@ -531,9 +531,9 @@ const UserGearProfileModal = ({
         )}
 
         {/* Profile Name & Default checkbox */}
-        <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 items-center bg-gray-50 p-3 rounded-lg border border-gray-200'>
+        <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 items-center bg-gray-50 dark:bg-slate-750 p-3 rounded-lg border border-gray-200 dark:border-slate-700'>
           <div className='sm:col-span-2'>
-            <label className='block text-xs font-semibold text-gray-700 mb-1'>
+            <label className='block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1'>
               Configuration Name *
             </label>
             <input
@@ -542,7 +542,7 @@ const UserGearProfileModal = ({
               onChange={e => setName(e.target.value)}
               placeholder='e.g. Tropical Travel, Mediterranean 5mm, Drysuit'
               required
-              className='w-full px-3 py-1.5 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'
+              className='w-full px-3 py-1.5 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'
             />
           </div>
           <div className='pt-4 sm:pt-0'>
@@ -551,22 +551,26 @@ const UserGearProfileModal = ({
                 type='checkbox'
                 checked={isDefault}
                 onChange={e => setIsDefault(e.target.checked)}
-                className='rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4'
+                className='rounded border-gray-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 h-4 w-4'
               />
-              <span className='text-xs font-semibold text-gray-700'>Set as Primary Profile</span>
+              <span className='text-xs font-semibold text-gray-700 dark:text-slate-300'>
+                Set as Primary Profile
+              </span>
             </label>
           </div>
         </div>
 
         {/* Section 1: Biometrics */}
         <div>
-          <h4 className='text-xs font-bold text-gray-400 uppercase tracking-wider mb-2.5'>
+          <h4 className='text-xs font-bold text-gray-400 dark:text-slate-400 uppercase tracking-wider mb-2.5'>
             1. Diver Biometrics & Weights
           </h4>
           <div className='grid grid-cols-2 sm:grid-cols-4 gap-3'>
             {unitSystem === 'METRIC' ? (
               <div>
-                <label className='block text-xs font-medium text-gray-700 mb-1'>Height (cm)</label>
+                <label className='block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1'>
+                  Height (cm)
+                </label>
                 <input
                   type='number'
                   min='100'
@@ -574,12 +578,12 @@ const UserGearProfileModal = ({
                   value={heightCm}
                   onChange={e => setHeightCm(e.target.value)}
                   placeholder='180'
-                  className='w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm'
+                  className='w-full px-3 py-1.5 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md text-sm'
                 />
               </div>
             ) : (
               <div>
-                <label className='block text-xs font-medium text-gray-700 mb-1'>
+                <label className='block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1'>
                   Height (Ft / In)
                 </label>
                 <div className='grid grid-cols-2 gap-1.5'>
@@ -590,7 +594,7 @@ const UserGearProfileModal = ({
                     value={heightFeet}
                     onChange={e => setHeightFeet(e.target.value)}
                     placeholder='Ft'
-                    className='w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm'
+                    className='w-full px-2 py-1.5 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md text-sm'
                   />
                   <input
                     type='number'
@@ -599,14 +603,14 @@ const UserGearProfileModal = ({
                     value={heightInches}
                     onChange={e => setHeightInches(e.target.value)}
                     placeholder='In'
-                    className='w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm'
+                    className='w-full px-2 py-1.5 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md text-sm'
                   />
                 </div>
               </div>
             )}
 
             <div>
-              <label className='block text-xs font-medium text-gray-700 mb-1'>
+              <label className='block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1'>
                 Weight ({unitSystem === 'METRIC' ? 'kg' : 'lbs'})
               </label>
               <input
@@ -619,12 +623,12 @@ const UserGearProfileModal = ({
                     : setWeightLbs(e.target.value)
                 }
                 placeholder={unitSystem === 'METRIC' ? '75.0' : '165'}
-                className='w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm'
+                className='w-full px-3 py-1.5 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md text-sm'
               />
             </div>
 
             <div>
-              <label className='block text-xs font-medium text-gray-700 mb-1'>
+              <label className='block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1'>
                 Shoe Size ({unitSystem === 'METRIC' ? 'EU' : 'US Men'})
               </label>
               <input
@@ -637,19 +641,19 @@ const UserGearProfileModal = ({
                     : setShoeSizeUs(e.target.value)
                 }
                 placeholder={unitSystem === 'METRIC' ? '43' : '9.5'}
-                className='w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm'
+                className='w-full px-3 py-1.5 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md text-sm'
               />
             </div>
 
             <div>
               <div className='flex items-center justify-between mb-1'>
-                <label className='block text-xs font-medium text-gray-700'>
+                <label className='block text-xs font-medium text-gray-700 dark:text-slate-300'>
                   Lead Weight ({unitSystem === 'METRIC' ? 'kg' : 'lbs'})
                 </label>
                 <button
                   type='button'
                   onClick={() => setShowEstimator(!showEstimator)}
-                  className='text-[11px] font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-colors'
+                  className='text-[11px] font-semibold text-blue-600 dark:text-sky-400 hover:text-blue-800 dark:hover:text-sky-300 flex items-center gap-1 transition-colors'
                   title='Estimate lead weights based on suit, body weight, and cylinder'
                 >
                   <Calculator size={12} />
@@ -1175,12 +1179,12 @@ const UserGearProfileModal = ({
 
         {/* Section 5: Insurance & Emergency */}
         <div>
-          <h4 className='text-xs font-bold text-gray-400 uppercase tracking-wider mb-2.5'>
+          <h4 className='text-xs font-bold text-gray-400 dark:text-slate-400 uppercase tracking-wider mb-2.5'>
             5. Insurance & Emergency Contact
           </h4>
           <div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
             <div>
-              <label className='block text-xs font-medium text-gray-700 mb-1'>
+              <label className='block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1'>
                 Insurance Provider
               </label>
               <input
@@ -1188,11 +1192,11 @@ const UserGearProfileModal = ({
                 value={insuranceProvider}
                 onChange={e => setInsuranceProvider(e.target.value)}
                 placeholder='e.g. DAN Europe'
-                className='w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm'
+                className='w-full px-3 py-1.5 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md text-sm'
               />
             </div>
             <div>
-              <label className='block text-xs font-medium text-gray-700 mb-1'>
+              <label className='block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1'>
                 Policy / Membership #
               </label>
               <input
@@ -1200,25 +1204,25 @@ const UserGearProfileModal = ({
                 value={insurancePolicyNumber}
                 onChange={e => setInsurancePolicyNumber(e.target.value)}
                 placeholder='12345678'
-                className='w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm'
+                className='w-full px-3 py-1.5 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md text-sm'
               />
             </div>
             <div>
-              <label className='block text-xs font-medium text-gray-700 mb-1'>
+              <label className='block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1'>
                 Expiration Date
               </label>
               <input
                 type='date'
                 value={insuranceExpiryDate}
                 onChange={e => setInsuranceExpiryDate(e.target.value)}
-                className='w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm'
+                className='w-full px-3 py-1.5 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md text-sm'
               />
             </div>
           </div>
 
           <div className='grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3'>
             <div>
-              <label className='block text-xs font-medium text-gray-700 mb-1'>
+              <label className='block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1'>
                 Emergency Contact Name
               </label>
               <input
@@ -1226,11 +1230,11 @@ const UserGearProfileModal = ({
                 value={emergencyContactName}
                 onChange={e => setEmergencyContactName(e.target.value)}
                 placeholder='Full Name'
-                className='w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm'
+                className='w-full px-3 py-1.5 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md text-sm'
               />
             </div>
             <div>
-              <label className='block text-xs font-medium text-gray-700 mb-1'>
+              <label className='block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1'>
                 Emergency Phone
               </label>
               <input
@@ -1238,28 +1242,30 @@ const UserGearProfileModal = ({
                 value={emergencyContactPhone}
                 onChange={e => setEmergencyContactPhone(e.target.value)}
                 placeholder='+30 ...'
-                className='w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm'
+                className='w-full px-3 py-1.5 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md text-sm'
               />
             </div>
             <div>
-              <label className='block text-xs font-medium text-gray-700 mb-1'>Relationship</label>
+              <label className='block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1'>
+                Relationship
+              </label>
               <input
                 type='text'
                 value={emergencyContactRelation}
                 onChange={e => setEmergencyContactRelation(e.target.value)}
                 placeholder='Partner, Parent, etc.'
-                className='w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm'
+                className='w-full px-3 py-1.5 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md text-sm'
               />
             </div>
           </div>
         </div>
 
         {/* Modal Footer */}
-        <div className='flex items-center justify-end gap-3 pt-3 border-t'>
+        <div className='flex items-center justify-end gap-3 pt-3 border-t border-gray-100 dark:border-slate-700'>
           <button
             type='button'
             onClick={onClose}
-            className='px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors'
+            className='px-4 py-2 text-sm font-medium text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-md transition-colors'
           >
             Cancel
           </button>

@@ -133,7 +133,7 @@ const AdminSystemMetrics = () => {
               <PageTitle>System Metrics</PageTitle>
               <p className='text-gray-600 mt-2'>System health, storage, usage, and alerts</p>
               {systemMetrics?.timestamp && (
-                <p className='text-sm text-gray-500 mt-1'>
+                <p className='text-sm text-gray-500 dark:text-slate-400 mt-1'>
                   Last updated: {new Date(systemMetrics.timestamp).toLocaleString()}
                 </p>
               )}
@@ -150,14 +150,18 @@ const AdminSystemMetrics = () => {
 
         {/* System Health Status */}
         <div className='mb-8'>
-          <h2 className='text-xl font-semibold text-gray-900 mb-4'>System Health</h2>
+          <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4'>
+            System Health
+          </h2>
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
             {/* Overall Status */}
-            <div className='bg-white p-6 rounded-lg border shadow-sm'>
+            <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
               <div className='flex items-center justify-between'>
                 <div>
-                  <p className='text-sm font-medium text-gray-600'>Overall Status</p>
-                  <p className='text-2xl font-bold text-gray-900'>
+                  <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                    Overall Status
+                  </p>
+                  <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                     {systemMetrics?.status || 'Unknown'}
                   </p>
                 </div>
@@ -168,14 +172,14 @@ const AdminSystemMetrics = () => {
             </div>
 
             {/* Database */}
-            <div className='bg-white p-6 rounded-lg border shadow-sm'>
+            <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
               <div className='flex items-center justify-between'>
                 <div>
-                  <p className='text-sm font-medium text-gray-600'>Database</p>
-                  <p className='text-2xl font-bold text-gray-900'>
+                  <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>Database</p>
+                  <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                     {systemMetrics?.database?.healthy ? 'Healthy' : 'Unhealthy'}
                   </p>
-                  <p className='text-sm text-gray-500'>
+                  <p className='text-sm text-gray-500 dark:text-slate-400'>
                     {systemMetrics?.database?.response_time_ms}ms
                   </p>
                 </div>
@@ -184,14 +188,14 @@ const AdminSystemMetrics = () => {
             </div>
 
             {/* CPU Usage */}
-            <div className='bg-white p-6 rounded-lg border shadow-sm'>
+            <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
               <div className='flex items-center justify-between'>
                 <div>
-                  <p className='text-sm font-medium text-gray-600'>CPU Usage</p>
-                  <p className='text-2xl font-bold text-gray-900'>
+                  <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>CPU Usage</p>
+                  <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                     {formatPercentage(systemMetrics?.resources?.cpu?.usage_percent)}
                   </p>
-                  <p className='text-sm text-gray-500'>
+                  <p className='text-sm text-gray-500 dark:text-slate-400'>
                     {systemMetrics?.resources?.cpu?.cores} cores
                   </p>
                 </div>
@@ -200,14 +204,16 @@ const AdminSystemMetrics = () => {
             </div>
 
             {/* Memory Usage */}
-            <div className='bg-white p-6 rounded-lg border shadow-sm'>
+            <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
               <div className='flex items-center justify-between'>
                 <div>
-                  <p className='text-sm font-medium text-gray-600'>Memory Usage</p>
-                  <p className='text-2xl font-bold text-gray-900'>
+                  <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                    Memory Usage
+                  </p>
+                  <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                     {formatPercentage(systemMetrics?.resources?.memory?.usage_percent)}
                   </p>
-                  <p className='text-sm text-gray-500'>
+                  <p className='text-sm text-gray-500 dark:text-slate-400'>
                     {systemMetrics?.resources?.memory?.available_gb}GB available
                   </p>
                 </div>
@@ -219,9 +225,11 @@ const AdminSystemMetrics = () => {
 
         {/* Storage Health Status */}
         <div className='mb-8'>
-          <h2 className='text-xl font-semibold text-gray-900 mb-4'>Storage Health</h2>
+          <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4'>
+            Storage Health
+          </h2>
           {storageLoading ? (
-            <div className='bg-white p-6 rounded-lg border shadow-sm'>
+            <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
               <div className='flex items-center justify-center'>
                 <div className='flex items-center space-x-3'>
                   <RefreshCw className='h-6 w-6 text-blue-600 animate-spin' />
@@ -230,7 +238,7 @@ const AdminSystemMetrics = () => {
               </div>
             </div>
           ) : storageError ? (
-            <div className='bg-white p-6 rounded-lg border shadow-sm'>
+            <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
               <div className='flex items-center justify-center'>
                 <div className='flex items-center space-x-3'>
                   <XCircle className='h-6 w-6 text-red-600' />
@@ -241,14 +249,16 @@ const AdminSystemMetrics = () => {
           ) : (
             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
               {/* R2 Configuration Status */}
-              <div className='bg-white p-6 rounded-lg border shadow-sm'>
+              <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
                 <div className='flex items-center justify-between'>
                   <div>
-                    <p className='text-sm font-medium text-gray-600'>R2 Configuration</p>
-                    <p className='text-2xl font-bold text-gray-900'>
+                    <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                      R2 Configuration
+                    </p>
+                    <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                       {storageHealth?.r2_available ? 'Configured' : 'Not Configured'}
                     </p>
-                    <p className='text-sm text-gray-500'>
+                    <p className='text-sm text-gray-500 dark:text-slate-400'>
                       {storageHealth?.r2_available
                         ? 'Environment variables present'
                         : 'Missing credentials'}
@@ -267,14 +277,16 @@ const AdminSystemMetrics = () => {
               </div>
 
               {/* R2 Connectivity Status */}
-              <div className='bg-white p-6 rounded-lg border shadow-sm'>
+              <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
                 <div className='flex items-center justify-between'>
                   <div>
-                    <p className='text-sm font-medium text-gray-600'>R2 Connectivity</p>
-                    <p className='text-2xl font-bold text-gray-900'>
+                    <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                      R2 Connectivity
+                    </p>
+                    <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                       {storageHealth?.r2_connectivity ? 'Connected' : 'Disconnected'}
                     </p>
-                    <p className='text-sm text-gray-500'>
+                    <p className='text-sm text-gray-500 dark:text-slate-400'>
                       {storageHealth?.r2_connectivity ? 'Bucket accessible' : 'Cannot reach R2'}
                     </p>
                   </div>
@@ -291,14 +303,16 @@ const AdminSystemMetrics = () => {
               </div>
 
               {/* Local Storage Status */}
-              <div className='bg-white p-6 rounded-lg border shadow-sm'>
+              <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
                 <div className='flex items-center justify-between'>
                   <div>
-                    <p className='text-sm font-medium text-gray-600'>Local Storage</p>
-                    <p className='text-2xl font-bold text-gray-900'>
+                    <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                      Local Storage
+                    </p>
+                    <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                       {storageHealth?.local_storage_available ? 'Available' : 'Unavailable'}
                     </p>
-                    <p className='text-sm text-gray-500'>
+                    <p className='text-sm text-gray-500 dark:text-slate-400'>
                       {storageHealth?.local_storage_writable ? 'Writable' : 'Read-only'}
                     </p>
                   </div>
@@ -315,14 +329,16 @@ const AdminSystemMetrics = () => {
               </div>
 
               {/* Active Storage Mode */}
-              <div className='bg-white p-6 rounded-lg border shadow-sm'>
+              <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
                 <div className='flex items-center justify-between'>
                   <div>
-                    <p className='text-sm font-medium text-gray-600'>Active Storage</p>
-                    <p className='text-2xl font-bold text-gray-900'>
+                    <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                      Active Storage
+                    </p>
+                    <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                       {storageHealth?.r2_connectivity ? 'R2 Cloud' : 'Local Only'}
                     </p>
-                    <p className='text-sm text-gray-500'>
+                    <p className='text-sm text-gray-500 dark:text-slate-400'>
                       {storageHealth?.r2_connectivity
                         ? 'Using cloud storage'
                         : 'Using local fallback'}
@@ -345,61 +361,69 @@ const AdminSystemMetrics = () => {
 
         {/* Turnstile Statistics */}
         <div className='mb-8'>
-          <h2 className='text-xl font-semibold text-gray-900 mb-4'>Turnstile Bot Protection</h2>
+          <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4'>
+            Turnstile Bot Protection
+          </h2>
 
           {/* Turnstile Overview Cards */}
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6'>
-            <div className='bg-white p-6 rounded-lg border shadow-sm'>
+            <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
               <div className='flex items-center justify-between'>
                 <div>
-                  <p className='text-sm font-medium text-gray-600'>Success Rate</p>
-                  <p className='text-2xl font-bold text-gray-900'>
+                  <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                    Success Rate
+                  </p>
+                  <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                     {turnstileStats?.success_rate
                       ? formatPercentage(turnstileStats.success_rate * 100)
                       : 'N/A'}
                   </p>
-                  <p className='text-sm text-gray-500'>Verification success</p>
+                  <p className='text-sm text-gray-500 dark:text-slate-400'>Verification success</p>
                 </div>
                 <CheckCircle className='h-8 w-8 text-green-600' />
               </div>
             </div>
 
-            <div className='bg-white p-6 rounded-lg border shadow-sm'>
+            <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
               <div className='flex items-center justify-between'>
                 <div>
-                  <p className='text-sm font-medium text-gray-600'>Response Time</p>
-                  <p className='text-2xl font-bold text-gray-900'>
+                  <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                    Response Time
+                  </p>
+                  <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                     {turnstileStats?.average_response_time_ms
                       ? `${turnstileStats.average_response_time_ms.toFixed(1)}ms`
                       : 'N/A'}
                   </p>
-                  <p className='text-sm text-gray-500'>Average verification</p>
+                  <p className='text-sm text-gray-500 dark:text-slate-400'>Average verification</p>
                 </div>
                 <Activity className='h-8 w-8 text-blue-600' />
               </div>
             </div>
 
-            <div className='bg-white p-6 rounded-lg border shadow-sm'>
+            <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
               <div className='flex items-center justify-between'>
                 <div>
-                  <p className='text-sm font-medium text-gray-600'>Total Events</p>
-                  <p className='text-2xl font-bold text-gray-900'>
+                  <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                    Total Events
+                  </p>
+                  <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                     {turnstileStats?.total_events?.toLocaleString() || '0'}
                   </p>
-                  <p className='text-sm text-gray-500'>Verification attempts</p>
+                  <p className='text-sm text-gray-500 dark:text-slate-400'>Verification attempts</p>
                 </div>
                 <Database className='h-8 w-8 text-purple-600' />
               </div>
             </div>
 
-            <div className='bg-white p-6 rounded-lg border shadow-sm'>
+            <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
               <div className='flex items-center justify-between'>
                 <div>
-                  <p className='text-sm font-medium text-gray-600'>Status</p>
-                  <p className='text-2xl font-bold text-gray-900'>
+                  <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>Status</p>
+                  <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                     {turnstileStats?.monitoring_active ? 'Active' : 'Inactive'}
                   </p>
-                  <p className='text-sm text-gray-500'>Monitoring system</p>
+                  <p className='text-sm text-gray-500 dark:text-slate-400'>Monitoring system</p>
                 </div>
                 <Database className='h-8 w-8 text-indigo-600' />
               </div>
@@ -409,8 +433,8 @@ const AdminSystemMetrics = () => {
           {/* Error Breakdown */}
           {turnstileStats?.error_breakdown &&
             Object.keys(turnstileStats.error_breakdown).length > 0 && (
-              <div className='bg-white p-6 rounded-lg border shadow-sm mb-6'>
-                <h3 className='text-lg font-semibold text-gray-900 mb-4 flex items-center'>
+              <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm mb-6'>
+                <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4 flex items-center'>
                   <AlertTriangle className='h-5 w-5 mr-2' />
                   Error Breakdown (Last 24h)
                 </h3>
@@ -430,8 +454,8 @@ const AdminSystemMetrics = () => {
 
           {/* Top IP Addresses */}
           {turnstileStats?.top_ips && turnstileStats.top_ips.length > 0 && (
-            <div className='bg-white p-6 rounded-lg border shadow-sm'>
-              <h3 className='text-lg font-semibold text-gray-900 mb-4 flex items-center'>
+            <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
+              <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4 flex items-center'>
                 <Globe className='h-5 w-5 mr-2' />
                 Top IP Addresses (Last 24h)
               </h3>
@@ -439,10 +463,12 @@ const AdminSystemMetrics = () => {
                 {turnstileStats.top_ips.map(([ip, count], index) => (
                   <div
                     key={index}
-                    className='flex items-center justify-between p-3 bg-gray-50 rounded-lg'
+                    className='flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-900/60 rounded-lg'
                   >
                     <span className='font-medium text-gray-700 font-mono text-sm'>{ip}</span>
-                    <span className='text-sm text-gray-500'>{count} requests</span>
+                    <span className='text-sm text-gray-500 dark:text-slate-400'>
+                      {count} requests
+                    </span>
                   </div>
                 ))}
               </div>
@@ -451,7 +477,7 @@ const AdminSystemMetrics = () => {
 
           {/* No Data Message */}
           {(!turnstileStats || turnstileStats.total_events === 0) && (
-            <div className='bg-gray-50 border border-gray-200 rounded-lg p-8 text-center'>
+            <div className='bg-gray-50 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-lg p-8 text-center'>
               <Activity className='h-12 w-12 text-gray-400 mx-auto mb-4' />
               <h3 className='text-lg font-medium text-gray-900 mb-2'>
                 No Turnstile Data Available
@@ -466,27 +492,33 @@ const AdminSystemMetrics = () => {
 
         {/* System Usage */}
         <div className='mb-8'>
-          <h2 className='text-xl font-semibold text-gray-900 mb-4'>System Usage</h2>
+          <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4'>
+            System Usage
+          </h2>
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-            <div className='bg-white p-6 rounded-lg border shadow-sm'>
+            <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
               <div className='text-center'>
-                <p className='text-sm font-medium text-gray-600 mb-2'>Disk Usage</p>
-                <p className='text-3xl font-bold text-gray-900'>
+                <p className='text-sm font-medium text-gray-600 dark:text-slate-400 mb-2'>
+                  Disk Usage
+                </p>
+                <p className='text-3xl font-bold text-gray-900 dark:text-slate-100'>
                   {formatPercentage(systemMetrics?.resources?.disk?.usage_percent)}
                 </p>
-                <p className='text-sm text-gray-500 mt-2'>
+                <p className='text-sm text-gray-500 dark:text-slate-400 mt-2'>
                   {systemMetrics?.resources?.disk?.free_gb}GB free of{' '}
                   {systemMetrics?.resources?.disk?.total_gb}GB
                 </p>
               </div>
             </div>
 
-            <div className='bg-white p-6 rounded-lg border shadow-sm'>
+            <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
               <div className='text-center'>
-                <p className='text-sm font-medium text-gray-600 mb-2'>Services Status</p>
+                <p className='text-sm font-medium text-gray-600 dark:text-slate-400 mb-2'>
+                  Services Status
+                </p>
                 <div className='space-y-2 mt-4'>
                   <div className='flex items-center justify-between'>
-                    <span className='text-sm text-gray-600'>Database</span>
+                    <span className='text-sm text-gray-600 dark:text-slate-300'>Database</span>
                     <span
                       className={`text-sm font-medium ${
                         systemMetrics?.services?.database === 'healthy'
@@ -498,7 +530,7 @@ const AdminSystemMetrics = () => {
                     </span>
                   </div>
                   <div className='flex items-center justify-between'>
-                    <span className='text-sm text-gray-600'>API</span>
+                    <span className='text-sm text-gray-600 dark:text-slate-300'>API</span>
                     <span
                       className={`text-sm font-medium ${
                         systemMetrics?.services?.api === 'healthy'
@@ -510,7 +542,7 @@ const AdminSystemMetrics = () => {
                     </span>
                   </div>
                   <div className='flex items-center justify-between'>
-                    <span className='text-sm text-gray-600'>Frontend</span>
+                    <span className='text-sm text-gray-600 dark:text-slate-300'>Frontend</span>
                     <span
                       className={`text-sm font-medium ${
                         systemMetrics?.services?.frontend === 'healthy'
@@ -525,12 +557,14 @@ const AdminSystemMetrics = () => {
               </div>
             </div>
 
-            <div className='bg-white p-6 rounded-lg border shadow-sm'>
+            <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
               <div className='text-center'>
-                <p className='text-sm font-medium text-gray-600 mb-2'>System Alerts</p>
+                <p className='text-sm font-medium text-gray-600 dark:text-slate-400 mb-2'>
+                  System Alerts
+                </p>
                 <div className='mt-4'>
-                  <p className='text-3xl font-bold text-gray-900'>0</p>
-                  <p className='text-sm text-gray-500 mt-2'>No active alerts</p>
+                  <p className='text-3xl font-bold text-gray-900 dark:text-slate-100'>0</p>
+                  <p className='text-sm text-gray-500 dark:text-slate-400 mt-2'>No active alerts</p>
                 </div>
               </div>
             </div>

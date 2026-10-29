@@ -82,28 +82,30 @@ const Resubscribe = () => {
         title='Resubscribe to Divemap | Divemap'
         description='Resubscribe to Divemap email notifications.'
       />
-      <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
+      <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900 py-12 px-4 sm:px-6 lg:px-8'>
         <div className='max-w-md w-full space-y-8'>
           <div>
             <div className='mx-auto flex items-center justify-center'>
               <Logo size='large' showText={false} />
             </div>
-            <h2 className='mt-6 text-center text-3xl font-extrabold text-gray-900'>Re-subscribe</h2>
+            <h2 className='mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-slate-100'>
+              Re-subscribe
+            </h2>
           </div>
 
-          <div className='bg-white py-8 px-6 shadow rounded-lg'>
+          <div className='bg-white dark:bg-slate-800 py-8 px-6 shadow rounded-lg border border-gray-100 dark:border-slate-700'>
             {status === 'loading' && (
               <div className='text-center'>
-                <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto'></div>
-                <p className='mt-4 text-gray-600'>Re-subscribing...</p>
+                <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-sky-400 mx-auto'></div>
+                <p className='mt-4 text-gray-600 dark:text-slate-400'>Re-subscribing...</p>
               </div>
             )}
 
             {status === 'success' && (
               <div className='text-center'>
-                <div className='mx-auto flex items-center justify-center w-12 h-12 rounded-full bg-green-100'>
+                <div className='mx-auto flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-emerald-950/50'>
                   <svg
-                    className='w-6 h-6 text-green-600'
+                    className='w-6 h-6 text-green-600 dark:text-emerald-400'
                     fill='none'
                     stroke='currentColor'
                     viewBox='0 0 24 24'
@@ -116,10 +118,10 @@ const Resubscribe = () => {
                     />
                   </svg>
                 </div>
-                <h3 className='mt-4 text-lg font-medium text-gray-900'>
+                <h3 className='mt-4 text-lg font-medium text-gray-900 dark:text-slate-100'>
                   Re-subscribed Successfully
                 </h3>
-                <p className='mt-2 text-sm text-gray-600'>
+                <p className='mt-2 text-sm text-gray-600 dark:text-slate-400'>
                   You have been re-subscribed to {getCategoryDisplayName(category)} notifications.
                   You will now receive email notifications from Divemap.
                 </p>
@@ -132,7 +134,7 @@ const Resubscribe = () => {
                   </button>
                   <button
                     onClick={() => navigate('/')}
-                    className='w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                    className='w-full flex justify-center py-2 px-4 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-750 hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
                   >
                     Go to Home
                   </button>
@@ -142,9 +144,9 @@ const Resubscribe = () => {
 
             {status === 'error' && (
               <div className='text-center'>
-                <div className='mx-auto flex items-center justify-center w-12 h-12 rounded-full bg-red-100'>
+                <div className='mx-auto flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-950/50'>
                   <svg
-                    className='w-6 h-6 text-red-600'
+                    className='w-6 h-6 text-red-600 dark:text-red-400'
                     fill='none'
                     stroke='currentColor'
                     viewBox='0 0 24 24'

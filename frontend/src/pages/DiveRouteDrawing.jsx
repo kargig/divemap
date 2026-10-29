@@ -305,10 +305,12 @@ const DiveRouteDrawing = () => {
   // Show loading state
   if (isLoading || routeLoading || !diveSite || !diveSite.latitude || !diveSite.longitude) {
     return (
-      <div className='min-h-screen bg-gray-50 flex items-center justify-center'>
+      <div className='min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center'>
         <div className='text-center'>
-          <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4'></div>
-          <p className='text-gray-600'>{isEditing ? 'Loading route...' : 'Loading dive site...'}</p>
+          <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 dark:border-green-400 mx-auto mb-4'></div>
+          <p className='text-gray-600 dark:text-slate-400'>
+            {isEditing ? 'Loading route...' : 'Loading dive site...'}
+          </p>
         </div>
       </div>
     );
@@ -317,9 +319,9 @@ const DiveRouteDrawing = () => {
   // Show error state
   if (diveSiteError) {
     return (
-      <div className='min-h-screen bg-gray-50 flex items-center justify-center'>
+      <div className='min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center'>
         <div className='text-center'>
-          <p className='text-red-600 mb-4'>Failed to load dive site</p>
+          <p className='text-red-600 dark:text-red-400 mb-4'>Failed to load dive site</p>
           <button
             onClick={() => navigate(`/dive-sites/${diveSiteId}`)}
             className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
@@ -334,9 +336,9 @@ const DiveRouteDrawing = () => {
   // Show not found state
   if (!diveSite) {
     return (
-      <div className='min-h-screen bg-gray-50 flex items-center justify-center'>
+      <div className='min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center'>
         <div className='text-center'>
-          <p className='text-gray-600 mb-4'>Dive site not found</p>
+          <p className='text-gray-600 dark:text-slate-400 mb-4'>Dive site not found</p>
           <button
             onClick={() => navigate('/dive-sites')}
             className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
@@ -354,27 +356,27 @@ const DiveRouteDrawing = () => {
         title={isEditing ? 'Edit Dive Route | Divemap' : 'Draw Dive Route | Divemap'}
         description='Create and edit underwater navigation routes for dive sites on Divemap.'
       />
-      <div className='min-h-screen bg-gray-50 flex flex-col'>
+      <div className='min-h-screen bg-gray-50 dark:bg-slate-900 flex flex-col'>
         {/* Header */}
-        <div className='bg-white shadow-sm border-b z-20 relative'>
+        <div className='bg-white dark:bg-slate-800 shadow-sm border-b border-gray-200 dark:border-slate-700 z-20 relative'>
           <div className='container mx-auto px-4 py-3'>
             <div className='flex items-center justify-between'>
               <div className='flex items-center space-x-4'>
                 <button
                   onClick={handleCancel}
-                  className='flex items-center text-gray-600 hover:text-gray-800 transition-colors'
+                  className='flex items-center text-gray-600 dark:text-slate-300 hover:text-gray-800 dark:hover:text-white transition-colors'
                 >
                   <ArrowLeft className='w-5 h-5 mr-2' />
                   Back to Dive Site
                 </button>
-                <div className='h-6 w-px bg-gray-300'></div>
-                <h1 className='text-lg font-semibold text-gray-800'>
+                <div className='h-6 w-px bg-gray-300 dark:bg-slate-700'></div>
+                <h1 className='text-lg font-semibold text-gray-800 dark:text-slate-100'>
                   {isEditing ? 'Edit Route' : 'Draw Route'} for {diveSite.name}
                 </h1>
               </div>
 
               <div className='flex items-center space-x-3'>
-                <div className='text-sm text-gray-500'>
+                <div className='text-sm text-gray-500 dark:text-slate-400'>
                   Use the drawing tools on the map to create your route
                 </div>
               </div>
@@ -383,13 +385,13 @@ const DiveRouteDrawing = () => {
         </div>
 
         {/* Form */}
-        <div className='bg-white border-b z-10 relative'>
+        <div className='bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 z-10 relative'>
           <div className='px-4 py-3'>
             <div className='max-w-6xl mx-auto flex flex-col gap-3'>
               {/* Row 1: Route Name, Type, Status, Buttons */}
               <div className='flex gap-3 items-end'>
                 <div className='pointer-events-auto flex-1'>
-                  <label className='block text-xs font-medium text-gray-700 mb-1'>
+                  <label className='block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1'>
                     Route Name *
                   </label>
                   <input
@@ -397,18 +399,18 @@ const DiveRouteDrawing = () => {
                     value={routeName}
                     onChange={e => setRouteName(e.target.value)}
                     placeholder='Enter route name...'
-                    className='w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
+                    className='w-full px-2 py-1.5 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
                     required
                   />
                 </div>
 
                 {/* Route Status Indicator */}
                 <div className='w-32'>
-                  <div className='px-2 py-1.5 bg-gray-50 border border-gray-200 rounded text-sm text-gray-600 flex items-center justify-center h-[34px]'>
+                  <div className='px-2 py-1.5 bg-gray-50 dark:bg-slate-750 border border-gray-200 dark:border-slate-700 rounded text-sm text-gray-600 dark:text-slate-300 flex items-center justify-center h-[34px]'>
                     {routeData ? (
-                      <span className='text-green-600'>✓ Ready</span>
+                      <span className='text-green-600 dark:text-emerald-400'>✓ Ready</span>
                     ) : (
-                      <span className='text-orange-600'>⚠ Draw first</span>
+                      <span className='text-orange-600 dark:text-amber-400'>⚠ Draw first</span>
                     )}
                   </div>
                 </div>
@@ -437,13 +439,15 @@ const DiveRouteDrawing = () => {
 
               {/* Row 2: Description */}
               <div className='w-full'>
-                <label className='block text-xs font-medium text-gray-700 mb-1'>Description</label>
+                <label className='block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1'>
+                  Description
+                </label>
                 <textarea
                   value={routeDescription}
                   onChange={e => setRouteDescription(e.target.value)}
                   placeholder='Optional description...'
                   rows={3}
-                  className='w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 resize-y'
+                  className='w-full px-2 py-1.5 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 resize-y'
                 />
               </div>
             </div>

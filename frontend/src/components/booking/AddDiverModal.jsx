@@ -188,7 +188,7 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
         {/* Contact & Personal Details */}
         <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
           <div>
-            <label className='block font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+            <label className='block font-semibold text-gray-700 dark:text-slate-200 mb-1'>
               Full Legal Name *
             </label>
             <input
@@ -197,11 +197,11 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
               onChange={e => setDiverName(e.target.value)}
               placeholder='As shown on passport'
               required
-              className='w-full px-3 py-2 border rounded-lg text-xs'
+              className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-lg text-xs'
             />
           </div>
           <div>
-            <label className='block font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+            <label className='block font-semibold text-gray-700 dark:text-slate-200 mb-1'>
               Email Address
             </label>
             <input
@@ -209,11 +209,11 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
               value={diverEmail}
               onChange={e => setDiverEmail(e.target.value)}
               placeholder='diver@example.com'
-              className='w-full px-3 py-2 border rounded-lg text-xs'
+              className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-lg text-xs'
             />
           </div>
           <div>
-            <label className='block font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+            <label className='block font-semibold text-gray-700 dark:text-slate-200 mb-1'>
               Phone / WhatsApp
             </label>
             <input
@@ -221,11 +221,11 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
               value={diverPhone}
               onChange={e => setDiverPhone(e.target.value)}
               placeholder='+30 ...'
-              className='w-full px-3 py-2 border rounded-lg text-xs'
+              className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-lg text-xs'
             />
           </div>
           <div>
-            <label className='block font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+            <label className='block font-semibold text-gray-700 dark:text-slate-200 mb-1'>
               Passport / National ID #
             </label>
             <input
@@ -233,11 +233,11 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
               value={passportNumber}
               onChange={e => setPassportNumber(e.target.value)}
               placeholder='Port Authority Manifest ID'
-              className='w-full px-3 py-2 border rounded-lg text-xs'
+              className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-lg text-xs'
             />
           </div>
           <div>
-            <label className='block font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+            <label className='block font-semibold text-gray-700 dark:text-slate-200 mb-1'>
               Nationality
             </label>
             <input
@@ -245,26 +245,26 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
               value={nationality}
               onChange={e => setNationality(e.target.value)}
               placeholder='e.g. Greek, German, British'
-              className='w-full px-3 py-2 border rounded-lg text-xs'
+              className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-lg text-xs'
             />
           </div>
           <DateOfBirthPicker value={dob} onChange={setDob} label='Date of Birth' />
         </div>
 
         {/* Certification Details */}
-        <div className='pt-3 border-t'>
-          <h4 className='font-bold text-gray-900 dark:text-white uppercase tracking-wider text-[11px] mb-2'>
+        <div className='pt-3 border-t border-gray-100 dark:border-slate-700'>
+          <h4 className='font-bold text-gray-900 dark:text-slate-100 uppercase tracking-wider text-[11px] mb-2'>
             Certification Credentials
           </h4>
           <div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
             <div>
-              <label className='block font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+              <label className='block font-semibold text-gray-700 dark:text-slate-200 mb-1'>
                 Agency
               </label>
               <select
                 value={agency}
                 onChange={e => setAgency(e.target.value)}
-                className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white'
+                className='w-full px-2 py-1.5 border border-gray-300 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100'
               >
                 {organizations.map(org => (
                   <option key={org.id} value={org.acronym || org.name}>
@@ -275,14 +275,14 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
               </select>
             </div>
             <div>
-              <label className='block font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+              <label className='block font-semibold text-gray-700 dark:text-slate-200 mb-1'>
                 Certification Level
               </label>
               {availableLevels.length > 0 ? (
                 <select
                   value={certLevel}
                   onChange={e => setCertLevel(e.target.value)}
-                  className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white'
+                  className='w-full px-2 py-1.5 border border-gray-300 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100'
                 >
                   {availableLevels.map(lvl => (
                     <option key={lvl.id} value={lvl.name}>
@@ -297,12 +297,12 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
                   value={certLevel}
                   onChange={e => setCertLevel(e.target.value)}
                   placeholder='e.g. Advanced Open Water'
-                  className='w-full px-2 py-1.5 border rounded-lg text-xs'
+                  className='w-full px-2 py-1.5 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-lg text-xs'
                 />
               )}
             </div>
             <div>
-              <label className='block font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+              <label className='block font-semibold text-gray-700 dark:text-slate-200 mb-1'>
                 Certification Card # (Physical or App)
               </label>
               <input
@@ -310,24 +310,26 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
                 value={certNumber}
                 onChange={e => setCertNumber(e.target.value)}
                 placeholder='Card or digital app ID number'
-                className='w-full px-2 py-1.5 border rounded-lg text-xs'
+                className='w-full px-2 py-1.5 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-lg text-xs'
               />
             </div>
           </div>
         </div>
 
         {/* Cylinder & Equipment Sizing */}
-        <div className='pt-3 border-t'>
-          <h4 className='font-bold text-gray-900 dark:text-white uppercase tracking-wider text-[11px] mb-2'>
+        <div className='pt-3 border-t border-gray-100 dark:border-slate-700'>
+          <h4 className='font-bold text-gray-900 dark:text-slate-100 uppercase tracking-wider text-[11px] mb-2'>
             Cylinder & Gear Sizing
           </h4>
           <div className='grid grid-cols-2 sm:grid-cols-4 gap-3'>
             <div>
-              <label className='block font-medium text-gray-600 mb-1'>Cylinder</label>
+              <label className='block font-medium text-gray-600 dark:text-slate-300 mb-1'>
+                Cylinder
+              </label>
               <select
                 value={tankId}
                 onChange={e => setTankId(e.target.value)}
-                className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white'
+                className='w-full px-2 py-1.5 border border-gray-300 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100'
               >
                 <option value='12'>12L Steel</option>
                 <option value='15'>15L Steel</option>
@@ -336,54 +338,64 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
               </select>
             </div>
             <div>
-              <label className='block font-medium text-gray-600 mb-1'>Gas Mix</label>
+              <label className='block font-medium text-gray-600 dark:text-slate-300 mb-1'>
+                Gas Mix
+              </label>
               <select
                 value={gasMixId}
                 onChange={e => setGasMixId(e.target.value)}
-                className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white font-medium'
+                className='w-full px-2 py-1.5 border border-gray-300 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 font-medium'
               >
                 <option value='air'>Air (21% O2) — Standard</option>
                 <option value='ean32'>EAN32 (32% O2 Nitrox) — Requires Cert</option>
               </select>
             </div>
             <div>
-              <label className='block font-medium text-gray-600 mb-1'>Valve Fitting</label>
+              <label className='block font-medium text-gray-600 dark:text-slate-300 mb-1'>
+                Valve Fitting
+              </label>
               <select
                 value={regulatorFitting}
                 onChange={e => setRegulatorFitting(e.target.value)}
-                className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white font-medium'
+                className='w-full px-2 py-1.5 border border-gray-300 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 font-medium'
               >
                 <option value='DIN'>DIN (5/8" Threaded)</option>
                 <option value='YOKE'>Yoke (INT / A-clamp)</option>
               </select>
             </div>
             <div>
-              <label className='block font-medium text-gray-600 mb-1'>Lead (kg)</label>
+              <label className='block font-medium text-gray-600 dark:text-slate-300 mb-1'>
+                Lead (kg)
+              </label>
               <input
                 type='number'
                 step='0.5'
                 value={leadKg}
                 onChange={e => setLeadKg(e.target.value)}
-                className='w-full px-2 py-1.5 border rounded-lg text-xs'
+                className='w-full px-2 py-1.5 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-lg text-xs'
               />
             </div>
             <div>
-              <label className='block font-medium text-gray-600 mb-1'>Weight System</label>
+              <label className='block font-medium text-gray-600 dark:text-slate-300 mb-1'>
+                Weight System
+              </label>
               <select
                 value={weightSystem}
                 onChange={e => setWeightSystem(e.target.value)}
-                className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white font-medium'
+                className='w-full px-2 py-1.5 border border-gray-300 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 font-medium'
               >
                 <option value='INTEGRATED'>Integrated Pockets</option>
                 <option value='BELT'>Weight Belt</option>
               </select>
             </div>
             <div>
-              <label className='block font-medium text-gray-600 mb-1'>Wetsuit Cut</label>
+              <label className='block font-medium text-gray-600 dark:text-slate-300 mb-1'>
+                Wetsuit Cut
+              </label>
               <select
                 value={wetsuitGender}
                 onChange={e => setWetsuitGender(e.target.value)}
-                className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white font-medium'
+                className='w-full px-2 py-1.5 border border-gray-300 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 font-medium'
               >
                 <option value='MEN'>Men's / Unisex</option>
                 <option value='WOMEN'>Women's</option>
@@ -391,11 +403,13 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
               </select>
             </div>
             <div>
-              <label className='block font-medium text-gray-600 mb-1'>Wetsuit Size</label>
+              <label className='block font-medium text-gray-600 dark:text-slate-300 mb-1'>
+                Wetsuit Size
+              </label>
               <select
                 value={wetsuitSize}
                 onChange={e => setWetsuitSize(e.target.value)}
-                className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white'
+                className='w-full px-2 py-1.5 border border-gray-300 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100'
               >
                 <option value='None'>None (Own Suit)</option>
                 <option value='XS'>XS</option>
@@ -407,11 +421,13 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
               </select>
             </div>
             <div>
-              <label className='block font-medium text-gray-600 mb-1'>Wetsuit Thickness</label>
+              <label className='block font-medium text-gray-600 dark:text-slate-300 mb-1'>
+                Wetsuit Thickness
+              </label>
               <select
                 value={wetsuitThickness}
                 onChange={e => setWetsuitThickness(e.target.value)}
-                className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white'
+                className='w-full px-2 py-1.5 border border-gray-300 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100'
               >
                 <option value='3mm'>3mm</option>
                 <option value='5mm'>5mm</option>
@@ -419,22 +435,26 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
               </select>
             </div>
             <div>
-              <label className='block font-medium text-gray-600 mb-1'>BCD Cut</label>
+              <label className='block font-medium text-gray-600 dark:text-slate-300 mb-1'>
+                BCD Cut
+              </label>
               <select
                 value={bcdGender}
                 onChange={e => setBcdGender(e.target.value)}
-                className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white font-medium'
+                className='w-full px-2 py-1.5 border border-gray-300 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 font-medium'
               >
                 <option value='MEN'>Men's / Unisex</option>
                 <option value='WOMEN'>Women's</option>
               </select>
             </div>
             <div>
-              <label className='block font-medium text-gray-600 mb-1'>BCD Size</label>
+              <label className='block font-medium text-gray-600 dark:text-slate-300 mb-1'>
+                BCD Size
+              </label>
               <select
                 value={bcdSize}
                 onChange={e => setBcdSize(e.target.value)}
-                className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white'
+                className='w-full px-2 py-1.5 border border-gray-300 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100'
               >
                 <option value='None'>None (Own BCD)</option>
                 <option value='XS'>XS</option>
@@ -445,11 +465,13 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
               </select>
             </div>
             <div>
-              <label className='block font-medium text-gray-600 mb-1'>Rental Fins</label>
+              <label className='block font-medium text-gray-600 dark:text-slate-300 mb-1'>
+                Rental Fins
+              </label>
               <select
                 value={finSize}
                 onChange={e => setFinSize(e.target.value)}
-                className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white font-medium'
+                className='w-full px-2 py-1.5 border border-gray-300 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 font-medium'
               >
                 <option value='None'>None (Own Fins)</option>
                 <option value='XS'>XS (EU 35-37)</option>
@@ -460,11 +482,13 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
               </select>
             </div>
             <div>
-              <label className='block font-medium text-gray-600 mb-1'>Booties Size</label>
+              <label className='block font-medium text-gray-600 dark:text-slate-300 mb-1'>
+                Booties Size
+              </label>
               <select
                 value={bootSize}
                 onChange={e => setBootSize(e.target.value)}
-                className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white'
+                className='w-full px-2 py-1.5 border border-gray-300 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100'
               >
                 <option value='None'>None (Own Booties)</option>
                 <option value='36'>EU 36</option>
@@ -482,8 +506,8 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
             </div>
           </div>
 
-          <div className='flex flex-wrap items-center gap-4 pt-2 border-t border-gray-100 text-xs text-gray-700'>
-            <label className='flex items-center gap-1.5 cursor-pointer font-medium text-blue-700'>
+          <div className='flex flex-wrap items-center gap-4 pt-2 border-t border-gray-100 dark:border-slate-700 text-xs text-gray-700 dark:text-slate-300'>
+            <label className='flex items-center gap-1.5 cursor-pointer font-medium text-blue-700 dark:text-sky-300'>
               <input
                 type='checkbox'
                 checked={rentalComputer}
@@ -493,7 +517,7 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
               <span>Rent Dive Computer (Wrist Unit)</span>
             </label>
 
-            <label className='flex items-center gap-1.5 cursor-pointer font-medium text-amber-700'>
+            <label className='flex items-center gap-1.5 cursor-pointer font-medium text-amber-700 dark:text-amber-300'>
               <input
                 type='checkbox'
                 checked={rentalTorch}
@@ -506,7 +530,7 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
         </div>
 
         {/* Counter Check-in & Payment Checkboxes */}
-        <div className='p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3'>
+        <div className='p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3'>
           <label className='flex items-center gap-2 cursor-pointer'>
             <input
               type='checkbox'
@@ -514,7 +538,7 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
               onChange={e => setMarkPaid(e.target.checked)}
               className='rounded text-blue-600 h-4 w-4'
             />
-            <span className='font-semibold text-gray-800 dark:text-gray-200'>
+            <span className='font-semibold text-gray-800 dark:text-slate-200'>
               Mark Paid at Counter (Cash/Card Succeeded)
             </span>
           </label>
@@ -525,18 +549,18 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
               onChange={e => setBoarded(e.target.checked)}
               className='rounded text-blue-600 h-4 w-4'
             />
-            <span className='font-semibold text-gray-800 dark:text-gray-200'>
+            <span className='font-semibold text-gray-800 dark:text-slate-200'>
               Diver has Boarded Boat
             </span>
           </label>
         </div>
 
         {/* Actions */}
-        <div className='flex items-center justify-end gap-3 pt-3 border-t'>
+        <div className='flex items-center justify-end gap-3 pt-3 border-t border-gray-100 dark:border-slate-700'>
           <button
             type='button'
             onClick={onClose}
-            className='px-4 py-2 font-medium text-gray-600 hover:bg-gray-100 rounded-md transition-colors'
+            className='px-4 py-2 font-medium text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-md transition-colors'
           >
             Cancel
           </button>

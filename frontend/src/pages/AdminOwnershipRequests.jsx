@@ -52,12 +52,12 @@ ErrorDisplay.propTypes = {
 };
 
 const MobileRequestCard = ({ request, onModalOpen }) => (
-  <Card className='mb-4 shadow-sm border-gray-200' size='small'>
+  <Card className='mb-4 shadow-sm border-gray-200 dark:border-slate-700' size='small'>
     <div className='flex flex-col gap-3'>
       <div className='flex justify-between items-start'>
         <div className='flex-1'>
           <h3 className='text-base font-bold text-gray-900 leading-tight'>{request.name}</h3>
-          <div className='flex items-center text-xs text-gray-500 mt-1 gap-1'>
+          <div className='flex items-center text-xs text-gray-500 dark:text-slate-400 mt-1 gap-1'>
             <MapPin size={12} className='shrink-0' />
             <span className='truncate'>{request.location}</span>
           </div>
@@ -90,7 +90,7 @@ const MobileRequestCard = ({ request, onModalOpen }) => (
       </div>
 
       {request.claim_reason && request.ownership_status === 'claimed' && (
-        <div className='bg-gray-50 rounded-lg p-2.5 mt-1 border border-gray-100'>
+        <div className='bg-gray-50 dark:bg-slate-900/60 rounded-lg p-2.5 mt-1 border border-gray-100'>
           <p className='text-gray-400 uppercase tracking-wider font-semibold text-[10px] mb-1'>
             Claim Reason
           </p>
@@ -149,8 +149,8 @@ const TimelineEvent = ({ request }) => {
   let EventIcon = FileText;
   let colorTheme = {
     bg: 'bg-gray-100',
-    border: 'border-gray-200',
-    iconBg: 'bg-gray-500',
+    border: 'border-gray-200 dark:border-slate-700',
+    iconBg: 'bg-gray-50 dark:bg-slate-900/600',
     text: 'text-gray-800',
   };
   let actionText = '';
@@ -212,7 +212,7 @@ const TimelineEvent = ({ request }) => {
       </div>
 
       {/* Date (Left sidebar on desktop, above card on mobile) */}
-      <div className='sm:absolute sm:left-0 sm:w-20 sm:text-right text-[10px] sm:text-xs text-gray-500 mt-0 sm:mt-1.5 mb-1.5 sm:mb-0'>
+      <div className='sm:absolute sm:left-0 sm:w-20 sm:text-right text-[10px] sm:text-xs text-gray-500 dark:text-slate-400 mt-0 sm:mt-1.5 mb-1.5 sm:mb-0'>
         <div className='font-medium text-gray-700'>{formatDate(displayDate)}</div>
         <div className='text-[8px] sm:text-[10px] uppercase tracking-wider'>
           {formatTime(displayDate, { hour: '2-digit', minute: '2-digit' })}
@@ -312,17 +312,19 @@ const ApprovalModal = ({
     <div className='mb-4'>
       <h4 className='font-medium text-gray-900 mb-2'>{request.name}</h4>
       {request.owner_username && (
-        <p className='text-sm text-gray-600 mb-2'>
+        <p className='text-sm text-gray-600 dark:text-slate-300 mb-2'>
           {isRevoking ? 'Current Owner:' : 'Claimed by:'} {request.owner_username}
         </p>
       )}
-      <p className='text-sm text-gray-600'>
+      <p className='text-sm text-gray-600 dark:text-slate-300'>
         Status: {request.ownership_status === 'claimed' ? 'Pending Approval' : 'Approved'}
       </p>
       {request.claim_reason && (
-        <div className='mt-3 pt-3 border-t border-gray-200'>
-          <p className='text-sm font-medium text-gray-900 mb-2'>Claim Reason:</p>
-          <p className='text-sm text-gray-700 bg-gray-50 p-3 rounded-md whitespace-pre-wrap'>
+        <div className='mt-3 pt-3 border-t border-gray-200 dark:border-slate-700'>
+          <p className='text-sm font-medium text-gray-900 dark:text-slate-100 mb-2'>
+            Claim Reason:
+          </p>
+          <p className='text-sm text-gray-700 dark:text-slate-300 bg-gray-50 dark:bg-slate-900/60 p-3 rounded-md whitespace-pre-wrap'>
             {request.claim_reason}
           </p>
         </div>
@@ -338,7 +340,10 @@ const ApprovalModal = ({
     {request.ownership_status === 'claimed' && !isRevoking && (
       <>
         <div className='mb-4'>
-          <label htmlFor='approval-reason' className='block text-sm font-medium text-gray-700 mb-2'>
+          <label
+            htmlFor='approval-reason'
+            className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-2'
+          >
             Approval Reason (Optional)
           </label>
           <textarea
@@ -354,7 +359,7 @@ const ApprovalModal = ({
         <div className='flex justify-end space-x-3'>
           <button
             onClick={onClose}
-            className='px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50'
+            className='px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 dark:bg-slate-900/60'
           >
             Cancel
           </button>
@@ -389,7 +394,10 @@ const ApprovalModal = ({
     {isRevoking && (
       <>
         <div className='mb-4'>
-          <label htmlFor='revoke-reason' className='block text-sm font-medium text-gray-700 mb-2'>
+          <label
+            htmlFor='revoke-reason'
+            className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-2'
+          >
             Revocation Reason (Required)
           </label>
           <textarea
@@ -406,7 +414,7 @@ const ApprovalModal = ({
         <div className='flex justify-end space-x-3'>
           <button
             onClick={onClose}
-            className='px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50'
+            className='px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 dark:bg-slate-900/60'
           >
             Cancel
           </button>
@@ -564,7 +572,7 @@ const AdminOwnershipRequests = () => {
       render: (text, record) => (
         <div className='flex flex-col'>
           <span className='font-semibold text-gray-900'>{text}</span>
-          <span className='text-xs text-gray-500'>{record.location}</span>
+          <span className='text-xs text-gray-500 dark:text-slate-400'>{record.location}</span>
         </div>
       ),
     },
@@ -667,7 +675,7 @@ const AdminOwnershipRequests = () => {
                 {isMobile ? (
                   <div className='flex flex-col'>
                     {requests?.filter(r => r.ownership_status === 'claimed').length === 0 ? (
-                      <div className='py-12 text-center text-gray-500 bg-white rounded-lg border border-gray-200'>
+                      <div className='py-12 text-center text-gray-500 bg-white rounded-lg border border-gray-200 dark:border-slate-700'>
                         No pending ownership requests.
                       </div>
                     ) : (
@@ -683,7 +691,7 @@ const AdminOwnershipRequests = () => {
                     )}
                   </div>
                 ) : (
-                  <div className='bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden'>
+                  <div className='bg-white rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden'>
                     <Table
                       dataSource={requests?.filter(r => r.ownership_status === 'claimed')}
                       columns={getColumns(false)}
@@ -712,7 +720,7 @@ const AdminOwnershipRequests = () => {
                 {isMobile ? (
                   <div className='flex flex-col'>
                     {requests?.filter(r => r.ownership_status === 'approved').length === 0 ? (
-                      <div className='py-12 text-center text-gray-500 bg-white rounded-lg border border-gray-200'>
+                      <div className='py-12 text-center text-gray-500 bg-white rounded-lg border border-gray-200 dark:border-slate-700'>
                         No active diving center ownerships.
                       </div>
                     ) : (
@@ -728,7 +736,7 @@ const AdminOwnershipRequests = () => {
                     )}
                   </div>
                 ) : (
-                  <div className='bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden'>
+                  <div className='bg-white rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden'>
                     <Table
                       dataSource={requests?.filter(r => r.ownership_status === 'approved')}
                       columns={getColumns(true)}
@@ -753,7 +761,7 @@ const AdminOwnershipRequests = () => {
               'History'
             ),
             children: (
-              <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 mt-4'>
+              <div className='bg-white rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6 mt-4'>
                 <div className='relative'>
                   {history?.map(request => (
                     <TimelineEvent key={request.id} request={request} />

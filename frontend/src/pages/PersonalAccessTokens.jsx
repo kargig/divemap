@@ -200,19 +200,19 @@ const PersonalAccessTokens = () => {
           />
         </Card>
 
-        <div className='mt-12 bg-gray-50 rounded-xl p-6 border border-gray-200'>
-          <Title level={4} className='flex items-center'>
-            <Info className='mr-2 text-gray-600' size={20} />
+        <div className='mt-12 bg-gray-50 dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700'>
+          <Title level={4} className='flex items-center !text-gray-900 dark:!text-slate-100'>
+            <Info className='mr-2 text-gray-600 dark:text-slate-400' size={20} />
             How to use PATs
           </Title>
-          <Paragraph>
+          <Paragraph className='text-gray-700 dark:text-slate-300'>
             Pass your token in the <code>Authorization</code> header as a Bearer token:
           </Paragraph>
-          <pre className='bg-gray-900 text-gray-100 p-4 rounded-lg text-sm overflow-x-auto mb-4'>
+          <pre className='bg-gray-900 text-gray-100 p-4 rounded-lg text-sm overflow-x-auto mb-4 border border-gray-800 dark:border-slate-700'>
             curl -H &quot;Authorization: Bearer dm_pat_your_token_here&quot; {currentOrigin}
             /api/v1/auth/me
           </pre>
-          <Paragraph className='text-gray-500 text-sm'>
+          <Paragraph className='text-gray-500 dark:text-slate-400 text-sm'>
             Note: These tokens are subject to rate limiting (100 requests per minute).
           </Paragraph>
         </div>
@@ -298,13 +298,16 @@ const PersonalAccessTokens = () => {
               className='mb-6'
             />
 
-            <div className='bg-gray-100 p-4 rounded-lg border border-gray-200 mb-4'>
-              <Text copyable={{ text: newToken?.token }} className='text-base font-mono break-all'>
+            <div className='bg-gray-100 dark:bg-slate-750 p-4 rounded-lg border border-gray-200 dark:border-slate-700 mb-4'>
+              <Text
+                copyable={{ text: newToken?.token }}
+                className='text-base font-mono break-all text-gray-900 dark:text-slate-100'
+              >
                 {newToken?.token}
               </Text>
             </div>
 
-            <Paragraph className='text-gray-500 text-sm italic'>
+            <Paragraph className='text-gray-500 dark:text-slate-400 text-sm italic'>
               Token name: <strong>{newToken?.name}</strong>
             </Paragraph>
           </div>

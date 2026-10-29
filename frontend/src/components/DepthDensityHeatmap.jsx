@@ -14,15 +14,15 @@ const DepthDensityHeatmap = ({ data }) => {
 
   // Helper to get color intensity based on count
   const getColor = count => {
-    if (count === 0) return 'bg-gray-50';
+    if (count === 0) return 'bg-gray-50 dark:bg-slate-750';
 
     const ratio = count / maxCount;
     // We use a progressive blue scale matching Divemap's brand
-    if (ratio <= 0.2) return 'bg-blue-100';
-    if (ratio <= 0.4) return 'bg-blue-300';
-    if (ratio <= 0.6) return 'bg-blue-500';
-    if (ratio <= 0.8) return 'bg-blue-700';
-    return 'bg-blue-900';
+    if (ratio <= 0.2) return 'bg-blue-100 dark:bg-blue-900/40';
+    if (ratio <= 0.4) return 'bg-blue-300 dark:bg-blue-800/60';
+    if (ratio <= 0.6) return 'bg-blue-500 dark:bg-blue-600';
+    if (ratio <= 0.8) return 'bg-blue-700 dark:bg-blue-500';
+    return 'bg-blue-900 dark:bg-blue-400';
   };
 
   // Convert array to dictionary for easy lookup
@@ -33,8 +33,12 @@ const DepthDensityHeatmap = ({ data }) => {
 
   return (
     <div className='mt-6 text-center'>
-      <h3 className='text-md font-semibold text-gray-800 mb-2'>Depth Density Heatmap</h3>
-      <p className='text-xs text-gray-500 mb-6'>Max Depth vs. Average Depth (Meters)</p>
+      <h3 className='text-md font-semibold text-gray-800 dark:text-slate-100 mb-2'>
+        Depth Density Heatmap
+      </h3>
+      <p className='text-xs text-gray-500 dark:text-slate-400 mb-6'>
+        Max Depth vs. Average Depth (Meters)
+      </p>
 
       <div className='flex justify-center overflow-x-auto pb-4'>
         <div className='flex min-w-max'>
@@ -43,7 +47,7 @@ const DepthDensityHeatmap = ({ data }) => {
             {AVG_DEPTH_BINS.map(label => (
               <div
                 key={label}
-                className='h-7 sm:h-12 lg:h-14 flex items-center justify-end text-[10px] sm:text-xs text-gray-500 w-10 sm:w-12 text-right'
+                className='h-7 sm:h-12 lg:h-14 flex items-center justify-end text-[10px] sm:text-xs text-gray-500 dark:text-slate-400 w-10 sm:w-12 text-right'
               >
                 {label}
               </div>
@@ -56,7 +60,7 @@ const DepthDensityHeatmap = ({ data }) => {
             <div className='flex gap-1 mb-2'>
               {MAX_DEPTH_BINS.map(label => (
                 <div key={label} className='w-7 sm:w-16 lg:w-20 relative h-9 sm:h-12'>
-                  <span className='absolute bottom-0 left-1/2 text-[10px] sm:text-xs text-gray-500 origin-bottom-left -rotate-45 whitespace-nowrap'>
+                  <span className='absolute bottom-0 left-1/2 text-[10px] sm:text-xs text-gray-500 dark:text-slate-400 origin-bottom-left -rotate-45 whitespace-nowrap'>
                     {label}
                   </span>
                 </div>
@@ -79,7 +83,7 @@ const DepthDensityHeatmap = ({ data }) => {
                     return (
                       <div
                         key={`${maxBin}-${avgBin}`}
-                        className={`w-7 h-7 sm:w-16 sm:h-12 lg:w-20 lg:h-14 rounded-sm ${isImpossible ? 'bg-gray-50/30' : getColor(count)} transition-all hover:ring-2 hover:ring-blue-400 group relative cursor-help flex items-center justify-center`}
+                        className={`w-7 h-7 sm:w-16 sm:h-12 lg:w-20 lg:h-14 rounded-sm ${isImpossible ? 'bg-gray-50/30 dark:bg-slate-800/30' : getColor(count)} transition-all hover:ring-2 hover:ring-blue-400 group relative cursor-help flex items-center justify-center`}
                         title={
                           count > 0
                             ? `${count} dive(s): Max ${maxBin}m, Avg ${avgBin}m`
@@ -90,7 +94,7 @@ const DepthDensityHeatmap = ({ data }) => {
                       >
                         {count > 0 && (
                           <span
-                            className={`text-[10px] sm:text-xs font-medium ${count > maxCount * 0.4 ? 'text-white' : 'text-gray-700'}`}
+                            className={`text-[10px] sm:text-xs font-medium ${count > maxCount * 0.4 ? 'text-white' : 'text-gray-700 dark:text-slate-200'}`}
                           >
                             {count}
                           </span>
@@ -103,14 +107,14 @@ const DepthDensityHeatmap = ({ data }) => {
             </div>
 
             {/* X-Axis Legend */}
-            <div className='mt-4 text-center text-[10px] sm:text-xs text-gray-400'>
+            <div className='mt-4 text-center text-[10px] sm:text-xs text-gray-400 dark:text-slate-400'>
               Maximum Depth (m)
             </div>
           </div>
 
           {/* Y-Axis Legend (Vertical) */}
           <div className='flex items-center ml-4 sm:ml-8'>
-            <div className='text-[10px] sm:text-xs text-gray-400 -rotate-90 whitespace-nowrap'>
+            <div className='text-[10px] sm:text-xs text-gray-400 dark:text-slate-400 -rotate-90 whitespace-nowrap'>
               Average Depth (m)
             </div>
           </div>
@@ -118,7 +122,7 @@ const DepthDensityHeatmap = ({ data }) => {
       </div>
 
       {/* Legend */}
-      <div className='flex items-center justify-end gap-2 mt-4 text-[10px] text-gray-400'>
+      <div className='flex items-center justify-end gap-2 mt-4 text-[10px] text-gray-400 dark:text-slate-400'>
         <span>Fewer Dives</span>
         <div className='w-2.5 h-2.5 rounded-sm bg-blue-100' />
         <div className='w-2.5 h-2.5 rounded-sm bg-blue-300' />

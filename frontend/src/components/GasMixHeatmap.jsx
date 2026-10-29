@@ -30,13 +30,13 @@ const GasMixHeatmap = ({ data }) => {
 
   // Helper for color intensity matching existing standards
   const getColor = count => {
-    if (count === 0) return 'bg-gray-50';
+    if (count === 0) return 'bg-gray-50 dark:bg-slate-750';
     const ratio = count / maxCount;
-    if (ratio <= 0.2) return 'bg-blue-100';
-    if (ratio <= 0.4) return 'bg-blue-300';
-    if (ratio <= 0.6) return 'bg-blue-500';
-    if (ratio <= 0.8) return 'bg-blue-700';
-    return 'bg-blue-900';
+    if (ratio <= 0.2) return 'bg-blue-100 dark:bg-blue-900/40';
+    if (ratio <= 0.4) return 'bg-blue-300 dark:bg-blue-800/60';
+    if (ratio <= 0.6) return 'bg-blue-500 dark:bg-blue-600';
+    if (ratio <= 0.8) return 'bg-blue-700 dark:bg-blue-500';
+    return 'bg-blue-900 dark:bg-blue-400';
   };
 
   // Convert array to dictionary for easy lookup
@@ -64,11 +64,11 @@ const GasMixHeatmap = ({ data }) => {
   };
 
   return (
-    <div className='bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-6 hover:shadow-md transition-shadow text-center animate-fade-in'>
-      <h3 className='text-md font-semibold text-gray-800 mb-1 flex items-center justify-center gap-2'>
+    <div className='bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-3 sm:p-6 hover:shadow-md transition-shadow text-center animate-fade-in'>
+      <h3 className='text-md font-semibold text-gray-800 dark:text-slate-100 mb-1 flex items-center justify-center gap-2'>
         Gas Mix vs. Maximum Depth Heatmap
       </h3>
-      <p className='text-xs text-gray-500 mb-6'>
+      <p className='text-xs text-gray-500 dark:text-slate-400 mb-6'>
         Breathing gas usage counts mapped to maximum depth ranges.
       </p>
 
@@ -86,8 +86,8 @@ const GasMixHeatmap = ({ data }) => {
                   <span
                     className={`text-[9px] sm:text-xs text-right whitespace-nowrap ${
                       isStandardMix
-                        ? 'font-extrabold text-blue-700 bg-blue-50/70 border border-blue-100 rounded px-1.5 py-0.5 shadow-sm'
-                        : 'font-semibold text-gray-500'
+                        ? 'font-extrabold text-blue-700 dark:text-sky-300 bg-blue-50/70 dark:bg-blue-900/40 border border-blue-100 dark:border-blue-800 rounded px-1.5 py-0.5 shadow-sm'
+                        : 'font-semibold text-gray-500 dark:text-slate-400'
                     }`}
                   >
                     {mix}
@@ -103,7 +103,7 @@ const GasMixHeatmap = ({ data }) => {
             <div className='flex gap-1 mb-2'>
               {DEPTH_BINS.map(bin => (
                 <div key={bin} className='w-7 sm:w-14 lg:w-16 relative h-8 sm:h-10'>
-                  <span className='absolute bottom-0 left-1/2 text-[10px] sm:text-xs text-gray-500 origin-bottom-left -rotate-45 whitespace-nowrap font-semibold'>
+                  <span className='absolute bottom-0 left-1/2 text-[10px] sm:text-xs text-gray-500 dark:text-slate-400 origin-bottom-left -rotate-45 whitespace-nowrap font-semibold'>
                     {bin}
                   </span>
                 </div>
@@ -128,7 +128,7 @@ const GasMixHeatmap = ({ data }) => {
                         key={`${mix}-${bin}`}
                         className={`w-7 h-7 sm:w-14 sm:h-9 lg:w-16 lg:h-10 rounded-sm transition-all hover:ring-2 hover:ring-blue-400 group relative cursor-help flex flex-col items-center justify-center ${standardHighlight} ${
                           modViolation
-                            ? 'bg-rose-50 border-2 border-rose-300 hover:ring-rose-400'
+                            ? 'bg-rose-50 dark:bg-rose-950/40 border-2 border-rose-300 dark:border-rose-800 hover:ring-rose-400'
                             : getColor(count)
                         }`}
                         title={
@@ -141,17 +141,17 @@ const GasMixHeatmap = ({ data }) => {
                           <span
                             className={`text-[10px] sm:text-xs font-semibold ${
                               modViolation
-                                ? 'text-rose-700'
+                                ? 'text-rose-700 dark:text-rose-300'
                                 : count > maxCount * 0.4
                                   ? 'text-white'
-                                  : 'text-gray-700'
+                                  : 'text-gray-700 dark:text-slate-200'
                             }`}
                           >
                             {count}
                           </span>
                         )}
                         {modViolation && (
-                          <span className='text-[7px] sm:text-[9px] text-rose-600 font-bold bg-white px-0.5 rounded shadow-sm scale-90 sm:scale-100 mt-0.5'>
+                          <span className='text-[7px] sm:text-[9px] text-rose-600 dark:text-rose-300 font-bold bg-white dark:bg-slate-900 px-0.5 rounded shadow-sm scale-90 sm:scale-100 mt-0.5'>
                             ⚠️ MOD
                           </span>
                         )}
@@ -165,8 +165,8 @@ const GasMixHeatmap = ({ data }) => {
         </div>
       </div>
 
-      <div className='flex items-center justify-center gap-1.5 text-[10px] sm:text-xs text-gray-500 mt-4 border-t border-gray-50 pt-4'>
-        <HelpCircle className='w-4 h-4 text-gray-400' />
+      <div className='flex items-center justify-center gap-1.5 text-[10px] sm:text-xs text-gray-500 dark:text-slate-400 mt-4 border-t border-gray-50 dark:border-slate-700/60 pt-4'>
+        <HelpCircle className='w-4 h-4 text-gray-400 dark:text-slate-500' />
         <span>
           MOD warning dynamically flags high partial pressure of oxygen (PO2 &gt; 1.4 bar) safety
           limits.

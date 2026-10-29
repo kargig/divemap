@@ -177,11 +177,11 @@ const AdvancedAnalytics = ({
     <div className='mt-4 sm:mt-8 space-y-4 sm:space-y-8'>
       {/* SAC vs Depth */}
       {hasSacData && (
-        <div className='bg-white rounded-lg p-3 sm:p-4 border border-gray-100'>
-          <h3 className='text-md font-semibold text-gray-800 mb-1'>
+        <div className='bg-white dark:bg-slate-800 rounded-lg p-3 sm:p-4 border border-gray-100 dark:border-slate-700'>
+          <h3 className='text-md font-semibold text-gray-800 dark:text-slate-100 mb-1'>
             Air Consumption (SAC) vs. Depth
           </h3>
-          <p className='text-xs text-gray-500 mb-4'>
+          <p className='text-xs text-gray-500 dark:text-slate-400 mb-4'>
             Tracking gas efficiency (L/min) at deeper depths.
           </p>
           <div className='h-64 w-full'>
@@ -214,11 +214,11 @@ const AdvancedAnalytics = ({
 
       {/* Duration vs Depth Bubble Chart */}
       {hasDurationData && (
-        <div className='bg-white rounded-lg p-3 sm:p-4 border border-gray-100'>
-          <h3 className='text-md font-semibold text-gray-800 mb-1'>
+        <div className='bg-white dark:bg-slate-800 rounded-lg p-3 sm:p-4 border border-gray-100 dark:border-slate-700'>
+          <h3 className='text-md font-semibold text-gray-800 dark:text-slate-100 mb-1'>
             Depth Distribution vs. Duration
           </h3>
-          <p className='text-xs text-gray-500 mb-4'>
+          <p className='text-xs text-gray-500 dark:text-slate-400 mb-4'>
             Bubble size represents the number of dives. Colors distinguish recreational profiles
             from technical/deco dives.
           </p>
@@ -284,11 +284,11 @@ const AdvancedAnalytics = ({
 
       {/* Temp vs Suit Stacked Bar */}
       {hasTempData && processedTempData && processedTempData.data.length > 0 && (
-        <div className='bg-white rounded-lg p-3 sm:p-4 border border-gray-100'>
-          <h3 className='text-md font-semibold text-gray-800 mb-1'>
+        <div className='bg-white dark:bg-slate-800 rounded-lg p-3 sm:p-4 border border-gray-100 dark:border-slate-700'>
+          <h3 className='text-md font-semibold text-gray-800 dark:text-slate-100 mb-1'>
             Temperature vs. Exposure Suit
           </h3>
-          <p className='text-xs text-gray-500 mb-4'>
+          <p className='text-xs text-gray-500 dark:text-slate-400 mb-4'>
             Thermal protection choices based on water temperature ranges.
           </p>
           <div className='h-64 w-full'>
@@ -320,9 +320,13 @@ const AdvancedAnalytics = ({
 
       {/* Dives per Year Bar Chart */}
       {hasYearlyData && (
-        <div className='bg-white rounded-lg p-3 sm:p-4 border border-gray-100'>
-          <h3 className='text-md font-semibold text-gray-800 mb-1'>Dives per Year</h3>
-          <p className='text-xs text-gray-500 mb-4'>Annual dive activity and progression.</p>
+        <div className='bg-white dark:bg-slate-800 rounded-lg p-3 sm:p-4 border border-gray-100 dark:border-slate-700'>
+          <h3 className='text-md font-semibold text-gray-800 dark:text-slate-100 mb-1'>
+            Dives per Year
+          </h3>
+          <p className='text-xs text-gray-500 dark:text-slate-400 mb-4'>
+            Annual dive activity and progression.
+          </p>
           <div className='h-64 w-full'>
             <ResponsiveContainer width='100%' height='100%'>
               <BarChart data={yearlyData} margin={{ top: 10, right: 10, bottom: 10, left: -20 }}>
@@ -346,9 +350,13 @@ const AdvancedAnalytics = ({
 
       {/* SAC Evolution Line Chart */}
       {hasSacTimeData && (
-        <div className='bg-white rounded-lg p-3 sm:p-4 border border-gray-100'>
-          <h3 className='text-md font-semibold text-gray-800 mb-1'>SAC Evolution</h3>
-          <p className='text-xs text-gray-500 mb-4'>Air consumption rate changes over time.</p>
+        <div className='bg-white dark:bg-slate-800 rounded-lg p-3 sm:p-4 border border-gray-100 dark:border-slate-700'>
+          <h3 className='text-md font-semibold text-gray-800 dark:text-slate-100 mb-1'>
+            SAC Evolution
+          </h3>
+          <p className='text-xs text-gray-500 dark:text-slate-400 mb-4'>
+            Air consumption rate changes over time.
+          </p>
           <div className='h-64 w-full'>
             <ResponsiveContainer width='100%' height='100%'>
               <LineChart data={sacTimeData} margin={{ top: 10, right: 10, bottom: 10, left: -20 }}>
@@ -384,9 +392,11 @@ const AdvancedAnalytics = ({
 
       {/* Depth Evolution Area Chart */}
       {hasDepthTimeData && (
-        <div className='bg-white rounded-lg p-3 sm:p-4 border border-gray-100'>
-          <h3 className='text-md font-semibold text-gray-800 mb-1'>Depth Progression</h3>
-          <p className='text-xs text-gray-500 mb-4'>
+        <div className='bg-white dark:bg-slate-800 rounded-lg p-3 sm:p-4 border border-gray-100 dark:border-slate-700'>
+          <h3 className='text-md font-semibold text-gray-800 dark:text-slate-100 mb-1'>
+            Depth Progression
+          </h3>
+          <p className='text-xs text-gray-500 dark:text-slate-400 mb-4'>
             Maximum and average depths reached over time.
           </p>
           <div className='h-64 w-full'>
@@ -441,11 +451,13 @@ const AdvancedAnalytics = ({
 
       {/* Gas Config Bar Chart */}
       {hasGasConfigData && (
-        <div className='bg-white rounded-lg p-3 sm:p-4 border border-gray-100'>
-          <h3 className='text-md font-semibold text-gray-800 mb-1'>
+        <div className='bg-white dark:bg-slate-800 rounded-lg p-3 sm:p-4 border border-gray-100 dark:border-slate-700'>
+          <h3 className='text-md font-semibold text-gray-800 dark:text-slate-100 mb-1'>
             Dives per Gas Tank Size Configuration
           </h3>
-          <p className='text-xs text-gray-500 mb-4'>Frequency of specific tank setups.</p>
+          <p className='text-xs text-gray-500 dark:text-slate-400 mb-4'>
+            Frequency of specific tank setups.
+          </p>
           <div className='h-64 w-full'>
             <ResponsiveContainer width='100%' height='100%'>
               <BarChart data={gasConfigData} margin={{ top: 10, right: 10, bottom: 10, left: -20 }}>
@@ -469,11 +481,11 @@ const AdvancedAnalytics = ({
 
       {/* Weight vs Gear Bar Chart */}
       {hasWeightSuitData && (
-        <div className='bg-white rounded-lg p-3 sm:p-4 border border-gray-100'>
-          <h3 className='text-md font-semibold text-gray-800 mb-1'>
+        <div className='bg-white dark:bg-slate-800 rounded-lg p-3 sm:p-4 border border-gray-100 dark:border-slate-700'>
+          <h3 className='text-md font-semibold text-gray-800 dark:text-slate-100 mb-1'>
             Average Weight by Gear Configuration
           </h3>
-          <p className='text-xs text-gray-500 mb-4'>
+          <p className='text-xs text-gray-500 dark:text-slate-400 mb-4'>
             Average lead carried (Kg) based on exposure suit and tank setup.
           </p>
           <div className='h-64 w-full'>
@@ -502,9 +514,11 @@ const AdvancedAnalytics = ({
 
       {/* Weight Evolution Scatter Chart */}
       {hasWeightTimeData && (
-        <div className='bg-white rounded-lg p-3 sm:p-4 border border-gray-100'>
-          <h3 className='text-md font-semibold text-gray-800 mb-1'>Weight Evolution Over Time</h3>
-          <p className='text-xs text-gray-500 mb-4'>
+        <div className='bg-white dark:bg-slate-800 rounded-lg p-3 sm:p-4 border border-gray-100 dark:border-slate-700'>
+          <h3 className='text-md font-semibold text-gray-800 dark:text-slate-100 mb-1'>
+            Weight Evolution Over Time
+          </h3>
+          <p className='text-xs text-gray-500 dark:text-slate-400 mb-4'>
             Historical weight changes mapped to gear configurations.
           </p>
           <div className='h-64 w-full'>
@@ -535,7 +549,7 @@ const AdvancedAnalytics = ({
                     if (active && payload && payload.length) {
                       const data = payload[0].payload;
                       return (
-                        <div className='bg-white p-3 border border-gray-100 shadow-lg rounded-md text-sm'>
+                        <div className='bg-white dark:bg-slate-800 p-3 border border-gray-100 dark:border-slate-700 shadow-lg rounded-md text-sm text-gray-900 dark:text-slate-100'>
                           <p>
                             <strong>Date:</strong> {data.date}
                             <br />

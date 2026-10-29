@@ -22,9 +22,11 @@ const StickyFilterBar = ({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const variantClasses = {
-    sticky: 'bg-white border-b border-gray-200 shadow-sm sticky top-16 z-40',
-    floating: 'bg-white border border-gray-200 rounded-lg shadow-lg',
-    inline: 'bg-gray-50 border border-gray-200 rounded-lg',
+    sticky:
+      'bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 shadow-sm sticky top-16 z-40',
+    floating:
+      'bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-lg',
+    inline: 'bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg',
   };
 
   const handleToggleFilters = () => {
@@ -182,11 +184,14 @@ const StickyFilterBar = ({
 
       {/* Expandable Filters Section */}
       {showFilters && (
-        <div className='border-t border-gray-200 p-4 bg-gray-50'>
+        <div className='border-t border-gray-200 dark:border-slate-700 p-4 bg-gray-50 dark:bg-slate-900/60'>
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
             {/* Date Filters */}
             <div>
-              <label htmlFor='start-date' className='block text-sm font-medium text-gray-700 mb-2'>
+              <label
+                htmlFor='start-date'
+                className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2'
+              >
                 Start Date
               </label>
               <input
@@ -194,11 +199,14 @@ const StickyFilterBar = ({
                 type='date'
                 value={filters.start_date || ''}
                 onChange={e => onFilterChange('start_date', e.target.value)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
               />
             </div>
             <div>
-              <label htmlFor='end-date' className='block text-sm font-medium text-gray-700 mb-2'>
+              <label
+                htmlFor='end-date'
+                className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2'
+              >
                 End Date
               </label>
               <input
@@ -206,13 +214,16 @@ const StickyFilterBar = ({
                 type='date'
                 value={filters.end_date || ''}
                 onChange={e => onFilterChange('end_date', e.target.value)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
               />
             </div>
 
             {/* Price Filters */}
             <div>
-              <label htmlFor='min-price' className='block text-sm font-medium text-gray-700 mb-2'>
+              <label
+                htmlFor='min-price'
+                className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2'
+              >
                 Min Price (€)
               </label>
               <input
@@ -221,11 +232,14 @@ const StickyFilterBar = ({
                 placeholder='0'
                 value={filters.min_price || ''}
                 onChange={e => onFilterChange('min_price', e.target.value)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
               />
             </div>
             <div>
-              <label htmlFor='max-price' className='block text-sm font-medium text-gray-700 mb-2'>
+              <label
+                htmlFor='max-price'
+                className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2'
+              >
                 Max Price (€)
               </label>
               <input
@@ -234,20 +248,23 @@ const StickyFilterBar = ({
                 placeholder='1000'
                 value={filters.max_price || ''}
                 onChange={e => onFilterChange('max_price', e.target.value)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
               />
             </div>
 
             {/* Status and Difficulty */}
             <div>
-              <label htmlFor='trip-status' className='block text-sm font-medium text-gray-700 mb-2'>
+              <label
+                htmlFor='trip-status'
+                className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2'
+              >
                 Status
               </label>
               <select
                 id='trip-status'
                 value={filters.trip_status || ''}
                 onChange={e => onFilterChange('trip_status', e.target.value)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
               >
                 <option value=''>All Statuses</option>
                 <option value='scheduled'>Scheduled</option>
@@ -259,7 +276,7 @@ const StickyFilterBar = ({
             <div>
               <label
                 htmlFor='difficulty-code'
-                className='block text-sm font-medium text-gray-700 mb-2'
+                className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2'
               >
                 Difficulty
               </label>
@@ -267,7 +284,7 @@ const StickyFilterBar = ({
                 id='difficulty-code'
                 value={filters.difficulty_code || ''}
                 onChange={e => onFilterChange('difficulty_code', e.target.value)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
               >
                 <option value=''>All Levels</option>
                 {getDifficultyOptions()
@@ -285,7 +302,9 @@ const StickyFilterBar = ({
                   onChange={e => onFilterChange('exclude_unspecified_difficulty', e.target.checked)}
                   className='mr-2'
                 />
-                <span className='text-xs text-gray-600'>Exclude Unspecified</span>
+                <span className='text-xs text-gray-600 dark:text-slate-400'>
+                  Exclude Unspecified
+                </span>
               </label>
             </div>
 
@@ -293,7 +312,7 @@ const StickyFilterBar = ({
             <div>
               <label
                 htmlFor='diving-center-id'
-                className='block text-sm font-medium text-gray-700 mb-2'
+                className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2'
               >
                 Diving Center
               </label>
@@ -301,7 +320,7 @@ const StickyFilterBar = ({
                 id='diving-center-id'
                 value={filters.diving_center_id || ''}
                 onChange={e => onFilterChange('diving_center_id', e.target.value)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
               >
                 <option value=''>All Centers</option>
                 {filters.diving_centers?.map(center => (
@@ -314,9 +333,9 @@ const StickyFilterBar = ({
 
             {/* User Location for Distance Sorting */}
             <div className='md:col-span-2 lg:col-span-4'>
-              <div className='p-3 bg-blue-50 rounded-lg border border-blue-200'>
+              <div className='p-3 bg-blue-50 dark:bg-blue-950/40 rounded-lg border border-blue-200 dark:border-blue-900'>
                 <div className='flex items-center justify-between mb-2'>
-                  <span className='block text-sm font-medium text-blue-700'>
+                  <span className='block text-sm font-medium text-blue-700 dark:text-sky-300'>
                     Your Location (for distance sorting)
                   </span>
                   <button

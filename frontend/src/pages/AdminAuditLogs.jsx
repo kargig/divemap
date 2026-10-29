@@ -597,7 +597,7 @@ const AdminAuditLogs = () => {
 
     if (changed_fields && changed_fields.length > 0) {
       return (
-        <div className='p-3 bg-gray-50 dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700'>
+        <div className='p-3 bg-gray-50 dark:bg-slate-900/60 dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700'>
           <Text strong style={{ display: 'block', marginBottom: 8 }}>
             Modified Attributes ({changed_fields.length}):
           </Text>
@@ -639,7 +639,7 @@ const AdminAuditLogs = () => {
 
     if (snapshot) {
       return (
-        <div className='p-3 bg-gray-50 dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700'>
+        <div className='p-3 bg-gray-50 dark:bg-slate-900/60 dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700'>
           <Text strong style={{ display: 'block', marginBottom: 8 }}>
             Record Snapshot:
           </Text>
@@ -651,7 +651,7 @@ const AdminAuditLogs = () => {
     }
 
     return (
-      <pre className='text-xs font-mono p-2 bg-gray-50 dark:bg-slate-900 rounded'>
+      <pre className='text-xs font-mono p-2 bg-gray-50 dark:bg-slate-900/60 dark:bg-slate-900 rounded'>
         {JSON.stringify(record.changes, null, 2)}
       </pre>
     );
@@ -678,7 +678,7 @@ const AdminAuditLogs = () => {
               <SafetyCertificateOutlined style={{ marginRight: 8, color: token.colorPrimary }} />
               Platform Security & Privacy Audits
             </PageTitle>
-            <p className='text-sm text-gray-500 dark:text-gray-400'>
+            <p className='text-sm text-gray-500 dark:text-slate-400 dark:text-gray-400'>
               Monitor authentication events, staff credential activity, and entity lifecycle
               forensics.
             </p>

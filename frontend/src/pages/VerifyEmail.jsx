@@ -128,30 +128,32 @@ const VerifyEmail = () => {
         title='Verify Your Email | Divemap'
         description='Verify your email address for your Divemap account.'
       />
-      <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
+      <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900 py-12 px-4 sm:px-6 lg:px-8'>
         <div className='max-w-md w-full space-y-8'>
           <div>
             <div className='mx-auto flex items-center justify-center'>
               <Logo size='large' showText={false} />
             </div>
-            <h2 className='mt-6 text-center text-3xl font-extrabold text-gray-900'>
+            <h2 className='mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-slate-100'>
               Email Verification
             </h2>
           </div>
 
-          <div className='bg-white py-8 px-6 shadow rounded-lg'>
+          <div className='bg-white dark:bg-slate-800 py-8 px-6 shadow rounded-lg border border-gray-100 dark:border-slate-700'>
             {status === 'verifying' && (
               <div className='text-center'>
                 <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-divemap-blue mx-auto'></div>
-                <p className='mt-4 text-gray-600'>Verifying your email address...</p>
+                <p className='mt-4 text-gray-600 dark:text-slate-400'>
+                  Verifying your email address...
+                </p>
               </div>
             )}
 
             {status === 'success' && (
               <div className='text-center'>
-                <div className='mx-auto flex items-center justify-center w-12 h-12 rounded-full bg-green-100'>
+                <div className='mx-auto flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-emerald-950/50'>
                   <svg
-                    className='w-6 h-6 text-green-600'
+                    className='w-6 h-6 text-green-600 dark:text-emerald-400'
                     fill='none'
                     stroke='currentColor'
                     viewBox='0 0 24 24'
@@ -164,8 +166,10 @@ const VerifyEmail = () => {
                     />
                   </svg>
                 </div>
-                <h3 className='mt-4 text-lg font-medium text-gray-900'>Email Verified!</h3>
-                <p className='mt-2 text-sm text-gray-600'>
+                <h3 className='mt-4 text-lg font-medium text-gray-900 dark:text-slate-100'>
+                  Email Verified!
+                </h3>
+                <p className='mt-2 text-sm text-gray-600 dark:text-slate-400'>
                   Your email address has been successfully verified. You can now log in to your
                   account.
                 </p>
@@ -182,9 +186,9 @@ const VerifyEmail = () => {
 
             {status === 'error' && (
               <div className='text-center'>
-                <div className='mx-auto flex items-center justify-center w-12 h-12 rounded-full bg-red-100'>
+                <div className='mx-auto flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-950/50'>
                   <svg
-                    className='w-6 h-6 text-red-600'
+                    className='w-6 h-6 text-red-600 dark:text-red-400'
                     fill='none'
                     stroke='currentColor'
                     viewBox='0 0 24 24'
@@ -197,8 +201,10 @@ const VerifyEmail = () => {
                     />
                   </svg>
                 </div>
-                <h3 className='mt-4 text-lg font-medium text-gray-900'>Verification Failed</h3>
-                <p className='mt-2 text-sm text-gray-600'>{errorMessage}</p>
+                <h3 className='mt-4 text-lg font-medium text-gray-900 dark:text-slate-100'>
+                  Verification Failed
+                </h3>
+                <p className='mt-2 text-sm text-gray-600 dark:text-slate-400'>{errorMessage}</p>
 
                 {!showResendForm ? (
                   <div className='mt-6 space-y-3'>
@@ -210,17 +216,17 @@ const VerifyEmail = () => {
                     </button>
                     <button
                       onClick={() => navigate('/login')}
-                      className='w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-divemap-sky'
+                      className='w-full flex justify-center py-2 px-4 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-750 hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-divemap-sky'
                     >
                       Go to Login
                     </button>
                   </div>
                 ) : (
                   <div className='mt-6 space-y-3'>
-                    <div>
+                    <div className='text-left'>
                       <label
                         htmlFor='resend-email'
-                        className='block text-sm font-medium text-gray-700 mb-1'
+                        className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'
                       >
                         Email Address
                       </label>
@@ -230,7 +236,7 @@ const VerifyEmail = () => {
                         value={resendEmail}
                         onChange={e => setResendEmail(e.target.value)}
                         placeholder='Enter your email address'
-                        className='w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-divemap-sky focus:border-divemap-blue sm:text-sm'
+                        className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md shadow-sm focus:outline-none focus:ring-divemap-sky focus:border-divemap-blue sm:text-sm'
                         disabled={resending}
                       />
                     </div>
@@ -246,7 +252,7 @@ const VerifyEmail = () => {
                         setShowResendForm(false);
                         setResendEmail('');
                       }}
-                      className='w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-divemap-sky'
+                      className='w-full flex justify-center py-2 px-4 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-750 hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-divemap-sky'
                     >
                       Cancel
                     </button>

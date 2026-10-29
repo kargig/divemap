@@ -273,7 +273,7 @@ const AdminApiKeys = () => {
             </div>
             <div>
               <PageTitle>API Keys</PageTitle>
-              <p className='text-sm text-gray-500'>
+              <p className='text-sm text-gray-500 dark:text-slate-400'>
                 Manage service tokens and backend API credentials.
               </p>
             </div>
@@ -284,7 +284,7 @@ const AdminApiKeys = () => {
           <button
             onClick={() => refetch()}
             disabled={isLoading || isRefetching}
-            className='inline-flex items-center px-3.5 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50'
+            className='inline-flex items-center px-3.5 py-2 text-sm font-medium text-gray-700 dark:text-slate-200 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-slate-900/60 transition-colors shadow-sm disabled:opacity-50'
             title='Refresh'
           >
             <RefreshCw className={`h-4 w-4 mr-1.5 ${isRefetching ? 'animate-spin' : ''}`} />
@@ -301,7 +301,7 @@ const AdminApiKeys = () => {
       </div>
 
       {/* Filter / Search Bar */}
-      <div className='bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6 flex flex-col sm:flex-row sm:items-center gap-4 justify-between'>
+      <div className='bg-white p-4 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm mb-6 flex flex-col sm:flex-row sm:items-center gap-4 justify-between'>
         <div className='relative flex-1 max-w-md'>
           <Search className='absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400' />
           <input
@@ -331,7 +331,7 @@ const AdminApiKeys = () => {
       </div>
 
       {/* Table Container */}
-      <div className='bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden'>
+      <div className='bg-white rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm overflow-hidden'>
         {isLoading ? (
           <div className='flex flex-col items-center justify-center py-16 text-gray-500'>
             <Loader2 className='h-8 w-8 animate-spin text-blue-600 mb-2' />
@@ -341,7 +341,7 @@ const AdminApiKeys = () => {
           <div className='text-center py-16 px-4'>
             <Shield className='h-12 w-12 text-gray-300 mx-auto mb-3' />
             <h3 className='text-base font-semibold text-gray-900'>No API Keys Found</h3>
-            <p className='text-sm text-gray-500 max-w-sm mx-auto mt-1 mb-4'>
+            <p className='text-sm text-gray-500 dark:text-slate-400 max-w-sm mx-auto mt-1 mb-4'>
               {searchTerm || statusFilter !== 'all'
                 ? 'No keys match your current filter criteria.'
                 : 'No API keys have been created yet. Generate your first key to allow internal services to authenticate.'}
@@ -358,8 +358,8 @@ const AdminApiKeys = () => {
           </div>
         ) : (
           <div className='overflow-x-auto'>
-            <table className='min-w-full divide-y divide-gray-200 text-sm'>
-              <thead className='bg-gray-50 text-gray-600 font-semibold text-xs uppercase tracking-wider text-left'>
+            <table className='min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm'>
+              <thead className='bg-gray-50 dark:bg-slate-900/60 text-gray-600 font-semibold text-xs uppercase tracking-wider text-left'>
                 <tr>
                   <th className='px-6 py-3.5'>Name & Details</th>
                   <th className='px-6 py-3.5'>Status</th>
@@ -393,7 +393,7 @@ const AdminApiKeys = () => {
                           <div>
                             <div className='font-bold text-gray-900'>{key.name}</div>
                             {key.description && (
-                              <div className='text-xs text-gray-500 mt-0.5 line-clamp-1'>
+                              <div className='text-xs text-gray-500 dark:text-slate-400 mt-0.5 line-clamp-1'>
                                 {key.description}
                               </div>
                             )}
@@ -582,7 +582,7 @@ const AdminApiKeys = () => {
             <button
               type='button'
               onClick={() => setIsCreateOpen(false)}
-              className='px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors'
+              className='px-4 py-2 text-sm font-medium text-gray-700 dark:text-slate-200 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors'
             >
               Cancel
             </button>
@@ -628,7 +628,7 @@ const AdminApiKeys = () => {
                 type='text'
                 readOnly
                 value={createdSecretKey?.api_key || ''}
-                className='font-mono text-sm px-3.5 py-2.5 bg-gray-50 border border-gray-300 rounded-lg flex-1 select-all text-gray-900 font-semibold'
+                className='font-mono text-sm px-3.5 py-2.5 bg-gray-50 dark:bg-slate-900/60 border border-gray-300 rounded-lg flex-1 select-all text-gray-900 font-semibold'
               />
               <button
                 type='button'
@@ -636,7 +636,7 @@ const AdminApiKeys = () => {
                 className={`inline-flex items-center px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors border shadow-sm ${
                   copied
                     ? 'bg-green-50 text-green-700 border-green-300'
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 dark:bg-slate-900/60'
                 }`}
               >
                 {copied ? (
@@ -703,10 +703,12 @@ const AdminApiKeys = () => {
             />
           </div>
 
-          <div className='flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200'>
+          <div className='flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-900/60 rounded-lg border border-gray-200 dark:border-slate-700'>
             <div>
-              <div className='text-sm font-semibold text-gray-900'>Active Status</div>
-              <div className='text-xs text-gray-500'>
+              <div className='text-sm font-semibold text-gray-900 dark:text-slate-100'>
+                Active Status
+              </div>
+              <div className='text-xs text-gray-500 dark:text-slate-400'>
                 {editForm.is_active ? 'Key is currently active' : 'Key is revoked/disabled'}
               </div>
             </div>
@@ -736,7 +738,7 @@ const AdminApiKeys = () => {
                 <button
                   type='button'
                   onClick={() => setEditForm(prev => ({ ...prev, expires_at: '' }))}
-                  className='text-xs text-gray-500 hover:text-red-600 px-2 py-1'
+                  className='text-xs text-gray-500 dark:text-slate-400 hover:text-red-600 px-2 py-1'
                 >
                   Clear
                 </button>
@@ -751,7 +753,7 @@ const AdminApiKeys = () => {
                 setIsEditOpen(false);
                 setSelectedKey(null);
               }}
-              className='px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors'
+              className='px-4 py-2 text-sm font-medium text-gray-700 dark:text-slate-200 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors'
             >
               Cancel
             </button>
@@ -778,7 +780,7 @@ const AdminApiKeys = () => {
         className='max-w-md w-full'
       >
         <div className='mt-2 space-y-4'>
-          <p className='text-sm text-gray-600'>
+          <p className='text-sm text-gray-600 dark:text-slate-300'>
             Are you sure you want to revoke <strong>{selectedKey?.name}</strong>? Any external
             service or worker using this token will immediately be denied access.
           </p>
@@ -790,7 +792,7 @@ const AdminApiKeys = () => {
                 setIsRevokeOpen(false);
                 setSelectedKey(null);
               }}
-              className='px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors'
+              className='px-4 py-2 text-sm font-medium text-gray-700 dark:text-slate-200 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors'
             >
               Cancel
             </button>
@@ -825,7 +827,7 @@ const AdminApiKeys = () => {
         className='max-w-md w-full'
       >
         <div className='mt-2 space-y-4'>
-          <p className='text-sm text-gray-600'>
+          <p className='text-sm text-gray-600 dark:text-slate-300'>
             Are you sure you want to permanently delete <strong>{selectedKey?.name}</strong>? This
             action cannot be undone.
           </p>
@@ -837,7 +839,7 @@ const AdminApiKeys = () => {
                 setIsDeleteOpen(false);
                 setSelectedKey(null);
               }}
-              className='px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors'
+              className='px-4 py-2 text-sm font-medium text-gray-700 dark:text-slate-200 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors'
             >
               Cancel
             </button>

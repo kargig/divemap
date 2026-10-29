@@ -165,7 +165,7 @@ const AdminChatFeedback = () => {
           </div>
           <Link
             to='/admin/chat-history'
-            className='flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm'
+            className='flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-slate-700 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-slate-200 dark:text-gray-200 hover:bg-gray-50 dark:bg-slate-900/60 dark:hover:bg-gray-700 transition-colors shadow-sm'
           >
             <History size={16} />
             View History
@@ -214,7 +214,9 @@ const AdminChatFeedback = () => {
         <div className='bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6 flex flex-wrap gap-4 items-center'>
           <div className='flex items-center gap-2'>
             <Filter size={18} className='text-gray-400' />
-            <span className='text-sm font-medium text-gray-700 dark:text-gray-300'>Filters:</span>
+            <span className='text-sm font-medium text-gray-700 dark:text-slate-200 dark:text-gray-300'>
+              Filters:
+            </span>
           </div>
 
           <select
@@ -223,7 +225,7 @@ const AdminChatFeedback = () => {
               setRatingFilter(e.target.value);
               setPagination(prev => ({ ...prev, pageIndex: 0 }));
             }}
-            className='bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 rounded-lg text-sm px-3 py-2'
+            className='bg-gray-50 dark:bg-slate-900/60 dark:bg-gray-700 border-gray-200 dark:border-slate-700 dark:border-gray-600 rounded-lg text-sm px-3 py-2'
           >
             <option value=''>All Ratings</option>
             <option value='positive'>Positive Only</option>
@@ -236,7 +238,7 @@ const AdminChatFeedback = () => {
               setCategoryFilter(e.target.value);
               setPagination(prev => ({ ...prev, pageIndex: 0 }));
             }}
-            className='bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 rounded-lg text-sm px-3 py-2'
+            className='bg-gray-50 dark:bg-slate-900/60 dark:bg-gray-700 border-gray-200 dark:border-slate-700 dark:border-gray-600 rounded-lg text-sm px-3 py-2'
           >
             <option value=''>All Categories</option>
             <option value='accuracy'>Accuracy</option>
@@ -319,7 +321,7 @@ const AdminChatFeedback = () => {
                   <label className='text-xs font-bold text-gray-400 uppercase'>
                     Assistant Response
                   </label>
-                  <div className='mt-1 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 text-sm dark:text-gray-200 whitespace-pre-wrap'>
+                  <div className='mt-1 p-3 bg-gray-50 dark:bg-slate-900/60 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 text-sm dark:text-gray-200 whitespace-pre-wrap'>
                     {selectedFeedback.response || 'N/A'}
                   </div>
                 </div>

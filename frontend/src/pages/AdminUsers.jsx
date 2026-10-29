@@ -617,7 +617,7 @@ const AdminUsers = () => {
                   <div className='flex flex-col'>
                     <span className='text-sm font-medium text-green-700'>Verified</span>
                     {userItem.email_verified_at && (
-                      <span className='text-xs text-gray-500'>
+                      <span className='text-xs text-gray-500 dark:text-slate-400'>
                         {formatDate(userItem.email_verified_at)}
                       </span>
                     )}
@@ -655,7 +655,11 @@ const AdminUsers = () => {
         header: 'Created',
         cell: ({ row }) => {
           const userItem = row.original;
-          return <span className='text-sm text-gray-500'>{formatDate(userItem.created_at)}</span>;
+          return (
+            <span className='text-sm text-gray-500 dark:text-slate-400'>
+              {formatDate(userItem.created_at)}
+            </span>
+          );
         },
         enableSorting: true,
         size: 120,
@@ -669,8 +673,10 @@ const AdminUsers = () => {
           if (!userItem.last_accessed_at) return <span className='text-sm text-gray-400'>-</span>;
           return (
             <div className='flex flex-col'>
-              <span className='text-sm text-gray-700'>{formatDate(userItem.last_accessed_at)}</span>
-              <span className='text-xs text-gray-500'>
+              <span className='text-sm text-gray-700 dark:text-slate-300'>
+                {formatDate(userItem.last_accessed_at)}
+              </span>
+              <span className='text-xs text-gray-500 dark:text-slate-400'>
                 {formatTime(userItem.last_accessed_at, {
                   hour: '2-digit',
                   minute: '2-digit',
@@ -818,7 +824,7 @@ const AdminUsers = () => {
         </div>
 
         {/* Filters */}
-        <div className='mb-4 sm:mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200'>
+        <div className='mb-4 sm:mb-6 bg-gray-50 dark:bg-slate-900/60 p-4 rounded-lg border border-gray-200 dark:border-slate-700'>
           <div className='flex items-center justify-between mb-3'>
             <h2 className='text-sm font-semibold text-gray-700'>Filters</h2>
             <button
@@ -948,7 +954,7 @@ const AdminUsers = () => {
           {/* Column Visibility Toggle */}
           <div className='relative'>
             <button
-              className='flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium text-gray-700 w-full sm:w-auto'
+              className='flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-slate-900/60 text-sm font-medium text-gray-700 dark:text-slate-200 w-full sm:w-auto'
               onClick={e => {
                 e.stopPropagation();
                 const menu = document.getElementById('column-visibility-menu');
@@ -962,7 +968,7 @@ const AdminUsers = () => {
             </button>
             <div
               id='column-visibility-menu'
-              className='hidden absolute left-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg z-50'
+              className='hidden absolute left-0 mt-2 w-56 bg-white border border-gray-200 dark:border-slate-700 rounded-md shadow-lg z-50'
               onClick={e => e.stopPropagation()}
             >
               <div className='p-2'>
@@ -980,7 +986,7 @@ const AdminUsers = () => {
                     return (
                       <label
                         key={columnId}
-                        className='flex items-center px-2 py-1.5 hover:bg-gray-50 cursor-pointer rounded'
+                        className='flex items-center px-2 py-1.5 hover:bg-gray-50 dark:bg-slate-900/60 cursor-pointer rounded'
                       >
                         <input
                           type='checkbox'
@@ -993,7 +999,7 @@ const AdminUsers = () => {
                           }}
                           className='mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
                         />
-                        <span className='text-sm text-gray-700'>
+                        <span className='text-sm text-gray-700 dark:text-slate-300'>
                           {typeof column.header === 'string'
                             ? column.header
                             : columnId.charAt(0).toUpperCase() +
@@ -1306,7 +1312,9 @@ const AdminUsers = () => {
                         {...register(name)}
                         className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
                       />
-                      <span className='ml-2 text-sm text-gray-700'>Admin privileges</span>
+                      <span className='ml-2 text-sm text-gray-700 dark:text-slate-300'>
+                        Admin privileges
+                      </span>
                     </label>
                   )}
                 </FormField>
@@ -1320,7 +1328,9 @@ const AdminUsers = () => {
                         {...register(name)}
                         className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
                       />
-                      <span className='ml-2 text-sm text-gray-700'>Moderator privileges</span>
+                      <span className='ml-2 text-sm text-gray-700 dark:text-slate-300'>
+                        Moderator privileges
+                      </span>
                     </label>
                   )}
                 </FormField>
@@ -1334,7 +1344,9 @@ const AdminUsers = () => {
                         {...register(name)}
                         className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
                       />
-                      <span className='ml-2 text-sm text-gray-700'>Account enabled</span>
+                      <span className='ml-2 text-sm text-gray-700 dark:text-slate-300'>
+                        Account enabled
+                      </span>
                     </label>
                   )}
                 </FormField>
@@ -1348,7 +1360,9 @@ const AdminUsers = () => {
                         {...register(name)}
                         className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
                       />
-                      <span className='ml-2 text-sm text-gray-700'>Email verified</span>
+                      <span className='ml-2 text-sm text-gray-700 dark:text-slate-300'>
+                        Email verified
+                      </span>
                     </label>
                   )}
                 </FormField>

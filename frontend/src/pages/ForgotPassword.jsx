@@ -54,20 +54,25 @@ const ForgotPassword = () => {
           title='Reset Password Link Sent | Divemap'
           description='Instructions to reset your Divemap password have been sent to your email.'
         />
-        <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
-          <div className='max-w-md w-full text-center space-y-8'>
+        <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900 py-12 px-4 sm:px-6 lg:px-8'>
+          <div className='max-w-md w-full text-center space-y-8 bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700'>
             <div>
               <div className='mx-auto flex items-center justify-center'>
                 <Logo size='large' showText={false} />
               </div>
-              <h2 className='mt-6 text-3xl font-extrabold text-gray-900'>Check your email</h2>
-              <p className='mt-2 text-sm text-gray-600'>
+              <h2 className='mt-6 text-3xl font-extrabold text-gray-900 dark:text-slate-100'>
+                Check your email
+              </h2>
+              <p className='mt-2 text-sm text-gray-600 dark:text-slate-400'>
                 If an account exists with that email or username, we've sent instructions to reset
                 your password.
               </p>
             </div>
             <div className='mt-4'>
-              <Link to='/login' className='text-divemap-blue hover:opacity-80 font-medium'>
+              <Link
+                to='/login'
+                className='text-divemap-blue dark:text-sky-400 hover:opacity-80 font-medium'
+              >
                 Back to Sign In
               </Link>
             </div>
@@ -83,16 +88,16 @@ const ForgotPassword = () => {
         title='Forgot Password | Divemap'
         description='Request a password reset link for your Divemap account.'
       />
-      <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
-        <div className='max-w-md w-full space-y-8'>
+      <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900 py-12 px-4 sm:px-6 lg:px-8'>
+        <div className='max-w-md w-full space-y-8 bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700'>
           <div>
             <div className='mx-auto flex items-center justify-center'>
               <Logo size='large' showText={false} />
             </div>
-            <h2 className='mt-6 text-center text-3xl font-extrabold text-gray-900'>
+            <h2 className='mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-slate-100'>
               Reset your password
             </h2>
-            <p className='mt-2 text-center text-sm text-gray-600'>
+            <p className='mt-2 text-center text-sm text-gray-600 dark:text-slate-400'>
               Enter your email address or username and we'll send you a link to reset your password.
             </p>
           </div>
@@ -104,7 +109,7 @@ const ForgotPassword = () => {
                   <input
                     id={name}
                     type='text'
-                    className='appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm'
+                    className='appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm'
                     placeholder='Enter email or username'
                     {...register(name)}
                   />
@@ -122,7 +127,10 @@ const ForgotPassword = () => {
               </div>
 
               <div className='text-center'>
-                <Link to='/login' className='font-medium text-divemap-blue hover:opacity-80'>
+                <Link
+                  to='/login'
+                  className='font-medium text-divemap-blue dark:text-sky-400 hover:opacity-80'
+                >
                   Back to Sign In
                 </Link>
               </div>

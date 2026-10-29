@@ -65,7 +65,7 @@ const ZoomIndicator = () => {
   }, [map]);
 
   return (
-    <div className='absolute top-4 left-1/2 transform -translate-x-1/2 z-[1000] bg-white/90 backdrop-blur-sm text-gray-800 text-[10px] sm:text-xs font-medium px-2 py-1 rounded shadow-sm border border-gray-200 pointer-events-none'>
+    <div className='absolute top-4 left-1/2 transform -translate-x-1/2 z-[1000] bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm text-gray-800 dark:text-slate-200 text-[10px] sm:text-xs font-medium px-2 py-1 rounded shadow-sm border border-gray-200 dark:border-slate-700 pointer-events-none'>
       Zoom: {zoom.toFixed(1)}
     </div>
   );
@@ -74,7 +74,7 @@ const ZoomIndicator = () => {
 // Route Type Control Component
 const RouteTypeControl = ({ routeType, setRouteType }) => {
   return (
-    <div className='absolute top-4 left-[320px] z-[1000] bg-white rounded-md shadow-md border border-gray-200 p-1 flex pointer-events-auto'>
+    <div className='absolute top-4 left-[320px] z-[1000] bg-white dark:bg-slate-800 rounded-md shadow-md border border-gray-200 dark:border-slate-700 p-1 flex pointer-events-auto'>
       {[
         { id: 'scuba', label: 'Scuba' },
         { id: 'swim', label: 'Swim' },
@@ -86,11 +86,11 @@ const RouteTypeControl = ({ routeType, setRouteType }) => {
           className={`px-3 py-1 text-xs font-medium rounded-sm transition-colors ${
             routeType === type.id
               ? type.id === 'scuba'
-                ? 'bg-blue-100 text-blue-700'
+                ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-sky-300'
                 : type.id === 'swim'
-                  ? 'bg-cyan-100 text-cyan-700'
-                  : 'bg-green-100 text-green-700'
-              : 'text-gray-600 hover:bg-gray-50'
+                  ? 'bg-cyan-100 dark:bg-cyan-900/60 text-cyan-700 dark:text-cyan-300'
+                  : 'bg-green-100 dark:bg-emerald-950/60 text-green-700 dark:text-emerald-300'
+              : 'text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700'
           }`}
         >
           {type.label}
@@ -836,21 +836,26 @@ const MarkerModal = ({ isOpen, onClose, markerData, onSave, diveSiteId }) => {
 
   return (
     <div className='fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50'>
-      <div className='bg-white rounded-lg shadow-xl w-full max-w-md p-6 m-4 animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]'>
+      <div className='bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md p-6 m-4 animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh] border border-gray-100 dark:border-slate-700'>
         <div className='flex justify-between items-center mb-4 flex-shrink-0'>
-          <h3 className='text-lg font-semibold text-gray-900'>Marker Details</h3>
-          <button onClick={onClose} className='text-gray-400 hover:text-gray-600'>
+          <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100'>
+            Marker Details
+          </h3>
+          <button
+            onClick={onClose}
+            className='text-gray-400 hover:text-gray-600 dark:hover:text-slate-200'
+          >
             <X className='w-5 h-5' />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className='flex border-b border-gray-200 mb-4 flex-shrink-0'>
+        <div className='flex border-b border-gray-200 dark:border-slate-700 mb-4 flex-shrink-0'>
           <button
             className={`flex-1 py-2 text-sm font-medium border-b-2 ${
               activeTab === 'details'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-blue-500 text-blue-600 dark:text-sky-400'
+                : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'
             }`}
             onClick={() => setActiveTab('details')}
           >
@@ -859,8 +864,8 @@ const MarkerModal = ({ isOpen, onClose, markerData, onSave, diveSiteId }) => {
           <button
             className={`flex-1 py-2 text-sm font-medium border-b-2 ${
               activeTab === 'media'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-blue-500 text-blue-600 dark:text-sky-400'
+                : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'
             }`}
             onClick={() => setActiveTab('media')}
           >
@@ -872,7 +877,9 @@ const MarkerModal = ({ isOpen, onClose, markerData, onSave, diveSiteId }) => {
           {activeTab === 'details' ? (
             <div className='space-y-6'>
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>Marker Type</label>
+                <label className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2'>
+                  Marker Type
+                </label>
                 <div className='grid grid-cols-3 gap-3'>
                   {Object.entries(MARKER_TYPES).map(([key, config]) => {
                     const Icon = config.icon;
@@ -882,8 +889,8 @@ const MarkerModal = ({ isOpen, onClose, markerData, onSave, diveSiteId }) => {
                         onClick={() => setType(key)}
                         className={`flex flex-col items-center justify-center p-3 rounded-lg border transition-all ${
                           type === key
-                            ? 'border-blue-500 bg-blue-50 text-blue-700 ring-1 ring-blue-500'
-                            : 'border-gray-200 hover:bg-gray-50 text-gray-600'
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-sky-300 ring-1 ring-blue-500'
+                            : 'border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-750'
                         }`}
                       >
                         <div className='mb-2' style={{ color: config.color }}>
@@ -897,11 +904,13 @@ const MarkerModal = ({ isOpen, onClose, markerData, onSave, diveSiteId }) => {
               </div>
 
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>Comment</label>
+                <label className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2'>
+                  Comment
+                </label>
                 <textarea
                   value={comment}
                   onChange={e => setComment(e.target.value)}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm'
+                  className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm'
                   rows={3}
                   placeholder='Add a note about this location...'
                 />
@@ -910,14 +919,16 @@ const MarkerModal = ({ isOpen, onClose, markerData, onSave, diveSiteId }) => {
           ) : (
             <div className='space-y-4'>
               <div className='space-y-2'>
-                <label className='block text-sm font-medium text-gray-700'>Attachment Source</label>
+                <label className='block text-sm font-medium text-gray-700 dark:text-slate-300'>
+                  Attachment Source
+                </label>
                 <div className='flex gap-2'>
                   <button
                     onClick={() => setMediaSource('none')}
                     className={`flex-1 py-2 px-3 text-sm rounded-md border ${
                       mediaSource === 'none'
-                        ? 'bg-gray-100 border-gray-300 text-gray-900 font-medium'
-                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                        ? 'bg-gray-100 dark:bg-slate-700 border-gray-300 dark:border-slate-600 text-gray-900 dark:text-slate-100 font-medium'
+                        : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700'
                     }`}
                   >
                     None
@@ -926,8 +937,8 @@ const MarkerModal = ({ isOpen, onClose, markerData, onSave, diveSiteId }) => {
                     onClick={() => setMediaSource('internal')}
                     className={`flex-1 py-2 px-3 text-sm rounded-md border flex items-center justify-center gap-1 ${
                       mediaSource === 'internal'
-                        ? 'bg-blue-50 border-blue-300 text-blue-700 font-medium'
-                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                        ? 'bg-blue-50 dark:bg-blue-900/40 border-blue-300 dark:border-blue-800 text-blue-700 dark:text-sky-300 font-medium'
+                        : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700'
                     }`}
                   >
                     <Image className='w-4 h-4' />
@@ -937,8 +948,8 @@ const MarkerModal = ({ isOpen, onClose, markerData, onSave, diveSiteId }) => {
                     onClick={() => setMediaSource('external')}
                     className={`flex-1 py-2 px-3 text-sm rounded-md border flex items-center justify-center gap-1 ${
                       mediaSource === 'external'
-                        ? 'bg-blue-50 border-blue-300 text-blue-700 font-medium'
-                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                        ? 'bg-blue-50 dark:bg-blue-900/40 border-blue-300 dark:border-blue-800 text-blue-700 dark:text-sky-300 font-medium'
+                        : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700'
                     }`}
                   >
                     <Link className='w-4 h-4' />
@@ -949,15 +960,17 @@ const MarkerModal = ({ isOpen, onClose, markerData, onSave, diveSiteId }) => {
 
               {mediaSource === 'external' && (
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-1'>Media URL</label>
+                  <label className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'>
+                    Media URL
+                  </label>
                   <input
                     type='text'
                     value={externalUrl}
                     onChange={e => setExternalUrl(e.target.value)}
                     placeholder='https://youtube.com/...'
-                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'
+                    className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'
                   />
-                  <p className='mt-1 text-xs text-gray-500'>
+                  <p className='mt-1 text-xs text-gray-500 dark:text-slate-400'>
                     Paste a link to a YouTube video or an image URL.
                   </p>
                 </div>
@@ -1070,7 +1083,7 @@ const MarkerModal = ({ isOpen, onClose, markerData, onSave, diveSiteId }) => {
                       })}{' '}
                     </div>
                   ) : (
-                    <div className='text-center py-8 text-gray-500 text-sm bg-gray-50 rounded-md border border-dashed border-gray-300'>
+                    <div className='text-center py-8 text-gray-500 dark:text-slate-400 text-sm bg-gray-50 dark:bg-slate-900/60 rounded-md border border-dashed border-gray-300 dark:border-slate-700'>
                       No photos available for this dive site.
                     </div>
                   )}
@@ -1080,10 +1093,10 @@ const MarkerModal = ({ isOpen, onClose, markerData, onSave, diveSiteId }) => {
           )}
         </div>
 
-        <div className='flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-100 flex-shrink-0'>
+        <div className='flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-100 dark:border-slate-700 flex-shrink-0'>
           <button
             onClick={onClose}
-            className='px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+            className='px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-750 hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
           >
             Cancel
           </button>
@@ -1334,38 +1347,44 @@ const RouteCanvas = ({
       </div>
 
       {showForm && (
-        <div className='absolute top-4 left-4 bg-white rounded-lg shadow-lg p-4 max-w-sm z-10'>
+        <div className='absolute top-4 left-4 bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 max-w-sm z-10 border border-gray-100 dark:border-slate-700'>
           <div className='mb-4'>
-            <h3 className='text-lg font-semibold text-gray-800 mb-2'>Multi-Segment Route</h3>
+            <h3 className='text-lg font-semibold text-gray-800 dark:text-slate-100 mb-2'>
+              Multi-Segment Route
+            </h3>
             <div className='mb-3'>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>Route Name *</label>
+              <label className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'>
+                Route Name *
+              </label>
               <input
                 type='text'
                 value={currentRouteName}
                 onChange={e => handleRouteNameChange(e.target.value)}
                 placeholder='Enter route name'
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
               />
             </div>
             <div className='mb-3'>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>Description</label>
+              <label className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1'>
+                Description
+              </label>
               <textarea
                 value={currentRouteDescription}
                 onChange={e => handleRouteDescriptionChange(e.target.value)}
                 placeholder='Enter route description'
                 rows={2}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                className='w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
               />
             </div>
             <div className='mb-4'>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
+              <label className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2'>
                 Route Segments ({segments.length})
               </label>
               <div className='space-y-2 max-h-32 overflow-y-auto'>
                 {segments.map((segment, index) => (
                   <div
                     key={segment.id}
-                    className='flex items-center justify-between p-2 bg-gray-50 rounded-md'
+                    className='flex items-center justify-between p-2 bg-gray-50 dark:bg-slate-750 rounded-md border border-gray-100 dark:border-slate-700'
                   >
                     <div className='flex items-center space-x-2'>
                       <div
@@ -1374,7 +1393,7 @@ const RouteCanvas = ({
                       >
                         {/* Show icon for markers in list? Too small maybe. */}
                       </div>
-                      <span className='text-sm font-medium truncate max-w-[150px]'>
+                      <span className='text-sm font-medium text-gray-800 dark:text-slate-200 truncate max-w-[150px]'>
                         {index + 1}. {segment.properties.name}
                         {segment.properties.markerType && ` (${segment.properties.markerType})`}
                       </span>
@@ -1402,10 +1421,10 @@ const RouteCanvas = ({
               </div>
             </div>
             {error && (
-              <div className='mb-3 p-3 bg-red-50 border border-red-200 rounded-md'>
+              <div className='mb-3 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-md'>
                 <div className='flex items-center'>
                   <AlertCircle className='w-4 h-4 text-red-500 mr-2' />
-                  <span className='text-sm text-red-700'>{error}</span>
+                  <span className='text-sm text-red-700 dark:text-red-300'>{error}</span>
                   <button onClick={clearError} className='ml-auto text-red-500 hover:text-red-700'>
                     <X className='w-4 h-4' />
                   </button>
@@ -1416,7 +1435,7 @@ const RouteCanvas = ({
               <button
                 onClick={handleClear}
                 disabled={segments.length === 0 || isSaving}
-                className='w-full flex items-center justify-center px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm touch-manipulation min-h-[36px]'
+                className='w-full flex items-center justify-center px-3 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-md hover:bg-gray-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm touch-manipulation min-h-[36px]'
               >
                 <RotateCcw className='w-4 h-4 mr-2' />
                 Clear All
@@ -1424,7 +1443,7 @@ const RouteCanvas = ({
               <div className='flex space-x-2'>
                 <button
                   onClick={onCancel}
-                  className='flex-1 px-3 py-2 text-gray-600 hover:text-gray-800 transition-colors text-sm touch-manipulation min-h-[36px]'
+                  className='flex-1 px-3 py-2 text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 transition-colors text-sm touch-manipulation min-h-[36px]'
                 >
                   Cancel
                 </button>
@@ -1450,18 +1469,22 @@ const RouteCanvas = ({
 
       {/* Instructions */}
       {showInstructions && (
-        <div className='absolute bottom-8 left-4 bg-white rounded-lg shadow-lg p-4 max-w-xs z-10'>
+        <div className='absolute bottom-8 left-4 bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 max-w-xs z-10 border border-gray-100 dark:border-slate-700'>
           <button
             onClick={() => setShowInstructions(false)}
-            className='absolute top-2 right-2 text-gray-400 hover:text-gray-600 transition-colors'
+            className='absolute top-2 right-2 text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 transition-colors'
             title='Close'
           >
             <X className='w-4 h-4' />
           </button>
           <div className='mb-3'>
-            <h3 className='text-lg font-semibold text-gray-800 mb-2'>Drawing Tools</h3>
-            <div className='text-xs text-gray-600 space-y-1'>
-              <p className='font-medium'>How to create multi-segment routes:</p>
+            <h3 className='text-lg font-semibold text-gray-800 dark:text-slate-100 mb-2'>
+              Drawing Tools
+            </h3>
+            <div className='text-xs text-gray-600 dark:text-slate-300 space-y-1'>
+              <p className='font-medium text-gray-700 dark:text-slate-200'>
+                How to create multi-segment routes:
+              </p>
               <ul className='space-y-1'>
                 <li>• Select segment type (walk, swim, scuba)</li>
                 <li>• Use drawing tools to create segment</li>
@@ -1470,29 +1493,31 @@ const RouteCanvas = ({
                 <li>• Save when all segments are complete</li>
               </ul>
             </div>
-            <div className='mt-3 pt-3 border-t border-gray-200'>
-              <p className='text-xs font-medium text-gray-700 mb-2'>Route Colors:</p>
+            <div className='mt-3 pt-3 border-t border-gray-200 dark:border-slate-700'>
+              <p className='text-xs font-medium text-gray-700 dark:text-slate-200 mb-2'>
+                Route Colors:
+              </p>
               <div className='space-y-1'>
                 <div className='flex items-center space-x-2'>
                   <div
-                    className='w-3 h-3 rounded-full border border-gray-300'
+                    className='w-3 h-3 rounded-full border border-gray-300 dark:border-slate-600'
                     style={{ backgroundColor: getRouteTypeColor('walk') }}
                   ></div>
-                  <span className='text-xs text-gray-600'>Walk Route</span>
+                  <span className='text-xs text-gray-600 dark:text-slate-300'>Walk Route</span>
                 </div>
                 <div className='flex items-center space-x-2'>
                   <div
-                    className='w-3 h-3 rounded-full border border-gray-300'
+                    className='w-3 h-3 rounded-full border border-gray-300 dark:border-slate-600'
                     style={{ backgroundColor: getRouteTypeColor('swim') }}
                   ></div>
-                  <span className='text-xs text-gray-600'>Swim Route</span>
+                  <span className='text-xs text-gray-600 dark:text-slate-300'>Swim Route</span>
                 </div>
                 <div className='flex items-center space-x-2'>
                   <div
-                    className='w-3 h-3 rounded-full border border-gray-300'
+                    className='w-3 h-3 rounded-full border border-gray-300 dark:border-slate-600'
                     style={{ backgroundColor: getRouteTypeColor('scuba') }}
                   ></div>
-                  <span className='text-xs text-gray-600'>Scuba Route</span>
+                  <span className='text-xs text-gray-600 dark:text-slate-300'>Scuba Route</span>
                 </div>
               </div>
             </div>

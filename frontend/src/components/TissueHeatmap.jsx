@@ -62,13 +62,13 @@ const TissueHeatmap = ({ heatmapData, samples, events }) => {
   return (
     <div className='mt-2 px-1 sm:px-0'>
       <div className='flex items-center justify-between mb-1 px-1'>
-        <h3 className='text-[10px] font-bold text-gray-500 uppercase tracking-wider'>
+        <h3 className='text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider'>
           Tissue Loading (ZH-L16)
         </h3>
-        <p className='text-[10px] text-gray-400'>GF99% Evolution</p>
+        <p className='text-[10px] text-gray-400 dark:text-slate-500'>GF99% Evolution</p>
       </div>
 
-      <div className='relative border border-gray-200 rounded-md bg-gray-50'>
+      <div className='relative border border-gray-200 dark:border-slate-700 rounded-md bg-gray-50 dark:bg-slate-800'>
         {/* The Heatmap Grid */}
         <div className='flex h-32 w-full'>
           {/* Heatmap Columns */}
@@ -102,25 +102,25 @@ const TissueHeatmap = ({ heatmapData, samples, events }) => {
           </div>
 
           {/* Y-Axis Legend (Fast to Slow) */}
-          <div className='flex flex-col justify-between h-full w-8 text-[7px] font-bold uppercase tracking-tighter select-none border-l border-gray-200 bg-gray-100/50 relative group/legend py-3 rounded-r-md'>
-            <div className='flex items-center justify-center -rotate-90 whitespace-nowrap text-gray-400'>
+          <div className='flex flex-col justify-between h-full w-8 text-[7px] font-bold uppercase tracking-tighter select-none border-l border-gray-200 dark:border-slate-700 bg-gray-100/50 dark:bg-slate-750 relative group/legend py-3 rounded-r-md'>
+            <div className='flex items-center justify-center -rotate-90 whitespace-nowrap text-gray-400 dark:text-slate-400'>
               Slow
             </div>
-            <div className='flex items-center justify-center -rotate-90 whitespace-nowrap text-gray-400'>
+            <div className='flex items-center justify-center -rotate-90 whitespace-nowrap text-gray-400 dark:text-slate-400'>
               Fast
             </div>
           </div>
         </div>
 
         {/* X-Axis Legend */}
-        <div className='flex justify-between mt-1 text-[8px] font-mono text-gray-400 border-t border-gray-200 pt-1'>
+        <div className='flex justify-between mt-1 text-[8px] font-mono text-gray-400 dark:text-slate-400 border-t border-gray-200 dark:border-slate-700 pt-1'>
           <span>0 min</span>
           <span>{processedData[processedData.length - 1].time.toFixed(0)} min</span>
         </div>
       </div>
 
       {/* Legend */}
-      <div className='mt-2 flex flex-wrap gap-4 justify-center text-[10px] text-gray-500'>
+      <div className='mt-2 flex flex-wrap gap-4 justify-center text-[10px] text-gray-500 dark:text-slate-400'>
         <div className='flex items-center gap-1'>
           <div className='w-3 h-3 bg-[#1e3a8a] rounded-sm'></div>
           <span>Ongassing</span>

@@ -373,13 +373,13 @@ const DiveSiteMap = () => {
         title={`${diveSite?.name || 'Dive Site'} - Map View | Divemap`}
         description={`Interactive map of ${diveSite?.name || 'the dive site'} and its surroundings.`}
       />
-      <div className='fixed inset-0 z-50 bg-white'>
+      <div className='fixed inset-0 z-50 bg-white dark:bg-slate-900'>
         {/* Header */}
-        <div className='flex items-center justify-between p-4 border-b bg-white'>
+        <div className='flex items-center justify-between p-4 border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100'>
           <div className='flex items-center space-x-4'>
             <button
               onClick={() => navigate(`/dive-sites/${id}`)}
-              className='p-2 hover:bg-gray-100 rounded-md transition-colors'
+              className='p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-md transition-colors'
             >
               <ArrowLeft className='w-5 h-5' />
             </button>
@@ -388,11 +388,11 @@ const DiveSiteMap = () => {
                 {diveSite?.name || 'Loading...'} - Full Map View
               </h1>
               {isFiniteNumber(diveSite?.latitude) && isFiniteNumber(diveSite?.longitude) ? (
-                <p className='text-sm text-gray-600'>
+                <p className='text-sm text-gray-600 dark:text-slate-400'>
                   {Number(diveSite.latitude).toFixed(4)}, {Number(diveSite.longitude).toFixed(4)}
                 </p>
               ) : (
-                <p className='text-sm text-gray-600'>No coordinates</p>
+                <p className='text-sm text-gray-600 dark:text-slate-400'>No coordinates</p>
               )}
             </div>
           </div>
@@ -401,22 +401,24 @@ const DiveSiteMap = () => {
               onClick={() => setShowLayers(!showLayers)}
               className={`p-2 rounded-lg border transition-colors ${
                 showLayers
-                  ? 'bg-blue-100 text-blue-600 border-blue-200'
-                  : 'hover:bg-gray-100 text-gray-600'
+                  ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-sky-300 border-blue-200 dark:border-blue-800'
+                  : 'hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-700'
               }`}
               title='Map layers'
               aria-label='Map layers'
             >
               <Layers className='w-4 h-4' />
             </button>
-            <span className='text-sm text-gray-600'>Zoom: {currentZoom.toFixed(1)}</span>
+            <span className='text-sm text-gray-600 dark:text-slate-400'>
+              Zoom: {currentZoom.toFixed(1)}
+            </span>
             {routes && routes.length > 0 && (
               <button
                 onClick={() => setShowRoutes(!showRoutes)}
                 className={`flex items-center px-3 py-1 rounded-md text-sm transition-colors ${
                   showRoutes
                     ? 'bg-blue-600 text-white hover:bg-blue-700'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-200 hover:bg-gray-300 dark:hover:bg-slate-600'
                 }`}
                 title={showRoutes ? 'Hide Routes' : 'Show Routes'}
               >
@@ -426,7 +428,7 @@ const DiveSiteMap = () => {
             )}
             <button
               onClick={() => navigate(`/dive-sites/${id}`)}
-              className='p-2 hover:bg-gray-100 rounded-md transition-colors'
+              className='p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-md transition-colors text-2xl leading-none'
               aria-label='Close full map view'
               title='Close'
             >
@@ -440,7 +442,7 @@ const DiveSiteMap = () => {
           <div className='absolute top-4 right-4 z-50 flex gap-2'>
             <button
               onClick={() => setShowLayers(true)}
-              className='bg-white text-gray-700 hover:text-gray-900 rounded-full w-9 h-9 shadow-md flex items-center justify-center border border-gray-200'
+              className='bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 hover:text-gray-900 dark:hover:text-white rounded-full w-9 h-9 shadow-md flex items-center justify-center border border-gray-200 dark:border-slate-700'
               aria-label='Map layers'
               title='Map layers'
             >
@@ -448,7 +450,7 @@ const DiveSiteMap = () => {
             </button>
             <button
               onClick={() => navigate(`/dive-sites/${id}`)}
-              className='bg-white text-gray-700 hover:text-gray-900 rounded-full w-9 h-9 shadow-md flex items-center justify-center border border-gray-200'
+              className='bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 hover:text-gray-900 dark:hover:text-white rounded-full w-9 h-9 shadow-md flex items-center justify-center border border-gray-200 dark:border-slate-700 text-xl font-bold'
               aria-label='Close full map view'
               title='Close'
             >
@@ -507,16 +509,18 @@ const DiveSiteMap = () => {
               setShowLayers(false);
             }}
           />
-          <div className='absolute top-4 left-16 z-50 bg-white/90 text-gray-800 text-xs px-2 py-1 rounded shadow border border-gray-200'>
+          <div className='absolute top-4 left-16 z-50 bg-white/90 dark:bg-slate-800/90 text-gray-800 dark:text-slate-200 text-xs px-2 py-1 rounded shadow border border-gray-200 dark:border-slate-700'>
             Zoom: {currentZoom.toFixed(1)}
           </div>
 
           {/* Route Legend */}
           {showRoutes && routes && routes.length > 0 && (
-            <div className='absolute bottom-4 left-4 z-50 bg-white/90 rounded-lg shadow border border-gray-200 p-3'>
+            <div className='absolute bottom-4 left-4 z-50 bg-white/90 dark:bg-slate-800/90 rounded-lg shadow border border-gray-200 dark:border-slate-700 p-3'>
               <div className='flex items-center mb-2'>
-                <Route className='w-4 h-4 mr-2 text-gray-600' />
-                <span className='text-sm font-medium text-gray-800'>Route Types</span>
+                <Route className='w-4 h-4 mr-2 text-gray-600 dark:text-slate-400' />
+                <span className='text-sm font-medium text-gray-800 dark:text-slate-100'>
+                  Route Types
+                </span>
               </div>
               <div className='space-y-1 text-xs'>
                 <div className='flex items-center gap-2'>
@@ -524,21 +528,21 @@ const DiveSiteMap = () => {
                     className='w-3 h-3 rounded-full'
                     style={{ backgroundColor: getRouteTypeColor('walk') }}
                   ></div>
-                  <span className='text-gray-700'>Walk Route</span>
+                  <span className='text-gray-700 dark:text-slate-300'>Walk Route</span>
                 </div>
                 <div className='flex items-center gap-2'>
                   <div
                     className='w-3 h-3 rounded-full'
                     style={{ backgroundColor: getRouteTypeColor('swim') }}
                   ></div>
-                  <span className='text-gray-700'>Swim Route</span>
+                  <span className='text-gray-700 dark:text-slate-300'>Swim Route</span>
                 </div>
                 <div className='flex items-center gap-2'>
                   <div
                     className='w-3 h-3 rounded-full'
                     style={{ backgroundColor: getRouteTypeColor('scuba') }}
                   ></div>
-                  <span className='text-gray-700'>Scuba Route</span>
+                  <span className='text-gray-700 dark:text-slate-300'>Scuba Route</span>
                 </div>
               </div>
             </div>

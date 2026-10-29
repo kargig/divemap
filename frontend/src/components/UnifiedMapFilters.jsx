@@ -170,7 +170,7 @@ const UnifiedMapFilters = ({
 
         {/* Rating Filters */}
         <div className='space-y-3'>
-          <h3 className='text-sm font-medium text-gray-700 flex items-center'>
+          <h3 className='text-sm font-medium text-gray-700 dark:text-slate-200 flex items-center'>
             <Star className='w-4 h-4 mr-1' />
             Rating
           </h3>
@@ -257,7 +257,7 @@ const UnifiedMapFilters = ({
                 }
                 className='mr-2'
               />
-              <span className='text-sm text-gray-600'>Exclude Unspecified</span>
+              <span className='text-sm text-gray-600 dark:text-slate-300'>Exclude Unspecified</span>
             </label>
           </div>
         )}
@@ -265,14 +265,17 @@ const UnifiedMapFilters = ({
         {/* Dive-specific Filters */}
         {selectedEntityType === 'dives' && (
           <div className='space-y-3'>
-            <h3 className='text-sm font-medium text-gray-700 flex items-center'>
+            <h3 className='text-sm font-medium text-gray-700 dark:text-slate-200 flex items-center'>
               <Calendar className='w-4 h-4 mr-1' />
               Dive Details
             </h3>
 
             <div className='grid grid-cols-2 gap-2'>
               <div>
-                <label htmlFor='depth-min-input' className='block text-xs text-gray-600 mb-1'>
+                <label
+                  htmlFor='depth-min-input'
+                  className='block text-xs text-gray-600 dark:text-slate-300 mb-1'
+                >
                   Min Depth (m)
                 </label>
                 <input
@@ -281,12 +284,15 @@ const UnifiedMapFilters = ({
                   value={localFilters.depth_min}
                   onChange={e => handleFilterChange('depth_min', e.target.value)}
                   placeholder='0'
-                  className='w-full px-2 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                  className='w-full px-2 py-2 text-sm border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                 />
               </div>
 
               <div>
-                <label htmlFor='depth-max-input' className='block text-xs text-gray-600 mb-1'>
+                <label
+                  htmlFor='depth-max-input'
+                  className='block text-xs text-gray-600 dark:text-slate-300 mb-1'
+                >
                   Max Depth (m)
                 </label>
                 <input
@@ -295,14 +301,17 @@ const UnifiedMapFilters = ({
                   value={localFilters.depth_max}
                   onChange={e => handleFilterChange('depth_max', e.target.value)}
                   placeholder='100'
-                  className='w-full px-2 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                  className='w-full px-2 py-2 text-sm border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                 />
               </div>
             </div>
 
             <div className='grid grid-cols-2 gap-2'>
               <div>
-                <label htmlFor='visibility-min-input' className='block text-xs text-gray-600 mb-1'>
+                <label
+                  htmlFor='visibility-min-input'
+                  className='block text-xs text-gray-600 dark:text-slate-300 mb-1'
+                >
                   Min Visibility (m)
                 </label>
                 <input
@@ -311,12 +320,15 @@ const UnifiedMapFilters = ({
                   value={localFilters.visibility_min}
                   onChange={e => handleFilterChange('visibility_min', e.target.value)}
                   placeholder='0'
-                  className='w-full px-2 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                  className='w-full px-2 py-2 text-sm border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                 />
               </div>
 
               <div>
-                <label htmlFor='visibility-max-input' className='block text-xs text-gray-600 mb-1'>
+                <label
+                  htmlFor='visibility-max-input'
+                  className='block text-xs text-gray-600 dark:text-slate-300 mb-1'
+                >
                   Max Visibility (m)
                 </label>
                 <input
@@ -325,7 +337,7 @@ const UnifiedMapFilters = ({
                   value={localFilters.visibility_max}
                   onChange={e => handleFilterChange('visibility_max', e.target.value)}
                   placeholder='50'
-                  className='w-full px-2 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                  className='w-full px-2 py-2 text-sm border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                 />
               </div>
             </div>
@@ -349,13 +361,16 @@ const UnifiedMapFilters = ({
         {/* Date Range Filters - Only for Dives */}
         {selectedEntityType === 'dives' && (
           <div className='space-y-3'>
-            <h3 className='text-sm font-medium text-gray-700 flex items-center'>
+            <h3 className='text-sm font-medium text-gray-700 dark:text-slate-200 flex items-center'>
               <Calendar className='w-4 h-4 mr-1' />
               Date Range
             </h3>
 
             <div>
-              <label htmlFor='date-from-input' className='block text-xs text-gray-600 mb-1'>
+              <label
+                htmlFor='date-from-input'
+                className='block text-xs text-gray-600 dark:text-slate-300 mb-1'
+              >
                 From Date
               </label>
               <input
@@ -363,12 +378,15 @@ const UnifiedMapFilters = ({
                 type='date'
                 value={localFilters.date_from}
                 onChange={e => handleFilterChange('date_from', e.target.value)}
-                className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                className='w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
               />
             </div>
 
             <div>
-              <label htmlFor='date-to-input' className='block text-xs text-gray-600 mb-1'>
+              <label
+                htmlFor='date-to-input'
+                className='block text-xs text-gray-600 dark:text-slate-300 mb-1'
+              >
                 To Date
               </label>
               <input
@@ -376,7 +394,7 @@ const UnifiedMapFilters = ({
                 type='date'
                 value={localFilters.date_to}
                 onChange={e => handleFilterChange('date_to', e.target.value)}
-                className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                className='w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
               />
             </div>
           </div>
@@ -385,7 +403,7 @@ const UnifiedMapFilters = ({
         {/* Dive-trips specific filters */}
         {selectedEntityType === 'dive-trips' && (
           <div className='space-y-3'>
-            <h3 className='text-sm font-medium text-gray-700 flex items-center'>
+            <h3 className='text-sm font-medium text-gray-700 dark:text-slate-200 flex items-center'>
               <MapPin className='w-4 h-4 mr-1' />
               Trip Filters
             </h3>

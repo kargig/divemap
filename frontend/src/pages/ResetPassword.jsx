@@ -131,13 +131,13 @@ const ResetPassword = () => {
         title='Choose New Password | Divemap'
         description='Create a new secure password for your Divemap account.'
       />
-      <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
-        <div className='max-w-md w-full space-y-8'>
+      <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900 py-12 px-4 sm:px-6 lg:px-8'>
+        <div className='max-w-md w-full space-y-8 bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700'>
           <div>
             <div className='mx-auto flex items-center justify-center'>
               <Logo size='large' showText={false} />
             </div>
-            <h2 className='mt-6 text-center text-3xl font-extrabold text-gray-900'>
+            <h2 className='mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-slate-100'>
               Set new password
             </h2>
           </div>
@@ -151,7 +151,7 @@ const ResetPassword = () => {
                       <input
                         id={name}
                         type={showPassword ? 'text' : 'password'}
-                        className='block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm'
+                        className='block w-full px-3 py-2 pr-10 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm'
                         placeholder='Enter new password'
                         {...register(name)}
                       />
@@ -161,9 +161,9 @@ const ResetPassword = () => {
                         className='absolute inset-y-0 right-0 pr-3 flex items-center'
                       >
                         {showPassword ? (
-                          <EyeOff className='h-4 w-4 text-gray-400' />
+                          <EyeOff className='h-4 w-4 text-gray-400 dark:text-slate-400' />
                         ) : (
-                          <Eye className='h-4 w-4 text-gray-400' />
+                          <Eye className='h-4 w-4 text-gray-400 dark:text-slate-400' />
                         )}
                       </button>
                     </div>
@@ -176,7 +176,7 @@ const ResetPassword = () => {
                       <input
                         id={name}
                         type={showConfirmPassword ? 'text' : 'password'}
-                        className='block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm'
+                        className='block w-full px-3 py-2 pr-10 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm'
                         placeholder='Confirm new password'
                         {...register(name)}
                       />
@@ -186,9 +186,9 @@ const ResetPassword = () => {
                         className='absolute inset-y-0 right-0 pr-3 flex items-center'
                       >
                         {showConfirmPassword ? (
-                          <EyeOff className='h-4 w-4 text-gray-400' />
+                          <EyeOff className='h-4 w-4 text-gray-400 dark:text-slate-400' />
                         ) : (
-                          <Eye className='h-4 w-4 text-gray-400' />
+                          <Eye className='h-4 w-4 text-gray-400 dark:text-slate-400' />
                         )}
                       </button>
                     </div>

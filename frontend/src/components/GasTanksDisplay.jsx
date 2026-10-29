@@ -265,7 +265,7 @@ const GasTanksDisplay = ({ gasData, averageDepth, duration, profileData }) => {
         <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-2'} flex-wrap`}>
           {!isMobile && (
             <span
-              className={`text-sm font-semibold text-gray-700 dark:text-slate-300 ${isMobile ? 'min-w-[60px]' : 'min-w-[70px]'}`}
+              className={`text-sm font-semibold text-gray-700 dark:text-slate-200 ${isMobile ? 'min-w-[60px]' : 'min-w-[70px]'}`}
             >
               {label}:
             </span>
@@ -275,34 +275,32 @@ const GasTanksDisplay = ({ gasData, averageDepth, duration, profileData }) => {
           >
             {isMobile && <span className='font-bold mr-0.5'>{getShortLabel(label)}:</span>}
             <span>{tankName}</span>
-            <span className={`${borderClass.replace('border-', 'text-').replace('100', '400')}`}>
-              |
-            </span>
+            <span className='opacity-40'>|</span>
             <span className='font-bold'>{formatGas(item.gas)}</span>
           </div>
 
           {sacData && (
             <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-2'}`}>
               <div
-                className={`${isMobile ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'} bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-200 rounded-md border border-gray-200 dark:border-slate-600 flex items-center gap-1`}
+                className={`${isMobile ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'} bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-100 rounded-md border border-gray-200 dark:border-slate-600 flex items-center gap-1`}
               >
                 {!isMobile && <span className='font-semibold'>SAC:</span>}
                 {!isMobile && (
                   <>
-                    <span className='hidden sm:inline text-xs text-gray-400 dark:text-slate-400 ml-1'>
+                    <span className='hidden sm:inline text-xs text-gray-500 dark:text-slate-400 ml-1'>
                       Ideal
                     </span>
                     <span>{sacData.ideal}</span>
-                    <span className='text-gray-400 dark:text-slate-400 text-xs mx-0.5'>/</span>
+                    <span className='text-gray-400 dark:text-slate-500 text-xs mx-0.5'>/</span>
                   </>
                 )}
                 {!isMobile && (
-                  <span className='hidden sm:inline text-xs text-gray-400 dark:text-slate-400'>
+                  <span className='hidden sm:inline text-xs text-gray-500 dark:text-slate-400'>
                     Real
                   </span>
                 )}
                 <span
-                  className='text-gray-500 dark:text-slate-300 font-bold'
+                  className='text-gray-800 dark:text-slate-100 font-bold'
                   title='Real Gas SAC (Subsurface style)'
                 >
                   {sacData.real} L/min
@@ -312,22 +310,30 @@ const GasTanksDisplay = ({ gasData, averageDepth, duration, profileData }) => {
               {/* Info Icon - Always visible next to SAC */}
               <div className='group relative'>
                 {sacData.isSpecific ? (
-                  <Info size={16} className='text-blue-500 cursor-help' />
+                  <Info size={16} className='text-blue-500 dark:text-sky-400 cursor-help' />
                 ) : (
-                  <Info size={16} className='text-gray-400 hover:text-blue-500 cursor-help' />
+                  <Info
+                    size={16}
+                    className='text-gray-400 dark:text-slate-400 hover:text-blue-500 dark:hover:text-sky-400 cursor-help'
+                  />
                 )}
-                <div className='absolute left-1/2 bottom-full mb-2 -translate-x-1/2 w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50'>
-                  <div className='font-semibold mb-1'>SAC Calculation Methods</div>
+                <div className='absolute left-1/2 bottom-full mb-2 -translate-x-1/2 w-64 p-2 bg-gray-800 dark:bg-slate-900 text-white text-xs rounded shadow-lg border border-transparent dark:border-slate-700 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50'>
+                  <div className='font-semibold mb-1 text-white'>SAC Calculation Methods</div>
                   <div className='mb-1'>
-                    <span className='text-gray-300'>Ideal ({sacData.ideal}):</span> Standard formula
-                    (PV=nRT). Ignores gas compressibility.
+                    <span className='text-gray-300 dark:text-slate-300'>
+                      Ideal ({sacData.ideal}):
+                    </span>{' '}
+                    Standard formula (PV=nRT). Ignores gas compressibility.
                   </div>
                   <div className='mb-2'>
-                    <span className='text-gray-300'>Real ({sacData.real}):</span> Accurate model
-                    used by Subsurface (Virial Equation). Accounts for compressibility (Z-factor).
+                    <span className='text-gray-300 dark:text-slate-300'>
+                      Real ({sacData.real}):
+                    </span>{' '}
+                    Accurate model used by Subsurface (Virial Equation). Accounts for
+                    compressibility (Z-factor).
                   </div>
                   {sacData.isSpecific ? (
-                    <div className='pt-1 border-t border-gray-600 text-green-300'>
+                    <div className='pt-1 border-t border-gray-600 dark:border-slate-700 text-green-300 dark:text-emerald-300'>
                       Based on actual usage from profile:
                       <br />
                       Time: {sacData.duration.toFixed(1)} min
@@ -335,18 +341,18 @@ const GasTanksDisplay = ({ gasData, averageDepth, duration, profileData }) => {
                       Avg Depth: {sacData.avgDepth.toFixed(1)} m
                     </div>
                   ) : (
-                    <div className='pt-1 border-t border-gray-600 text-yellow-300'>
+                    <div className='pt-1 border-t border-gray-600 dark:border-slate-700 text-yellow-300 dark:text-amber-300'>
                       Based on total dive averages (no specific usage data found for Cylinder{' '}
                       {cylinderIndex}).
                     </div>
                   )}
-                  <div className='absolute left-1/2 top-full -mt-1 -ml-1 border-4 border-transparent border-t-gray-800'></div>
+                  <div className='absolute left-1/2 top-full -mt-1 -ml-1 border-4 border-transparent border-t-gray-800 dark:border-t-slate-900'></div>
                 </div>
               </div>
 
               <button
                 onClick={() => toggleRow(rowId)}
-                className='p-1 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded-full transition-colors'
+                className='p-1 text-gray-400 dark:text-slate-400 hover:text-blue-600 dark:hover:text-sky-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition-colors'
                 title={isExpanded ? 'Show less' : 'Show details'}
               >
                 {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -361,16 +367,12 @@ const GasTanksDisplay = ({ gasData, averageDepth, duration, profileData }) => {
           >
             {/* Pressure & Consumption Pill */}
             <div
-              className={`${bgClass} ${colorClass} px-3 py-1.5 rounded-md text-xs font-medium flex gap-3 items-center border ${borderClass} opacity-80`}
+              className={`${bgClass} ${colorClass} px-3 py-1.5 rounded-md text-xs font-medium flex gap-3 items-center border ${borderClass} opacity-90`}
             >
               {getPressureDisplay(item)}
               {consumed !== null && (
                 <>
-                  <span
-                    className={`${borderClass.replace('border-', 'text-').replace('100', '400')}`}
-                  >
-                    |
-                  </span>
+                  <span className='opacity-40'>|</span>
                   <span title={`${consumed} Liters consumed (Ideal)`}>-{consumed} L</span>
                 </>
               )}
@@ -378,25 +380,29 @@ const GasTanksDisplay = ({ gasData, averageDepth, duration, profileData }) => {
 
             {/* Ideal SAC (Mobile Only) */}
             {isMobile && sacData && (
-              <div className='px-3 py-1.5 bg-gray-50 text-gray-600 rounded-md text-xs border border-gray-200 flex items-center gap-2'>
-                <span className='text-gray-500'>Ideal SAC:</span>
-                <span className='font-medium text-gray-700'>{sacData.ideal}</span>
+              <div className='px-3 py-1.5 bg-gray-50 dark:bg-slate-750 text-gray-600 dark:text-slate-300 rounded-md text-xs border border-gray-200 dark:border-slate-700 flex items-center gap-2'>
+                <span className='text-gray-500 dark:text-slate-400'>Ideal SAC:</span>
+                <span className='font-medium text-gray-700 dark:text-slate-100'>
+                  {sacData.ideal}
+                </span>
               </div>
             )}
 
             {/* Stats Pill */}
             {showStats && sacData && (
-              <div className='px-3 py-1.5 bg-gray-50 text-gray-600 rounded-md text-xs border border-gray-200 flex items-center gap-2'>
+              <div className='px-3 py-1.5 bg-gray-50 dark:bg-slate-750 text-gray-600 dark:text-slate-300 rounded-md text-xs border border-gray-200 dark:border-slate-700 flex items-center gap-2'>
                 <span>
                   Time:{' '}
-                  <span className='font-medium text-gray-700'>
+                  <span className='font-medium text-gray-700 dark:text-slate-100'>
                     {sacData.duration.toFixed(0)} min
                   </span>
                 </span>
-                <span className='text-gray-300'>|</span>
+                <span className='text-gray-300 dark:text-slate-600'>|</span>
                 <span>
                   Avg. Depth:{' '}
-                  <span className='font-medium text-gray-700'>{sacData.avgDepth.toFixed(1)}m</span>
+                  <span className='font-medium text-gray-700 dark:text-slate-100'>
+                    {sacData.avgDepth.toFixed(1)}m
+                  </span>
                 </span>
               </div>
             )}
@@ -411,9 +417,9 @@ const GasTanksDisplay = ({ gasData, averageDepth, duration, profileData }) => {
       {renderTankRow(
         'Back Gas',
         data.back_gas,
-        'text-blue-800',
-        'border-blue-100',
-        'bg-blue-50',
+        'text-blue-800 dark:text-sky-200',
+        'border-blue-200 dark:border-blue-800',
+        'bg-blue-50 dark:bg-blue-950/60',
         true,
         data.back_gas.index !== undefined ? data.back_gas.index : 0,
         data.stages && data.stages.length > 0
@@ -426,9 +432,9 @@ const GasTanksDisplay = ({ gasData, averageDepth, duration, profileData }) => {
               {renderTankRow(
                 `Stage ${idx + 1}`,
                 stage,
-                'text-purple-800',
-                'border-purple-100',
-                'bg-purple-50',
+                'text-purple-800 dark:text-purple-200',
+                'border-purple-200 dark:border-purple-800',
+                'bg-purple-50 dark:bg-purple-950/60',
                 true,
                 stage.index !== undefined ? stage.index : idx + 1,
                 true

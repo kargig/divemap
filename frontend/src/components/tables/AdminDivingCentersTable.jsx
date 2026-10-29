@@ -82,7 +82,7 @@ const AdminDivingCentersTable = ({
         {/* Mobile: Card View, Desktop: Table View */}
         <div className='hidden md:block overflow-x-auto'>
           <table className='min-w-full divide-y divide-gray-200'>
-            <thead className='bg-gray-50'>
+            <thead className='bg-gray-50 dark:bg-slate-900/60'>
               {table.getHeaderGroups().map(headerGroup => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map(header => (
@@ -126,7 +126,7 @@ const AdminDivingCentersTable = ({
                 </tr>
               ))}
             </thead>
-            <tbody className='bg-white divide-y divide-gray-200'>
+            <tbody className='bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700'>
               {table.getRowModel().rows.length === 0 ? (
                 <tr>
                   <td
@@ -148,7 +148,7 @@ const AdminDivingCentersTable = ({
                 table.getRowModel().rows.map((row, index) => (
                   <tr
                     key={row.id}
-                    className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100`}
+                    className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50 dark:bg-slate-900/60'} hover:bg-gray-100`}
                   >
                     {row.getVisibleCells().map(cell => {
                       const columnId = cell.column.id;
@@ -191,14 +191,14 @@ const AdminDivingCentersTable = ({
             table.getRowModel().rows.map(row => {
               const center = row.original;
               return (
-                <div key={row.id} className='p-4 hover:bg-gray-50'>
+                <div key={row.id} className='p-4 hover:bg-gray-50 dark:bg-slate-900/60'>
                   <div className='flex items-start justify-between mb-2'>
                     <div className='flex-1 min-w-0'>
-                      <h3 className='text-sm font-semibold text-gray-900 truncate'>
+                      <h3 className='text-sm font-semibold text-gray-900 dark:text-slate-100 truncate'>
                         {center.name}
                       </h3>
                       {center.description && (
-                        <p className='text-xs text-gray-500 mt-1 line-clamp-2'>
+                        <p className='text-xs text-gray-500 dark:text-slate-400 mt-1 line-clamp-2'>
                           {decodeHtmlEntities(center.description)}
                         </p>
                       )}

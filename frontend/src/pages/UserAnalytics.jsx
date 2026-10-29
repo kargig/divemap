@@ -86,7 +86,7 @@ const UserAnalytics = () => {
           <div className='shrink-0 relative'>
             <Link
               to={`/users/${username}`}
-              className='absolute -top-2 -left-2 z-10 p-1.5 bg-white border border-gray-200 text-gray-600 rounded-full hover:bg-gray-50 hover:text-blue-600 transition-all shadow-sm'
+              className='absolute -top-2 -left-2 z-10 p-1.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 rounded-full hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-sky-400 transition-all shadow-sm'
               title='Back to Profile'
             >
               <ArrowLeft className='w-4 h-4' />
@@ -99,21 +99,21 @@ const UserAnalytics = () => {
             />
           </div>
           <div className='flex-1 min-w-0 w-full pt-2'>
-            <h1 className='text-3xl sm:text-4xl font-bold text-gray-900 truncate mb-2'>
+            <h1 className='text-3xl sm:text-4xl font-bold text-gray-900 dark:text-slate-100 truncate mb-2'>
               {username}
             </h1>
-            <h2 className='text-xl text-gray-600 flex items-center justify-center sm:justify-start gap-2'>
-              <Activity className='w-6 h-6 text-blue-600' />
+            <h2 className='text-xl text-gray-600 dark:text-slate-400 flex items-center justify-center sm:justify-start gap-2'>
+              <Activity className='w-6 h-6 text-blue-600 dark:text-sky-400' />
               Advanced Analytics
             </h2>
           </div>
         </div>
 
         {/* Analytics Content */}
-        <div className='space-y-4 sm:space-y-8 bg-transparent sm:bg-gray-50/50 p-0 sm:p-6 rounded-none sm:rounded-2xl border-0 sm:border border-gray-100 sm:shadow-inner'>
+        <div className='space-y-4 sm:space-y-8 bg-transparent sm:bg-gray-50/50 dark:sm:bg-slate-900/40 p-0 sm:p-6 rounded-none sm:rounded-2xl border-0 sm:border border-gray-100 dark:border-slate-800 sm:shadow-inner'>
           {/* Depth Density Heatmap */}
           {analytics?.depth_density_heatmap && analytics.depth_density_heatmap.length > 0 ? (
-            <div className='bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-6 hover:shadow-md transition-shadow'>
+            <div className='bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-3 sm:p-6 hover:shadow-md transition-shadow'>
               <DepthDensityHeatmap data={analytics.depth_density_heatmap} />
             </div>
           ) : null}

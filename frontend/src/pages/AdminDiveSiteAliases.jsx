@@ -157,10 +157,15 @@ const AdminDiveSiteAliases = () => {
 
         {/* Add New Alias */}
         <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
-          <h2 className='text-xl font-semibold text-gray-900 mb-4'>Add New Alias</h2>
+          <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4'>
+            Add New Alias
+          </h2>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             <div>
-              <label htmlFor='alias-name' className='block text-sm font-medium text-gray-700 mb-1'>
+              <label
+                htmlFor='alias-name'
+                className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
+              >
                 Alias Name *
               </label>
               <input
@@ -187,12 +192,14 @@ const AdminDiveSiteAliases = () => {
 
         {/* Aliases Table */}
         <div className='bg-white rounded-lg shadow-md'>
-          <div className='px-6 py-4 border-b border-gray-200'>
-            <h2 className='text-xl font-semibold text-gray-900'>Existing Aliases</h2>
+          <div className='px-6 py-4 border-b border-gray-200 dark:border-slate-700'>
+            <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100'>
+              Existing Aliases
+            </h2>
           </div>
           <div className='overflow-x-auto'>
             <table className='min-w-full divide-y divide-gray-200'>
-              <thead className='bg-gray-50'>
+              <thead className='bg-gray-50 dark:bg-slate-900/60'>
                 <tr>
                   <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                     Alias Name
@@ -205,10 +212,10 @@ const AdminDiveSiteAliases = () => {
                   </th>
                 </tr>
               </thead>
-              <tbody className='bg-white divide-y divide-gray-200'>
+              <tbody className='bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700'>
                 {aliases && aliases.length > 0 ? (
                   aliases.map(alias => (
-                    <tr key={alias.id} className='hover:bg-gray-50'>
+                    <tr key={alias.id} className='hover:bg-gray-50 dark:bg-slate-900/60'>
                       <td className='px-6 py-4'>
                         {editingAlias?.id === alias.id ? (
                           <input
@@ -220,10 +227,12 @@ const AdminDiveSiteAliases = () => {
                             className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                           />
                         ) : (
-                          <span className='text-sm font-medium text-gray-900'>{alias.alias}</span>
+                          <span className='text-sm font-medium text-gray-900 dark:text-slate-100'>
+                            {alias.alias}
+                          </span>
                         )}
                       </td>
-                      <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
+                      <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-slate-400'>
                         {formatDate(alias.created_at)}
                       </td>
                       <td className='px-6 py-4 whitespace-nowrap text-sm font-medium'>
@@ -272,7 +281,10 @@ const AdminDiveSiteAliases = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={3} className='px-6 py-4 text-center text-sm text-gray-500'>
+                    <td
+                      colSpan={3}
+                      className='px-6 py-4 text-center text-sm text-gray-500 dark:text-slate-400'
+                    >
                       No aliases found for this dive site.
                     </td>
                   </tr>

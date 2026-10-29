@@ -70,17 +70,17 @@ const About = () => {
             <p className='text-gray-700 dark:text-slate-300 mb-4'>
               Install Divemap as a native app on iOS, Android, and Desktop.
             </p>
-            <ul className='space-y-2 text-gray-700'>
+            <ul className='space-y-2 text-gray-700 dark:text-slate-300'>
               <li className='flex items-center'>
-                <Zap className='h-4 w-4 text-blue-600 mr-2' />
+                <Zap className='h-4 w-4 text-blue-600 dark:text-sky-400 mr-2' />
                 Offline-ready architecture
               </li>
               <li className='flex items-center'>
-                <Zap className='h-4 w-4 text-blue-600 mr-2' />
+                <Zap className='h-4 w-4 text-blue-600 dark:text-sky-400 mr-2' />
                 Touch-optimized interactive charts
               </li>
               <li className='flex items-center'>
-                <Zap className='h-4 w-4 text-blue-600 mr-2' />
+                <Zap className='h-4 w-4 text-blue-600 dark:text-sky-400 mr-2' />
                 Full feature parity across all devices
               </li>
             </ul>
@@ -89,72 +89,72 @@ const About = () => {
 
         {/* Advanced Features Grid (New Features) */}
         <div className='mb-12'>
-          <h2 className='text-2xl font-semibold text-gray-900 mb-6 flex items-center border-b pb-2'>
-            <Globe className='h-6 w-6 text-blue-600 mr-2' />
+          <h2 className='text-2xl font-semibold text-gray-900 dark:text-slate-100 mb-6 flex items-center border-b border-gray-200 dark:border-slate-700 pb-2'>
+            <Globe className='h-6 w-6 text-blue-600 dark:text-sky-400 mr-2' />
             Advanced Diving Tools
           </h2>
           <div className='grid md:grid-cols-3 gap-6'>
-            <div className='p-4 border rounded-lg hover:shadow-md transition-shadow'>
-              <h3 className='text-lg font-semibold text-gray-900 mb-2 flex items-center'>
-                <Activity className='h-5 w-5 text-green-600 mr-2' />
+            <div className='p-4 border border-gray-200 dark:border-slate-700 rounded-lg hover:shadow-md transition-shadow bg-white dark:bg-slate-800'>
+              <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 mb-2 flex items-center'>
+                <Activity className='h-5 w-5 text-green-600 dark:text-emerald-400 mr-2' />
                 Dive Telemetry
               </h3>
-              <p className='text-sm text-gray-600'>
+              <p className='text-sm text-gray-600 dark:text-slate-400'>
                 Visualize dive profiles with interactive charts. Analyze depth, temperature,
                 decompression ceilings, and gas switches with precision.
               </p>
             </div>
 
-            <div className='p-4 border rounded-lg hover:shadow-md transition-shadow'>
-              <h3 className='text-lg font-semibold text-gray-900 mb-2 flex items-center'>
-                <Wind className='h-5 w-5 text-blue-500 mr-2' />
+            <div className='p-4 border border-gray-200 dark:border-slate-700 rounded-lg hover:shadow-md transition-shadow bg-white dark:bg-slate-800'>
+              <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 mb-2 flex items-center'>
+                <Wind className='h-5 w-5 text-blue-500 dark:text-sky-400 mr-2' />
                 Weather Intelligence
               </h3>
-              <p className='text-sm text-gray-600'>
+              <p className='text-sm text-gray-600 dark:text-slate-400'>
                 Real-time wind overlays and intelligent site suitability recommendations based on
                 live weather data.
               </p>
             </div>
 
-            <div className='p-4 border rounded-lg hover:shadow-md transition-shadow'>
-              <h3 className='text-lg font-semibold text-gray-900 mb-2 flex items-center'>
-                <PenTool className='h-5 w-5 text-orange-500 mr-2' />
+            <div className='p-4 border border-gray-200 dark:border-slate-700 rounded-lg hover:shadow-md transition-shadow bg-white dark:bg-slate-800'>
+              <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 mb-2 flex items-center'>
+                <PenTool className='h-5 w-5 text-orange-500 dark:text-amber-400 mr-2' />
                 Route Planning
               </h3>
-              <p className='text-sm text-gray-600'>
+              <p className='text-sm text-gray-600 dark:text-slate-400'>
                 Draw and measure complex multi-segment dive routes. Add markers for points of
                 interest and share them with buddies.
               </p>
             </div>
 
-            <div className='p-4 border rounded-lg hover:shadow-md transition-shadow'>
-              <h3 className='text-lg font-semibold text-gray-900 mb-2 flex items-center'>
-                <Calculator className='h-5 w-5 text-purple-600 mr-2' />
+            <div className='p-4 border border-gray-200 dark:border-slate-700 rounded-lg hover:shadow-md transition-shadow bg-white dark:bg-slate-800'>
+              <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 mb-2 flex items-center'>
+                <Calculator className='h-5 w-5 text-purple-600 dark:text-purple-400 mr-2' />
                 Tech Tools
               </h3>
-              <p className='text-sm text-gray-600'>
+              <p className='text-sm text-gray-600 dark:text-slate-400'>
                 Built-in physics engine for MOD, Best Mix, SAC Rate, and Minimum Gas (Rock Bottom)
                 calculations.
               </p>
             </div>
 
-            <div className='p-4 border rounded-lg hover:shadow-md transition-shadow'>
-              <h3 className='text-lg font-semibold text-gray-900 mb-2 flex items-center'>
-                <Upload className='h-5 w-5 text-gray-600 mr-2' />
+            <div className='p-4 border border-gray-200 dark:border-slate-700 rounded-lg hover:shadow-md transition-shadow bg-white dark:bg-slate-800'>
+              <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 mb-2 flex items-center'>
+                <Upload className='h-5 w-5 text-gray-600 dark:text-slate-400 mr-2' />
                 Seamless Import
               </h3>
-              <p className='text-sm text-gray-600'>
+              <p className='text-sm text-gray-600 dark:text-slate-400'>
                 Migrate effortlessly from Subsurface. Import your entire XML logbook and
                 automatically match sites.
               </p>
             </div>
 
-            <div className='p-4 border rounded-lg hover:shadow-md transition-shadow'>
-              <h3 className='text-lg font-semibold text-gray-900 mb-2 flex items-center'>
-                <Image className='h-5 w-5 text-pink-600 mr-2' />
+            <div className='p-4 border border-gray-200 dark:border-slate-700 rounded-lg hover:shadow-md transition-shadow bg-white dark:bg-slate-800'>
+              <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 mb-2 flex items-center'>
+                <Image className='h-5 w-5 text-pink-600 dark:text-pink-400 mr-2' />
                 Media Gallery
               </h3>
-              <p className='text-sm text-gray-600'>
+              <p className='text-sm text-gray-600 dark:text-slate-400'>
                 Immersive lightbox experience for dive photos and videos with deep linking and
                 drag-and-drop organization.
               </p>
@@ -165,11 +165,11 @@ const About = () => {
         {/* Core Capabilities (Restored & Enhanced) */}
         <div className='grid md:grid-cols-2 gap-4 md:gap-8 mb-8'>
           <div>
-            <h2 className='text-2xl font-semibold text-gray-900 mb-4 flex items-center'>
-              <Database className='h-6 w-6 text-blue-600 mr-2' />
+            <h2 className='text-2xl font-semibold text-gray-900 dark:text-slate-100 mb-4 flex items-center'>
+              <Database className='h-6 w-6 text-blue-600 dark:text-sky-400 mr-2' />
               Comprehensive Ecosystem
             </h2>
-            <div className='space-y-3 text-gray-700'>
+            <div className='space-y-3 text-gray-700 dark:text-slate-300'>
               <p>
                 <strong>Dive Site Management:</strong> Complete CRUD operations with detailed
                 information including maximum depth, aliases, country, and region.
@@ -190,11 +190,11 @@ const About = () => {
           </div>
 
           <div>
-            <h2 className='text-2xl font-semibold text-gray-900 mb-4 flex items-center'>
-              <Cpu className='h-6 w-6 text-purple-600 mr-2' />
+            <h2 className='text-2xl font-semibold text-gray-900 dark:text-slate-100 mb-4 flex items-center'>
+              <Cpu className='h-6 w-6 text-purple-600 dark:text-purple-400 mr-2' />
               AI & Automation
             </h2>
-            <div className='space-y-3 text-gray-700'>
+            <div className='space-y-3 text-gray-700 dark:text-slate-300'>
               <p>
                 <strong>Smart Newsletter Parsing:</strong> OpenAI integration automatically extracts
                 dive trips from center newsletters.

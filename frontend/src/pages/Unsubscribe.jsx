@@ -104,28 +104,32 @@ const Unsubscribe = () => {
         title='Unsubscribe from Divemap | Divemap'
         description='Unsubscribe from Divemap email notifications.'
       />
-      <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
+      <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900 py-12 px-4 sm:px-6 lg:px-8'>
         <div className='max-w-md w-full space-y-8'>
           <div>
             <div className='mx-auto flex items-center justify-center'>
               <Logo size='large' showText={false} />
             </div>
-            <h2 className='mt-6 text-center text-3xl font-extrabold text-gray-900'>Unsubscribe</h2>
+            <h2 className='mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-slate-100'>
+              Unsubscribe
+            </h2>
           </div>
 
-          <div className='bg-white py-8 px-6 shadow rounded-lg'>
+          <div className='bg-white dark:bg-slate-800 py-8 px-6 shadow rounded-lg border border-gray-100 dark:border-slate-700'>
             {status === 'loading' && (
               <div className='text-center'>
-                <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto'></div>
-                <p className='mt-4 text-gray-600'>Processing unsubscribe request...</p>
+                <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-sky-400 mx-auto'></div>
+                <p className='mt-4 text-gray-600 dark:text-slate-400'>
+                  Processing unsubscribe request...
+                </p>
               </div>
             )}
 
             {status === 'success' && (
               <div className='text-center'>
-                <div className='mx-auto flex items-center justify-center w-12 h-12 rounded-full bg-green-100'>
+                <div className='mx-auto flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-emerald-950/50'>
                   <svg
-                    className='w-6 h-6 text-green-600'
+                    className='w-6 h-6 text-green-600 dark:text-emerald-400'
                     fill='none'
                     stroke='currentColor'
                     viewBox='0 0 24 24'
@@ -138,10 +142,10 @@ const Unsubscribe = () => {
                     />
                   </svg>
                 </div>
-                <h3 className='mt-4 text-lg font-medium text-gray-900'>
+                <h3 className='mt-4 text-lg font-medium text-gray-900 dark:text-slate-100'>
                   Unsubscribed Successfully
                 </h3>
-                <p className='mt-2 text-sm text-gray-600'>
+                <p className='mt-2 text-sm text-gray-600 dark:text-slate-400'>
                   You have been unsubscribed from {getCategoryDisplayName(category)} notifications.
                   {category === 'all' &&
                     ' You will no longer receive any email notifications from Divemap.'}
@@ -156,7 +160,7 @@ const Unsubscribe = () => {
                   </button>
                   <button
                     onClick={() => navigate('/profile/notifications')}
-                    className='w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                    className='w-full flex justify-center py-2 px-4 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-750 hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
                   >
                     Manage Preferences
                   </button>
@@ -166,9 +170,9 @@ const Unsubscribe = () => {
 
             {status === 'error' && (
               <div className='text-center'>
-                <div className='mx-auto flex items-center justify-center w-12 h-12 rounded-full bg-red-100'>
+                <div className='mx-auto flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-950/50'>
                   <svg
-                    className='w-6 h-6 text-red-600'
+                    className='w-6 h-6 text-red-600 dark:text-red-400'
                     fill='none'
                     stroke='currentColor'
                     viewBox='0 0 24 24'
@@ -181,12 +185,14 @@ const Unsubscribe = () => {
                     />
                   </svg>
                 </div>
-                <h3 className='mt-4 text-lg font-medium text-gray-900'>Unsubscribe Failed</h3>
-                <p className='mt-2 text-sm text-gray-600'>{errorMessage}</p>
+                <h3 className='mt-4 text-lg font-medium text-gray-900 dark:text-slate-100'>
+                  Unsubscribe Failed
+                </h3>
+                <p className='mt-2 text-sm text-gray-600 dark:text-slate-400'>{errorMessage}</p>
                 <div className='mt-6'>
                   <button
                     onClick={() => navigate('/profile/notifications')}
-                    className='w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                    className='w-full flex justify-center py-2 px-4 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-750 hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
                   >
                     Manage Preferences
                   </button>

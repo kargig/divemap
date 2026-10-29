@@ -150,14 +150,14 @@ const Buddies = () => {
                         <div className='flex items-center gap-1 sm:gap-2 ml-2 sm:ml-4 shrink-0'>
                           <button
                             onClick={() => handleMessageBuddy(buddyUser)}
-                            className='p-1.5 sm:p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors'
+                            className='p-1.5 sm:p-2 text-blue-600 dark:text-sky-400 hover:bg-blue-50 dark:hover:bg-blue-900/40 rounded-full transition-colors'
                             title='Message Buddy'
                           >
                             <MessageSquare className='h-5 w-5' />
                           </button>
                           <button
                             onClick={() => handleRemoveBuddy(friendship.id, buddyUser.username)}
-                            className='p-1.5 sm:p-2 text-red-600 hover:bg-red-50 rounded-full transition-colors'
+                            className='p-1.5 sm:p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-full transition-colors'
                             title='Remove Buddy'
                           >
                             <Trash2 className='h-5 w-5' />

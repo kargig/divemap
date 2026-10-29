@@ -194,11 +194,13 @@ const AdminLayout = () => {
 
   if (!user?.is_admin) {
     return (
-      <div className='flex items-center justify-center h-screen bg-gray-50'>
-        <div className='text-center p-8 bg-white rounded-lg shadow-md max-w-md'>
+      <div className='flex items-center justify-center h-screen bg-gray-50 dark:bg-slate-900'>
+        <div className='text-center p-8 bg-white dark:bg-slate-800 rounded-lg shadow-md border border-gray-100 dark:border-slate-700 max-w-md'>
           <Shield className='h-16 w-16 text-red-500 mx-auto mb-4' />
-          <h2 className='text-2xl font-bold text-gray-900 mb-2'>Access Denied</h2>
-          <p className='text-gray-600 mb-6'>
+          <h2 className='text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2'>
+            Access Denied
+          </h2>
+          <p className='text-gray-600 dark:text-slate-300 mb-6'>
             You need administrator privileges to access this area.
           </p>
           <button
@@ -216,7 +218,9 @@ const AdminLayout = () => {
   const generateBreadcrumbs = () => {
     const paths = location.pathname.split('/').filter(Boolean);
     if (paths.length <= 1)
-      return <span className='text-gray-900 font-medium'>Dashboard Overview</span>;
+      return (
+        <span className='text-gray-900 dark:text-slate-100 font-medium'>Dashboard Overview</span>
+      );
 
     // Find the current active link name
     let activeLinkName = '';
@@ -235,9 +239,9 @@ const AdminLayout = () => {
 
     return (
       <div className='flex items-center text-sm'>
-        <span className='text-gray-500 hidden sm:inline'>{categoryName}</span>
-        <span className='mx-2 text-gray-400 hidden sm:inline'>/</span>
-        <span className='text-gray-900 font-medium'>
+        <span className='text-gray-500 dark:text-slate-400 hidden sm:inline'>{categoryName}</span>
+        <span className='mx-2 text-gray-400 dark:text-slate-500 hidden sm:inline'>/</span>
+        <span className='text-gray-900 dark:text-slate-100 font-medium'>
           {activeLinkName || paths[paths.length - 1]}
         </span>
       </div>
@@ -245,7 +249,7 @@ const AdminLayout = () => {
   };
 
   return (
-    <div className='flex h-screen bg-gray-50 overflow-hidden font-sans'>
+    <div className='flex h-screen bg-gray-50 dark:bg-slate-900 overflow-hidden font-sans'>
       {/* Mobile Drawer Overlay */}
       {isMobileMenuOpen && (
         <div

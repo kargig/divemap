@@ -46,7 +46,7 @@ pages**
 ### Infrastructure & Upgrades
 
 - [Node.js 20 Upgrade Guide](./nodejs-20-upgrade-guide.md) -
-  **Complete guide to Node.js 20 upgrade and frontend improvements**
+  **Historical guide for the Node.js 18 → 20 upgrade (superseded by Node.js 22 LTS / Vite 8)**
 
 ### Architecture & Database Patterns
 
@@ -227,11 +227,19 @@ token renewal, and silent renewal in the Divemap application.
 
 ---
 
-### 🚀 **Node.js 20 Upgrade & Frontend Improvements - Complete!**
+### 🚀 **Node.js 22 LTS & Vite 8 Upgrade - Current**
 
-The project has been successfully upgraded from Node.js 18 to Node.js 20,
+The frontend runtime is **Node.js 22 LTS** (`node:22-alpine`) with **Vite 8.3**
+(Rolldown) and npm 10.9+. CI uses `node-version: '22'`. See
+`docs/superpowers/specs/2026-10-24-vite-8-node-22-upgrade-design.md`.
+
+Earlier Node.js 18 → 20 work remains documented below for history.
+
+### 📦 **Node.js 20 Upgrade & Frontend Improvements - Complete (Historical)**
+
+The project was previously upgraded from Node.js 18 to Node.js 20,
 bringing significant performance improvements, security updates, and modern
-JavaScript features.
+JavaScript features. That baseline has since been superseded by Node.js 22 LTS.
 
 #### **Upgrade Benefits:**
 
@@ -253,7 +261,7 @@ JavaScript features.
 #### **Technical Improvements:**
 
 - **Docker Images**: Updated to `node:20-alpine` for both production and
-  development
+  development (later moved to `node:22-alpine`)
 - **ESLint Configuration**: Migrated from `.eslintrc.js` to modern
   `eslint.config.js` format
 - **PropTypes Validation**: Fixed type mismatches between backend and frontend
@@ -269,8 +277,8 @@ JavaScript features.
 
 #### **Node.js Upgrade Files Modified:**
 
-- `frontend/Dockerfile`: Updated to Node.js 20-alpine
-- `frontend/Dockerfile.dev`: Updated to Node.js 20-alpine
+- `frontend/Dockerfile`: Updated to Node.js 20-alpine (now 22-alpine)
+- `frontend/Dockerfile.dev`: Updated to Node.js 20-alpine (now 22-alpine)
 - `frontend/package.json`: Upgraded package versions
 - `frontend/eslint.config.js`: New ESLint 9 configuration
 - `frontend/src/components/DiveSitesMap.js`: Fixed PropTypes validation
@@ -343,7 +351,7 @@ matching issues and improve code quality across all content types.
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 22+
 - Python 3.11+
 - Docker and Docker Compose
 - Git

@@ -43,10 +43,10 @@ const DiveProfileFullView = () => {
 
   if (diveLoading || profileLoading) {
     return (
-      <div className='min-h-screen flex items-center justify-center bg-gray-50'>
+      <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900'>
         <div className='text-center'>
-          <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4'></div>
-          <p className='text-gray-600'>Loading dive profile...</p>
+          <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-sky-400 mx-auto mb-4'></div>
+          <p className='text-gray-600 dark:text-slate-400'>Loading dive profile...</p>
         </div>
       </div>
     );
@@ -55,11 +55,13 @@ const DiveProfileFullView = () => {
   if (diveError || profileError) {
     const error = diveError || profileError;
     return (
-      <div className='min-h-screen flex items-center justify-center bg-gray-50 p-4'>
-        <div className='max-w-md w-full bg-white rounded-lg shadow-lg p-6 text-center'>
+      <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900 p-4'>
+        <div className='max-w-md w-full bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-100 dark:border-slate-700 p-6 text-center'>
           <AlertCircle className='h-12 w-12 text-red-500 mx-auto mb-4' />
-          <h1 className='text-xl font-bold text-gray-900 mb-2'>Error Loading Profile</h1>
-          <p className='text-gray-600 mb-6'>{extractErrorMessage(error)}</p>
+          <h1 className='text-xl font-bold text-gray-900 dark:text-slate-100 mb-2'>
+            Error Loading Profile
+          </h1>
+          <p className='text-gray-600 dark:text-slate-400 mb-6'>{extractErrorMessage(error)}</p>
           <Button onClick={handleBack} variant='primary'>
             Back to Dive Details
           </Button>
@@ -71,7 +73,7 @@ const DiveProfileFullView = () => {
   const diveName = dive?.name || dive?.dive_site?.name || 'Unnamed Dive';
 
   return (
-    <div className='min-h-screen bg-gray-50 flex flex-col'>
+    <div className='min-h-screen bg-gray-50 dark:bg-slate-900 flex flex-col'>
       <SEO
         title={`Dive Profile - ${diveName} - ${formatDate(dive?.dive_date)}`}
         description={`Detailed dive profile for ${diveName}. View depth, temperature, and deco information.`}
@@ -79,19 +81,21 @@ const DiveProfileFullView = () => {
       />
 
       {/* Header Navigation */}
-      <header className='bg-white border-b border-gray-200 sticky top-0 z-10'>
-        <div className='max-w-[1600px] mx-auto h-16 flex items-center justify-between'>
+      <header className='bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 sticky top-0 z-10'>
+        <div className='max-w-[1600px] mx-auto h-16 flex items-center justify-between px-4'>
           <div className='flex items-center gap-4 min-w-0'>
             <button
               onClick={handleBack}
-              className='p-2 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0'
+              className='p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex-shrink-0'
               aria-label='Back to dive details'
             >
-              <ArrowLeft className='h-6 w-6 text-gray-600' />
+              <ArrowLeft className='h-6 w-6 text-gray-600 dark:text-slate-300' />
             </button>
             <div className='min-w-0'>
-              <h1 className='text-lg font-bold text-gray-900 truncate'>{diveName} - Profile</h1>
-              <p className='text-xs text-gray-500 truncate'>
+              <h1 className='text-lg font-bold text-gray-900 dark:text-slate-100 truncate'>
+                {diveName} - Profile
+              </h1>
+              <p className='text-xs text-gray-500 dark:text-slate-400 truncate'>
                 {formatDate(dive?.dive_date)} • {dive?.user_username}
               </p>
             </div>
@@ -106,15 +110,17 @@ const DiveProfileFullView = () => {
 
       {/* Main Content */}
       <main className='flex-1 overflow-y-auto'>
-        <div className='max-w-[1600px] mx-auto py-4 sm:py-6 lg:py-8'>
-          <div className='bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden'>
-            <div className='p-4 sm:p-6 border-b border-gray-100 flex items-center justify-between'>
+        <div className='max-w-[1600px] mx-auto py-4 sm:py-6 lg:py-8 px-4'>
+          <div className='bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden'>
+            <div className='p-4 sm:p-6 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between'>
               <div className='flex items-center gap-2'>
-                <Activity className='h-5 w-5 text-blue-600' />
-                <h2 className='text-lg font-semibold text-gray-800'>Interactive Profile Chart</h2>
+                <Activity className='h-5 w-5 text-blue-600 dark:text-sky-400' />
+                <h2 className='text-lg font-semibold text-gray-800 dark:text-slate-100'>
+                  Interactive Profile Chart
+                </h2>
               </div>
               {profileHasDeco && (
-                <span className='text-red-500 font-medium text-sm border border-red-200 bg-red-50 px-2 py-0.5 rounded flex items-center gap-1'>
+                <span className='text-red-500 dark:text-red-400 font-medium text-sm border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-2 py-0.5 rounded flex items-center gap-1'>
                   <Droplets className='w-3 h-3' />
                   Deco
                 </span>
@@ -124,7 +130,7 @@ const DiveProfileFullView = () => {
             <div className='p-1 sm:p-4'>
               <Suspense
                 fallback={
-                  <div className='h-[60vh] flex items-center justify-center bg-gray-50 rounded animate-pulse'>
+                  <div className='h-[60vh] flex items-center justify-center bg-gray-50 dark:bg-slate-900 rounded animate-pulse text-gray-500 dark:text-slate-400'>
                     Loading chart content...
                   </div>
                 }
@@ -143,7 +149,7 @@ const DiveProfileFullView = () => {
               </Suspense>
             </div>
 
-            <div className='p-4 bg-gray-50 border-t border-gray-100 text-sm text-gray-500'>
+            <div className='p-4 bg-gray-50 dark:bg-slate-900/60 border-t border-gray-100 dark:border-slate-700 text-sm text-gray-500 dark:text-slate-400'>
               <p>
                 <strong>Tip:</strong> You can hover over the chart to see specific data points. On
                 mobile, you can pinch to zoom and pan the chart for more detail.

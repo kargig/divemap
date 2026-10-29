@@ -12,12 +12,14 @@ const NotFound = () => {
         type='website'
       />
 
-      <div className='bg-blue-50 rounded-full p-6 mb-6'>
-        <Map className='h-16 w-16 text-blue-600 opacity-50' />
+      <div className='bg-blue-50 dark:bg-blue-900/40 rounded-full p-6 mb-6'>
+        <Map className='h-16 w-16 text-blue-600 dark:text-sky-400 opacity-60' />
       </div>
 
-      <h1 className='text-4xl font-extrabold text-gray-900 mb-4'>Page Not Found</h1>
-      <p className='text-xl text-gray-600 mb-8 max-w-md'>
+      <h1 className='text-4xl font-extrabold text-gray-900 dark:text-slate-100 mb-4'>
+        Page Not Found
+      </h1>
+      <p className='text-xl text-gray-600 dark:text-slate-400 mb-8 max-w-md'>
         The page you are looking for might have been removed, had its name changed, or is
         temporarily unavailable.
       </p>
@@ -32,23 +34,26 @@ const NotFound = () => {
         </Link>
         <Link
           to='/dive-sites'
-          className='flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-blue-600 bg-white hover:bg-gray-50 md:text-lg transition-colors shadow-sm'
+          className='flex items-center justify-center px-6 py-3 border border-gray-300 dark:border-slate-600 text-base font-medium rounded-md text-blue-600 dark:text-sky-400 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 md:text-lg transition-colors shadow-sm'
         >
           <Search className='h-5 w-5 mr-2' />
           Explore Sites
         </Link>
       </div>
 
-      <div className='mt-12 text-sm text-gray-500'>
+      <div className='mt-12 text-sm text-gray-500 dark:text-slate-400'>
         <p>Looking for something specific?</p>
         <div className='flex justify-center gap-4 mt-2'>
-          <Link to='/diving-centers' className='hover:text-blue-600 underline'>
+          <Link
+            to='/diving-centers'
+            className='hover:text-blue-600 dark:hover:text-sky-400 underline'
+          >
             Diving Centers
           </Link>
-          <Link to='/dive-trips' className='hover:text-blue-600 underline'>
+          <Link to='/dive-trips' className='hover:text-blue-600 dark:hover:text-sky-400 underline'>
             Dive Trips
           </Link>
-          <Link to='/dives' className='hover:text-blue-600 underline'>
+          <Link to='/dives' className='hover:text-blue-600 dark:hover:text-sky-400 underline'>
             Dive Log
           </Link>
         </div>

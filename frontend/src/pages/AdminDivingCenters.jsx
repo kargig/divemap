@@ -289,7 +289,9 @@ const AdminDivingCenters = () => {
         size: 200,
         cell: ({ row }) => (
           <div className='max-w-[200px]'>
-            <div className='text-sm font-medium text-gray-900 break-words'>{row.original.name}</div>
+            <div className='text-sm font-medium text-gray-900 dark:text-slate-100 break-words'>
+              {row.original.name}
+            </div>
           </div>
         ),
       },
@@ -358,7 +360,7 @@ const AdminDivingCenters = () => {
           <div>
             <div className='text-sm text-gray-900'>{row.original.email || 'N/A'}</div>
             {row.original.phone && (
-              <div className='text-xs text-gray-500'>{row.original.phone}</div>
+              <div className='text-xs text-gray-500 dark:text-slate-400'>{row.original.phone}</div>
             )}
           </div>
         ),
@@ -389,7 +391,7 @@ const AdminDivingCenters = () => {
               </div>
             );
           }
-          return <span className='text-sm text-gray-500'>N/A</span>;
+          return <span className='text-sm text-gray-500 dark:text-slate-400'>N/A</span>;
         },
       },
       {
@@ -480,7 +482,7 @@ const AdminDivingCenters = () => {
               Manage all diving centers in the system
             </p>
             {paginationInfo.totalCount !== undefined && (
-              <p className='text-xs sm:text-sm text-gray-500 mt-1'>
+              <p className='text-xs sm:text-sm text-gray-500 dark:text-slate-400 mt-1'>
                 Total diving centers: {paginationInfo.totalCount}
               </p>
             )}
@@ -510,25 +512,25 @@ const AdminDivingCenters = () => {
                 />
                 <label
                   htmlFor='reviews-toggle'
-                  className='ml-3 text-sm font-medium text-gray-900 cursor-pointer'
+                  className='ml-3 text-sm font-medium text-gray-900 dark:text-slate-100 cursor-pointer'
                 >
                   Disable Diving Center Reviews
                 </label>
               </div>
               {(isLoadingSetting || isUpdatingSetting) && (
-                <div className='flex items-center text-sm text-gray-500'>
+                <div className='flex items-center text-sm text-gray-500 dark:text-slate-400'>
                   <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2'></div>
                   {isUpdatingSetting ? 'Updating...' : 'Loading...'}
                 </div>
               )}
             </div>
-            <div className='text-sm text-gray-600'>
+            <div className='text-sm text-gray-600 dark:text-slate-300'>
               {reviewsEnabled
                 ? 'Reviews and ratings are currently enabled'
                 : 'Reviews and ratings are currently disabled'}
             </div>
           </div>
-          <p className='mt-2 text-xs text-gray-500'>
+          <p className='mt-2 text-xs text-gray-500 dark:text-slate-400'>
             When disabled, users will not be able to submit or view ratings and comments for diving
             centers.
           </p>
@@ -590,7 +592,7 @@ const AdminDivingCenters = () => {
           {/* Column Visibility Toggle */}
           <div className='relative'>
             <button
-              className='flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium text-gray-700 w-full sm:w-auto'
+              className='flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-slate-900/60 text-sm font-medium text-gray-700 dark:text-slate-200 w-full sm:w-auto'
               onClick={e => {
                 e.stopPropagation();
                 const menu = document.getElementById('column-visibility-menu');
@@ -604,7 +606,7 @@ const AdminDivingCenters = () => {
             </button>
             <div
               id='column-visibility-menu'
-              className='hidden absolute left-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg z-50'
+              className='hidden absolute left-0 mt-2 w-56 bg-white border border-gray-200 dark:border-slate-700 rounded-md shadow-lg z-50'
               onClick={e => e.stopPropagation()}
             >
               <div className='p-2'>
@@ -622,7 +624,7 @@ const AdminDivingCenters = () => {
                     return (
                       <label
                         key={columnId}
-                        className='flex items-center px-2 py-1.5 hover:bg-gray-50 cursor-pointer rounded'
+                        className='flex items-center px-2 py-1.5 hover:bg-gray-50 dark:bg-slate-900/60 cursor-pointer rounded'
                       >
                         <input
                           type='checkbox'
@@ -635,7 +637,7 @@ const AdminDivingCenters = () => {
                           }}
                           className='mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
                         />
-                        <span className='text-sm text-gray-700'>
+                        <span className='text-sm text-gray-700 dark:text-slate-300'>
                           {typeof column.header === 'string'
                             ? column.header
                             : columnId.charAt(0).toUpperCase() +

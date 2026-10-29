@@ -192,7 +192,34 @@ Documentation is consolidated in the `docs/` directory. Major changes should be 
 
 ## UI Styling Standards
 - **Standardized Hover:** Use `hover:bg-interactive-hover` and `dark:hover:bg-interactive-hover-dark` for high-interaction lists (notifications, chat, buddy requests) to ensure brand-consistent visual feedback.
-- **Dark Mode:** Always provide dark mode alternatives using the `dark:` prefix. Use `dark:bg-gray-800` for cards and `dark:border-gray-700` for borders.
+- **Dark Mode Architecture & Color Hierarchy:**
+  Divemap uses Tailwind CSS's `slate` palette for dark mode surfaces, typography, and borders. ALWAYS pair light-mode text/surface classes with their mandatory dark-mode counterparts.
+  
+  ### Mandatory Theme Pairing Matrix:
+  | UI Role | Light Mode Utility | Mandatory Dark Mode Utility | Computed Hex / Contrast |
+  |---|---|---|---|
+  | **Page Background** | `bg-gray-50` | `dark:bg-slate-900` | `#0f172a` canvas |
+  | **Card / Surface** | `bg-white` | `dark:bg-slate-800` | `#1e293b` base card |
+  | **Inner Well / Sub-card** | `bg-gray-50` / `bg-gray-100` | `dark:bg-slate-750` / `dark:bg-slate-900/60` | `#162032` / inset well |
+  | **Surface Borders** | `border-gray-100` / `border-gray-200` | `dark:border-slate-700` | `#334155` divider |
+  | **Primary Text / Headings** (`h1`, `h2`, `h3`, bold titles) | `text-gray-900` | `dark:text-slate-100` | `#f1f5f9` (> 13:1 contrast) |
+  | **Key Metrics & Form Labels** (durations, stats, inputs) | `text-gray-800` / `text-gray-700` | `dark:text-slate-200` | `#e2e8f0` (> 11:1 contrast) |
+  | **Body Text / Descriptions** (paragraphs, descriptions) | `text-gray-700` / `text-gray-600` | `dark:text-slate-300` | `#cbd5e1` (> 8:1 contrast) |
+  | **Muted Metadata** (timestamps, counts, icons) | `text-gray-500` / `text-gray-400` | `dark:text-slate-400` | `#94a3b8` (> 4.5:1 AA contrast) |
+  | **Form Inputs & Selects** | `bg-white border-gray-300 text-gray-900` | `dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100` | `#1e293b` input surface |
+  | **Input Placeholders** | `placeholder-gray-400` | `dark:placeholder-slate-400` | Accessible placeholder text |
+  | **Primary Links** | `text-blue-600 hover:text-blue-800` | `dark:text-sky-400 dark:hover:text-sky-300` | Brand links & actions |
+  
+  ### Semantic Alert & Badge Pairings:
+  - **Info / Primary Badge**: `bg-blue-50 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800`
+  - **Success Badge**: `bg-green-50 dark:bg-emerald-950/40 text-green-700 dark:text-emerald-300 border-green-200 dark:border-emerald-800`
+  - **Warning Badge**: `bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-900`
+  - **Danger / Deco Badge**: `bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800`
+
+  ### Strict Anti-Patterns (FORBIDDEN):
+  - **NEVER** write bare `text-gray-900`, `text-gray-800`, or `text-gray-700` on elements inside cards or pages without their matching `dark:text-slate-100` or `dark:text-slate-200`. In dark mode, `text-gray-700` compiles to dark gray `#374151` on a dark card `#1e293b`, resulting in illegible low-contrast text.
+  - **NEVER** write `bg-white` or `bg-gray-50` on card or modal surfaces without `dark:bg-slate-800`.
+  - **NEVER** leave form inputs, checkboxes, or selects with raw `bg-white border-gray-300` in JSX.
 - **Interactive States:** Mark-as-read checkmarks and similar action triggers should be always visible on unread/active items for better mobile accessibility.
 - **Mobile Container Layout & Padding (Standardized Widths):** To maximize lateral writing space on smaller mobile screens and prevent double-padding (as baseline mobile spacing is already managed by the central `<main>` layout wrapper inside `App.jsx`), always follow the established responsive container patterns:
   - Top-level explorer, details, and list page wrappers MUST use `max-w-[95vw] xl:max-w-[1600px] mx-auto px-0 sm:px-4 lg:px-6 xl:px-8`. The `px-0` on mobile viewports ensures that content stretches perfectly edge-to-edge on mobile phones, with responsive gutters introduced only on wider screens (`sm:` and larger).

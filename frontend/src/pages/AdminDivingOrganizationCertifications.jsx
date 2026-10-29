@@ -185,7 +185,7 @@ const AdminDivingOrganizationCertifications = () => {
           </button>
           <div className='flex items-center gap-6'>
             {organization?.logo_url && (
-              <div className='flex-shrink-0 h-16 w-32 flex items-center justify-center bg-white rounded-md border border-gray-200 overflow-hidden p-2 shadow-sm'>
+              <div className='flex-shrink-0 h-16 w-32 flex items-center justify-center bg-white rounded-md border border-gray-200 dark:border-slate-700 overflow-hidden p-2 shadow-sm'>
                 <img
                   src={organization.logo_url}
                   alt={organization.name}
@@ -229,7 +229,7 @@ const AdminDivingOrganizationCertifications = () => {
         <div className='bg-white rounded-lg shadow overflow-hidden'>
           <div className='overflow-x-auto'>
             <table className='min-w-full divide-y divide-gray-200'>
-              <thead className='bg-gray-50'>
+              <thead className='bg-gray-50 dark:bg-slate-900/60'>
                 <tr>
                   <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                     Name
@@ -257,7 +257,7 @@ const AdminDivingOrganizationCertifications = () => {
                   </th>
                 </tr>
               </thead>
-              <tbody className='bg-white divide-y divide-gray-200'>
+              <tbody className='bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700'>
                 {isCertsLoading ? (
                   <tr>
                     <td colSpan='7' className='px-6 py-4 text-center'>
@@ -274,10 +274,12 @@ const AdminDivingOrganizationCertifications = () => {
                   filteredCertifications.map((cert, index) => (
                     <tr
                       key={cert.id}
-                      className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100`}
+                      className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50 dark:bg-slate-900/60'} hover:bg-gray-100`}
                     >
                       <td className='px-6 py-4 whitespace-nowrap'>
-                        <div className='text-sm font-medium text-gray-900'>{cert.name}</div>
+                        <div className='text-sm font-medium text-gray-900 dark:text-slate-100'>
+                          {cert.name}
+                        </div>
                       </td>
                       <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
                         {cert.category || '-'}
@@ -337,7 +339,10 @@ const AdminDivingOrganizationCertifications = () => {
           <div className='space-y-4'>
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               <div>
-                <label htmlFor='cert-name' className='block text-sm font-medium text-gray-700 mb-1'>
+                <label
+                  htmlFor='cert-name'
+                  className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
+                >
                   Name *
                 </label>
                 <input
@@ -352,7 +357,7 @@ const AdminDivingOrganizationCertifications = () => {
               <div>
                 <label
                   htmlFor='cert-category'
-                  className='block text-sm font-medium text-gray-700 mb-1'
+                  className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
                 >
                   Category
                 </label>
@@ -371,7 +376,7 @@ const AdminDivingOrganizationCertifications = () => {
               <div>
                 <label
                   htmlFor='cert-max-depth'
-                  className='block text-sm font-medium text-gray-700 mb-1'
+                  className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
                 >
                   Max Depth
                 </label>
@@ -387,7 +392,7 @@ const AdminDivingOrganizationCertifications = () => {
               <div>
                 <label
                   htmlFor='cert-gases'
-                  className='block text-sm font-medium text-gray-700 mb-1'
+                  className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
                 >
                   Gases
                 </label>
@@ -406,7 +411,7 @@ const AdminDivingOrganizationCertifications = () => {
               <div>
                 <label
                   htmlFor='cert-tanks'
-                  className='block text-sm font-medium text-gray-700 mb-1'
+                  className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
                 >
                   Tanks
                 </label>
@@ -422,7 +427,7 @@ const AdminDivingOrganizationCertifications = () => {
               <div>
                 <label
                   htmlFor='cert-deco-time-limit'
-                  className='block text-sm font-medium text-gray-700 mb-1'
+                  className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
                 >
                   Deco Time Limit
                 </label>
@@ -440,7 +445,7 @@ const AdminDivingOrganizationCertifications = () => {
             <div>
               <label
                 htmlFor='cert-prerequisites'
-                className='block text-sm font-medium text-gray-700 mb-1'
+                className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
               >
                 Prerequisites
               </label>
@@ -492,7 +497,7 @@ const AdminDivingOrganizationCertifications = () => {
               <div>
                 <label
                   htmlFor='edit-cert-name'
-                  className='block text-sm font-medium text-gray-700 mb-1'
+                  className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
                 >
                   Name *
                 </label>
@@ -508,7 +513,7 @@ const AdminDivingOrganizationCertifications = () => {
               <div>
                 <label
                   htmlFor='edit-cert-category'
-                  className='block text-sm font-medium text-gray-700 mb-1'
+                  className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
                 >
                   Category
                 </label>
@@ -527,7 +532,7 @@ const AdminDivingOrganizationCertifications = () => {
               <div>
                 <label
                   htmlFor='edit-cert-max-depth'
-                  className='block text-sm font-medium text-gray-700 mb-1'
+                  className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
                 >
                   Max Depth
                 </label>
@@ -543,7 +548,7 @@ const AdminDivingOrganizationCertifications = () => {
               <div>
                 <label
                   htmlFor='edit-cert-gases'
-                  className='block text-sm font-medium text-gray-700 mb-1'
+                  className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
                 >
                   Gases
                 </label>
@@ -562,7 +567,7 @@ const AdminDivingOrganizationCertifications = () => {
               <div>
                 <label
                   htmlFor='edit-cert-tanks'
-                  className='block text-sm font-medium text-gray-700 mb-1'
+                  className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
                 >
                   Tanks
                 </label>
@@ -578,7 +583,7 @@ const AdminDivingOrganizationCertifications = () => {
               <div>
                 <label
                   htmlFor='edit-cert-deco-time-limit'
-                  className='block text-sm font-medium text-gray-700 mb-1'
+                  className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
                 >
                   Deco Time Limit
                 </label>
@@ -596,7 +601,7 @@ const AdminDivingOrganizationCertifications = () => {
             <div>
               <label
                 htmlFor='edit-cert-prerequisites'
-                className='block text-sm font-medium text-gray-700 mb-1'
+                className='block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1'
               >
                 Prerequisites
               </label>

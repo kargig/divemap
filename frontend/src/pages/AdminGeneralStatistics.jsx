@@ -118,11 +118,11 @@ const AdminGeneralStatistics = () => {
           <div className='flex items-center justify-between'>
             <div>
               <PageTitle>General Statistics</PageTitle>
-              <p className='text-gray-600 mt-2'>
+              <p className='text-gray-600 dark:text-slate-400 mt-2'>
                 Platform statistics, geographic distribution, and notification analytics
               </p>
               {generalStats?.last_updated && (
-                <p className='text-sm text-gray-500 mt-1'>
+                <p className='text-sm text-gray-500 dark:text-slate-400 mt-1'>
                   Last updated: {new Date(generalStats.last_updated).toLocaleString()}
                 </p>
               )}
@@ -139,15 +139,19 @@ const AdminGeneralStatistics = () => {
 
         {/* Platform Statistics */}
         <div className='mb-8'>
-          <h2 className='text-xl font-semibold text-gray-900 mb-4'>Platform Statistics</h2>
+          <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100 dark:text-slate-100 mb-4'>
+            Platform Statistics
+          </h2>
 
           {/* User Statistics */}
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6'>
-            <div className='bg-white p-6 rounded-lg border shadow-sm'>
+            <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
               <div className='flex items-center justify-between'>
                 <div>
-                  <p className='text-sm font-medium text-gray-600'>Total Users</p>
-                  <p className='text-2xl font-bold text-gray-900'>
+                  <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                    Total Users
+                  </p>
+                  <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                     {formatNumber(generalStats?.platform_stats?.users?.total)}
                   </p>
                   <div className='flex items-center mt-1'>
@@ -171,27 +175,31 @@ const AdminGeneralStatistics = () => {
               </div>
             </div>
 
-            <div className='bg-white p-6 rounded-lg border shadow-sm'>
+            <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
               <div className='flex items-center justify-between'>
                 <div>
-                  <p className='text-sm font-medium text-gray-600'>Active Users (7d)</p>
-                  <p className='text-2xl font-bold text-gray-900'>
+                  <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                    Active Users (7d)
+                  </p>
+                  <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                     {formatNumber(generalStats?.platform_stats?.users?.active_7d)}
                   </p>
-                  <p className='text-sm text-gray-500'>Last week activity</p>
+                  <p className='text-sm text-gray-500 dark:text-slate-400'>Last week activity</p>
                 </div>
                 <Activity className='h-8 w-8 text-green-600' />
               </div>
             </div>
 
-            <div className='bg-white p-6 rounded-lg border shadow-sm'>
+            <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
               <div className='flex items-center justify-between'>
                 <div>
-                  <p className='text-sm font-medium text-gray-600'>Email Verified</p>
-                  <p className='text-2xl font-bold text-gray-900'>
+                  <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                    Email Verified
+                  </p>
+                  <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                     {formatNumber(generalStats?.platform_stats?.users?.email_verified?.count)}
                   </p>
-                  <p className='text-sm text-gray-500'>
+                  <p className='text-sm text-gray-500 dark:text-slate-400'>
                     {formatPercentage(
                       generalStats?.platform_stats?.users?.email_verified?.percentage
                     )}{' '}
@@ -202,54 +210,60 @@ const AdminGeneralStatistics = () => {
               </div>
             </div>
 
-            <div className='bg-white p-6 rounded-lg border shadow-sm'>
+            <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
               <div className='flex items-center justify-between'>
                 <div>
-                  <p className='text-sm font-medium text-gray-600'>Email Opted Out</p>
-                  <p className='text-2xl font-bold text-gray-900'>
+                  <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                    Email Opted Out
+                  </p>
+                  <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                     {formatNumber(generalStats?.platform_stats?.users?.email_opted_out)}
                   </p>
-                  <p className='text-sm text-gray-500'>Global opt-out</p>
+                  <p className='text-sm text-gray-500 dark:text-slate-400'>Global opt-out</p>
                 </div>
                 <MailX className='h-8 w-8 text-orange-600' />
               </div>
             </div>
           </div>
 
-          <div className='bg-white p-6 rounded-lg border shadow-sm'>
+          <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
             <div className='flex items-center justify-between'>
               <div>
-                <p className='text-sm font-medium text-gray-600'>Dive Sites</p>
-                <p className='text-2xl font-bold text-gray-900'>
+                <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>Dive Sites</p>
+                <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                   {formatNumber(generalStats?.platform_stats?.content?.dive_sites)}
                 </p>
-                <p className='text-sm text-gray-500'>Total locations</p>
+                <p className='text-sm text-gray-500 dark:text-slate-400'>Total locations</p>
               </div>
               <MapPin className='h-8 w-8 text-green-600' />
             </div>
           </div>
 
-          <div className='bg-white p-6 rounded-lg border shadow-sm'>
+          <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
             <div className='flex items-center justify-between'>
               <div>
-                <p className='text-sm font-medium text-gray-600'>Diving Centers</p>
-                <p className='text-2xl font-bold text-gray-900'>
+                <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                  Diving Centers
+                </p>
+                <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                   {formatNumber(generalStats?.platform_stats?.content?.diving_centers)}
                 </p>
-                <p className='text-sm text-gray-500'>Registered centers</p>
+                <p className='text-sm text-gray-500 dark:text-slate-400'>Registered centers</p>
               </div>
               <Building2 className='h-8 w-8 text-purple-600' />
             </div>
           </div>
 
-          <div className='bg-white p-6 rounded-lg border shadow-sm'>
+          <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
             <div className='flex items-center justify-between'>
               <div>
-                <p className='text-sm font-medium text-gray-600'>Dives Logged</p>
-                <p className='text-2xl font-bold text-gray-900'>
+                <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                  Dives Logged
+                </p>
+                <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                   {formatNumber(generalStats?.platform_stats?.content?.dives)}
                 </p>
-                <p className='text-sm text-gray-500'>User dives</p>
+                <p className='text-sm text-gray-500 dark:text-slate-400'>User dives</p>
               </div>
               <Anchor className='h-8 w-8 text-teal-600' />
             </div>
@@ -258,66 +272,68 @@ const AdminGeneralStatistics = () => {
 
         {/* Additional Content Statistics */}
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6'>
-          <div className='bg-white p-6 rounded-lg border shadow-sm'>
+          <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
             <div className='flex items-center justify-between'>
               <div>
-                <p className='text-sm font-medium text-gray-600'>Dive Routes</p>
-                <p className='text-2xl font-bold text-gray-900'>
+                <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>Dive Routes</p>
+                <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                   {formatNumber(generalStats?.platform_stats?.content?.dive_routes)}
                 </p>
-                <p className='text-sm text-gray-500'>Planned routes</p>
+                <p className='text-sm text-gray-500 dark:text-slate-400'>Planned routes</p>
               </div>
               <Route className='h-8 w-8 text-indigo-600' />
             </div>
           </div>
 
-          <div className='bg-white p-6 rounded-lg border shadow-sm'>
+          <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
             <div className='flex items-center justify-between'>
               <div>
-                <p className='text-sm font-medium text-gray-600'>Dive Trips</p>
-                <p className='text-2xl font-bold text-gray-900'>
+                <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>Dive Trips</p>
+                <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                   {formatNumber(generalStats?.platform_stats?.content?.dive_trips)}
                 </p>
-                <p className='text-sm text-gray-500'>Parsed trips</p>
+                <p className='text-sm text-gray-500 dark:text-slate-400'>Parsed trips</p>
               </div>
               <Calendar className='h-8 w-8 text-cyan-600' />
             </div>
           </div>
 
-          <div className='bg-white p-6 rounded-lg border shadow-sm'>
+          <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
             <div className='flex items-center justify-between'>
               <div>
-                <p className='text-sm font-medium text-gray-600'>Total Tags</p>
-                <p className='text-2xl font-bold text-gray-900'>
+                <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>Total Tags</p>
+                <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                   {formatNumber(generalStats?.platform_stats?.content?.tags)}
                 </p>
-                <p className='text-sm text-gray-500'>Available tags</p>
+                <p className='text-sm text-gray-500 dark:text-slate-400'>Available tags</p>
               </div>
               <Tag className='h-8 w-8 text-pink-600' />
             </div>
           </div>
 
-          <div className='bg-white p-6 rounded-lg border shadow-sm'>
+          <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
             <div className='flex items-center justify-between'>
               <div>
-                <p className='text-sm font-medium text-gray-600'>Diving Organizations</p>
-                <p className='text-2xl font-bold text-gray-900'>
+                <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                  Diving Organizations
+                </p>
+                <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                   {formatNumber(generalStats?.platform_stats?.content?.diving_organizations)}
                 </p>
-                <p className='text-sm text-gray-500'>PADI, SSI, etc.</p>
+                <p className='text-sm text-gray-500 dark:text-slate-400'>PADI, SSI, etc.</p>
               </div>
               <Award className='h-8 w-8 text-purple-600' />
             </div>
           </div>
 
-          <div className='bg-white p-6 rounded-lg border shadow-sm'>
+          <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
             <div className='flex items-center justify-between'>
               <div>
-                <p className='text-sm font-medium text-gray-600'>Newsletters</p>
-                <p className='text-2xl font-bold text-gray-900'>
+                <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>Newsletters</p>
+                <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                   {formatNumber(generalStats?.platform_stats?.content?.newsletters)}
                 </p>
-                <p className='text-sm text-gray-500'>Uploaded</p>
+                <p className='text-sm text-gray-500 dark:text-slate-400'>Uploaded</p>
               </div>
               <FileText className='h-8 w-8 text-blue-600' />
             </div>
@@ -326,53 +342,61 @@ const AdminGeneralStatistics = () => {
 
         {/* Engagement Statistics */}
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6'>
-          <div className='bg-white p-6 rounded-lg border shadow-sm'>
+          <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
             <div className='flex items-center justify-between'>
               <div>
-                <p className='text-sm font-medium text-gray-600'>Avg Site Rating</p>
-                <p className='text-2xl font-bold text-gray-900'>
+                <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                  Avg Site Rating
+                </p>
+                <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                   {generalStats?.platform_stats?.engagement?.avg_site_rating}/5
                 </p>
-                <p className='text-sm text-gray-500'>Dive sites</p>
+                <p className='text-sm text-gray-500 dark:text-slate-400'>Dive sites</p>
               </div>
               <Star className='h-8 w-8 text-yellow-600' />
             </div>
           </div>
 
-          <div className='bg-white p-6 rounded-lg border shadow-sm'>
+          <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
             <div className='flex items-center justify-between'>
               <div>
-                <p className='text-sm font-medium text-gray-600'>Avg Center Rating</p>
-                <p className='text-2xl font-bold text-gray-900'>
+                <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                  Avg Center Rating
+                </p>
+                <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                   {generalStats?.platform_stats?.engagement?.avg_center_rating}/5
                 </p>
-                <p className='text-sm text-gray-500'>Diving centers</p>
+                <p className='text-sm text-gray-500 dark:text-slate-400'>Diving centers</p>
               </div>
               <Star className='h-8 w-8 text-yellow-600' />
             </div>
           </div>
 
-          <div className='bg-white p-6 rounded-lg border shadow-sm'>
+          <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
             <div className='flex items-center justify-between'>
               <div>
-                <p className='text-sm font-medium text-gray-600'>Comments (24h)</p>
-                <p className='text-2xl font-bold text-gray-900'>
+                <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                  Comments (24h)
+                </p>
+                <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                   {formatNumber(generalStats?.platform_stats?.engagement?.recent_comments_24h)}
                 </p>
-                <p className='text-sm text-gray-500'>Recent activity</p>
+                <p className='text-sm text-gray-500 dark:text-slate-400'>Recent activity</p>
               </div>
               <MessageSquare className='h-8 w-8 text-blue-600' />
             </div>
           </div>
 
-          <div className='bg-white p-6 rounded-lg border shadow-sm'>
+          <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
             <div className='flex items-center justify-between'>
               <div>
-                <p className='text-sm font-medium text-gray-600'>Media Uploads</p>
-                <p className='text-2xl font-bold text-gray-900'>
+                <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                  Media Uploads
+                </p>
+                <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                   {formatNumber(generalStats?.platform_stats?.content?.media_uploads)}
                 </p>
-                <p className='text-sm text-gray-500'>Photos & videos</p>
+                <p className='text-sm text-gray-500 dark:text-slate-400'>Photos & videos</p>
               </div>
               <Image className='h-8 w-8 text-pink-600' />
             </div>
@@ -380,30 +404,36 @@ const AdminGeneralStatistics = () => {
         </div>
 
         {/* Geographic Distribution */}
-        <div className='bg-white p-6 rounded-lg border shadow-sm mb-6'>
-          <h3 className='text-lg font-semibold text-gray-900 mb-4 flex items-center'>
+        <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm mb-6'>
+          <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 dark:text-slate-100 mb-4 flex items-center'>
             <Globe className='h-5 w-5 mr-2' />
             Geographic Distribution
           </h3>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6 mb-6'>
             <div>
-              <h4 className='text-md font-semibold text-gray-700 mb-3'>Dive Sites by Country</h4>
+              <h4 className='text-md font-semibold text-gray-700 dark:text-slate-300 mb-3'>
+                Dive Sites by Country
+              </h4>
               <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
                 {generalStats?.platform_stats?.geographic?.dive_sites_by_country
                   ?.slice(0, 6)
                   .map((item, index) => (
                     <div
                       key={index}
-                      className='flex items-center justify-between p-3 bg-gray-50 rounded-lg'
+                      className='flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-900/60 rounded-lg'
                     >
-                      <span className='font-medium text-gray-700'>{item.country}</span>
-                      <span className='text-sm text-gray-500'>{item.count} sites</span>
+                      <span className='font-medium text-gray-700 dark:text-slate-300'>
+                        {item.country}
+                      </span>
+                      <span className='text-sm text-gray-500 dark:text-slate-400'>
+                        {item.count} sites
+                      </span>
                     </div>
                   ))}
               </div>
             </div>
             <div>
-              <h4 className='text-md font-semibold text-gray-700 mb-3'>
+              <h4 className='text-md font-semibold text-gray-700 dark:text-slate-300 mb-3'>
                 Diving Centers by Country
               </h4>
               <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
@@ -412,10 +442,14 @@ const AdminGeneralStatistics = () => {
                   .map((item, index) => (
                     <div
                       key={index}
-                      className='flex items-center justify-between p-3 bg-gray-50 rounded-lg'
+                      className='flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-900/60 rounded-lg'
                     >
-                      <span className='font-medium text-gray-700'>{item.country}</span>
-                      <span className='text-sm text-gray-500'>{item.count} centers</span>
+                      <span className='font-medium text-gray-700 dark:text-slate-300'>
+                        {item.country}
+                      </span>
+                      <span className='text-sm text-gray-500 dark:text-slate-400'>
+                        {item.count} centers
+                      </span>
                     </div>
                   ))}
               </div>
@@ -425,15 +459,15 @@ const AdminGeneralStatistics = () => {
 
         {/* User Certifications */}
         {generalStats?.platform_stats?.users?.certifications && (
-          <div className='bg-white p-6 rounded-lg border shadow-sm mb-6'>
-            <h3 className='text-lg font-semibold text-gray-900 mb-4 flex items-center'>
+          <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm mb-6'>
+            <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 dark:text-slate-100 mb-4 flex items-center'>
               <Award className='h-5 w-5 mr-2' />
               User Certifications
             </h3>
             <div className='mb-4'>
-              <p className='text-sm text-gray-600'>
+              <p className='text-sm text-gray-600 dark:text-slate-300 dark:text-slate-400'>
                 Total Certifications:{' '}
-                <span className='font-semibold text-gray-900'>
+                <span className='font-semibold text-gray-900 dark:text-slate-100'>
                   {formatNumber(generalStats?.platform_stats?.users?.certifications?.total || 0)}
                 </span>
               </p>
@@ -445,15 +479,21 @@ const AdminGeneralStatistics = () => {
                   (org, index) => (
                     <div
                       key={index}
-                      className='flex items-center justify-between p-3 bg-gray-50 rounded-lg'
+                      className='flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-900/60 rounded-lg'
                     >
                       <div>
-                        <span className='font-medium text-gray-900'>{org.name}</span>
+                        <span className='font-medium text-gray-900 dark:text-slate-100'>
+                          {org.name}
+                        </span>
                         {org.acronym && (
-                          <span className='text-sm text-gray-500 ml-2'>({org.acronym})</span>
+                          <span className='text-sm text-gray-500 dark:text-slate-400 ml-2'>
+                            ({org.acronym})
+                          </span>
                         )}
                       </div>
-                      <span className='text-sm font-medium text-gray-700'>{org.count}</span>
+                      <span className='text-sm font-medium text-gray-700 dark:text-slate-200 dark:text-slate-300'>
+                        {org.count}
+                      </span>
                     </div>
                   )
                 )}
@@ -465,50 +505,62 @@ const AdminGeneralStatistics = () => {
         {/* New Content (Last 7/30 days) */}
         {generalStats?.platform_stats?.content?.new_content_7d &&
         generalStats?.platform_stats?.content?.new_content_30d ? (
-          <div className='bg-white p-6 rounded-lg border shadow-sm mb-6'>
-            <h3 className='text-lg font-semibold text-gray-900 mb-4 flex items-center'>
+          <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm mb-6'>
+            <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 dark:text-slate-100 mb-4 flex items-center'>
               <Calendar className='h-5 w-5 mr-2' />
               New Content
             </h3>
             <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
               <div>
-                <h4 className='text-md font-semibold text-gray-700 mb-3'>Last 7 Days</h4>
+                <h4 className='text-md font-semibold text-gray-700 dark:text-slate-300 mb-3'>
+                  Last 7 Days
+                </h4>
                 <div className='space-y-2'>
-                  <div className='flex items-center justify-between p-2 bg-gray-50 rounded'>
-                    <span className='text-sm text-gray-600'>Dive Sites</span>
-                    <span className='font-medium text-gray-900'>
+                  <div className='flex items-center justify-between p-2 bg-gray-50 dark:bg-slate-900/60 rounded'>
+                    <span className='text-sm text-gray-600 dark:text-slate-300 dark:text-slate-400'>
+                      Dive Sites
+                    </span>
+                    <span className='font-medium text-gray-900 dark:text-slate-100'>
                       {formatNumber(
                         generalStats?.platform_stats?.content?.new_content_7d?.dive_sites || 0
                       )}
                     </span>
                   </div>
-                  <div className='flex items-center justify-between p-2 bg-gray-50 rounded'>
-                    <span className='text-sm text-gray-600'>Diving Centers</span>
-                    <span className='font-medium text-gray-900'>
+                  <div className='flex items-center justify-between p-2 bg-gray-50 dark:bg-slate-900/60 rounded'>
+                    <span className='text-sm text-gray-600 dark:text-slate-300 dark:text-slate-400'>
+                      Diving Centers
+                    </span>
+                    <span className='font-medium text-gray-900 dark:text-slate-100'>
                       {formatNumber(
                         generalStats?.platform_stats?.content?.new_content_7d?.diving_centers || 0
                       )}
                     </span>
                   </div>
-                  <div className='flex items-center justify-between p-2 bg-gray-50 rounded'>
-                    <span className='text-sm text-gray-600'>Dives</span>
-                    <span className='font-medium text-gray-900'>
+                  <div className='flex items-center justify-between p-2 bg-gray-50 dark:bg-slate-900/60 rounded'>
+                    <span className='text-sm text-gray-600 dark:text-slate-300 dark:text-slate-400'>
+                      Dives
+                    </span>
+                    <span className='font-medium text-gray-900 dark:text-slate-100'>
                       {formatNumber(
                         generalStats?.platform_stats?.content?.new_content_7d?.dives || 0
                       )}
                     </span>
                   </div>
-                  <div className='flex items-center justify-between p-2 bg-gray-50 rounded'>
-                    <span className='text-sm text-gray-600'>Routes</span>
-                    <span className='font-medium text-gray-900'>
+                  <div className='flex items-center justify-between p-2 bg-gray-50 dark:bg-slate-900/60 rounded'>
+                    <span className='text-sm text-gray-600 dark:text-slate-300 dark:text-slate-400'>
+                      Routes
+                    </span>
+                    <span className='font-medium text-gray-900 dark:text-slate-100'>
                       {formatNumber(
                         generalStats?.platform_stats?.content?.new_content_7d?.routes || 0
                       )}
                     </span>
                   </div>
-                  <div className='flex items-center justify-between p-2 bg-gray-50 rounded'>
-                    <span className='text-sm text-gray-600'>Trips</span>
-                    <span className='font-medium text-gray-900'>
+                  <div className='flex items-center justify-between p-2 bg-gray-50 dark:bg-slate-900/60 rounded'>
+                    <span className='text-sm text-gray-600 dark:text-slate-300 dark:text-slate-400'>
+                      Trips
+                    </span>
+                    <span className='font-medium text-gray-900 dark:text-slate-100'>
                       {formatNumber(
                         generalStats?.platform_stats?.content?.new_content_7d?.trips || 0
                       )}
@@ -517,43 +569,55 @@ const AdminGeneralStatistics = () => {
                 </div>
               </div>
               <div>
-                <h4 className='text-md font-semibold text-gray-700 mb-3'>Last 30 Days</h4>
+                <h4 className='text-md font-semibold text-gray-700 dark:text-slate-300 mb-3'>
+                  Last 30 Days
+                </h4>
                 <div className='space-y-2'>
-                  <div className='flex items-center justify-between p-2 bg-gray-50 rounded'>
-                    <span className='text-sm text-gray-600'>Dive Sites</span>
-                    <span className='font-medium text-gray-900'>
+                  <div className='flex items-center justify-between p-2 bg-gray-50 dark:bg-slate-900/60 rounded'>
+                    <span className='text-sm text-gray-600 dark:text-slate-300 dark:text-slate-400'>
+                      Dive Sites
+                    </span>
+                    <span className='font-medium text-gray-900 dark:text-slate-100'>
                       {formatNumber(
                         generalStats?.platform_stats?.content?.new_content_30d?.dive_sites || 0
                       )}
                     </span>
                   </div>
-                  <div className='flex items-center justify-between p-2 bg-gray-50 rounded'>
-                    <span className='text-sm text-gray-600'>Diving Centers</span>
-                    <span className='font-medium text-gray-900'>
+                  <div className='flex items-center justify-between p-2 bg-gray-50 dark:bg-slate-900/60 rounded'>
+                    <span className='text-sm text-gray-600 dark:text-slate-300 dark:text-slate-400'>
+                      Diving Centers
+                    </span>
+                    <span className='font-medium text-gray-900 dark:text-slate-100'>
                       {formatNumber(
                         generalStats?.platform_stats?.content?.new_content_30d?.diving_centers || 0
                       )}
                     </span>
                   </div>
-                  <div className='flex items-center justify-between p-2 bg-gray-50 rounded'>
-                    <span className='text-sm text-gray-600'>Dives</span>
-                    <span className='font-medium text-gray-900'>
+                  <div className='flex items-center justify-between p-2 bg-gray-50 dark:bg-slate-900/60 rounded'>
+                    <span className='text-sm text-gray-600 dark:text-slate-300 dark:text-slate-400'>
+                      Dives
+                    </span>
+                    <span className='font-medium text-gray-900 dark:text-slate-100'>
                       {formatNumber(
                         generalStats?.platform_stats?.content?.new_content_30d?.dives || 0
                       )}
                     </span>
                   </div>
-                  <div className='flex items-center justify-between p-2 bg-gray-50 rounded'>
-                    <span className='text-sm text-gray-600'>Routes</span>
-                    <span className='font-medium text-gray-900'>
+                  <div className='flex items-center justify-between p-2 bg-gray-50 dark:bg-slate-900/60 rounded'>
+                    <span className='text-sm text-gray-600 dark:text-slate-300 dark:text-slate-400'>
+                      Routes
+                    </span>
+                    <span className='font-medium text-gray-900 dark:text-slate-100'>
                       {formatNumber(
                         generalStats?.platform_stats?.content?.new_content_30d?.routes || 0
                       )}
                     </span>
                   </div>
-                  <div className='flex items-center justify-between p-2 bg-gray-50 rounded'>
-                    <span className='text-sm text-gray-600'>Trips</span>
-                    <span className='font-medium text-gray-900'>
+                  <div className='flex items-center justify-between p-2 bg-gray-50 dark:bg-slate-900/60 rounded'>
+                    <span className='text-sm text-gray-600 dark:text-slate-300 dark:text-slate-400'>
+                      Trips
+                    </span>
+                    <span className='font-medium text-gray-900 dark:text-slate-100'>
                       {formatNumber(
                         generalStats?.platform_stats?.content?.new_content_30d?.trips || 0
                       )}
@@ -566,27 +630,33 @@ const AdminGeneralStatistics = () => {
         ) : null}
 
         {/* System Usage */}
-        <div className='bg-white p-6 rounded-lg border shadow-sm'>
-          <h3 className='text-lg font-semibold text-gray-900 mb-4 flex items-center'>
+        <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
+          <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 dark:text-slate-100 mb-4 flex items-center'>
             <BarChart3 className='h-5 w-5 mr-2' />
             System Usage
           </h3>
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
             <div className='text-center'>
-              <p className='text-sm font-medium text-gray-600'>API Calls Today</p>
-              <p className='text-2xl font-bold text-gray-900'>
+              <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                API Calls Today
+              </p>
+              <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                 {formatNumber(generalStats?.platform_stats?.system_usage?.api_calls_today)}
               </p>
             </div>
             <div className='text-center'>
-              <p className='text-sm font-medium text-gray-600'>Peak Usage Time</p>
-              <p className='text-2xl font-bold text-gray-900'>
+              <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                Peak Usage Time
+              </p>
+              <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                 {generalStats?.platform_stats?.system_usage?.peak_usage_time}
               </p>
             </div>
             <div className='text-center'>
-              <p className='text-sm font-medium text-gray-600'>Most Accessed Endpoint</p>
-              <p className='text-lg font-bold text-gray-900 truncate'>
+              <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                Most Accessed Endpoint
+              </p>
+              <p className='text-lg font-bold text-gray-900 dark:text-slate-100 truncate'>
                 {generalStats?.platform_stats?.system_usage?.most_accessed_endpoint}
               </p>
             </div>
@@ -595,20 +665,24 @@ const AdminGeneralStatistics = () => {
 
         {/* Notification Analytics */}
         <div className='mb-8'>
-          <h2 className='text-xl font-semibold text-gray-900 mb-4'>Notification Analytics</h2>
+          <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100 dark:text-slate-100 mb-4'>
+            Notification Analytics
+          </h2>
 
           {/* In-App Notifications */}
           <div className='mb-6'>
-            <h3 className='text-lg font-semibold text-gray-900 mb-4 flex items-center'>
+            <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 dark:text-slate-100 mb-4 flex items-center'>
               <Bell className='h-5 w-5 mr-2' />
               In-App Notifications
             </h3>
             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
-              <div className='bg-white p-6 rounded-lg border shadow-sm'>
+              <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
                 <div className='flex items-center justify-between'>
                   <div>
-                    <p className='text-sm font-medium text-gray-600'>Total Notifications</p>
-                    <p className='text-2xl font-bold text-gray-900'>
+                    <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                      Total Notifications
+                    </p>
+                    <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                       {formatNumber(notificationAnalytics?.in_app?.total || 0)}
                     </p>
                   </div>
@@ -616,14 +690,14 @@ const AdminGeneralStatistics = () => {
                 </div>
               </div>
 
-              <div className='bg-white p-6 rounded-lg border shadow-sm'>
+              <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
                 <div className='flex items-center justify-between'>
                   <div>
-                    <p className='text-sm font-medium text-gray-600'>Read</p>
-                    <p className='text-2xl font-bold text-gray-900'>
+                    <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>Read</p>
+                    <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                       {formatNumber(notificationAnalytics?.in_app?.read || 0)}
                     </p>
-                    <p className='text-sm text-gray-500'>
+                    <p className='text-sm text-gray-500 dark:text-slate-400'>
                       {formatPercentage(notificationAnalytics?.in_app?.read_rate || 0)} read rate
                     </p>
                   </div>
@@ -631,11 +705,11 @@ const AdminGeneralStatistics = () => {
                 </div>
               </div>
 
-              <div className='bg-white p-6 rounded-lg border shadow-sm'>
+              <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
                 <div className='flex items-center justify-between'>
                   <div>
-                    <p className='text-sm font-medium text-gray-600'>Unread</p>
-                    <p className='text-2xl font-bold text-gray-900'>
+                    <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>Unread</p>
+                    <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                       {formatNumber(notificationAnalytics?.in_app?.unread || 0)}
                     </p>
                   </div>
@@ -643,11 +717,13 @@ const AdminGeneralStatistics = () => {
                 </div>
               </div>
 
-              <div className='bg-white p-6 rounded-lg border shadow-sm'>
+              <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
                 <div className='flex items-center justify-between'>
                   <div>
-                    <p className='text-sm font-medium text-gray-600'>Read Rate</p>
-                    <p className='text-2xl font-bold text-gray-900'>
+                    <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                      Read Rate
+                    </p>
+                    <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                       {formatPercentage(notificationAnalytics?.in_app?.read_rate || 0)}
                     </p>
                   </div>
@@ -659,16 +735,18 @@ const AdminGeneralStatistics = () => {
 
           {/* Email Delivery Statistics */}
           <div className='mb-6'>
-            <h3 className='text-lg font-semibold text-gray-900 mb-4 flex items-center'>
+            <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 dark:text-slate-100 mb-4 flex items-center'>
               <Mail className='h-5 w-5 mr-2' />
               Email Delivery Statistics
             </h3>
             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4'>
-              <div className='bg-white p-6 rounded-lg border shadow-sm'>
+              <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
                 <div className='flex items-center justify-between'>
                   <div>
-                    <p className='text-sm font-medium text-gray-600'>Total Sent</p>
-                    <p className='text-2xl font-bold text-gray-900'>
+                    <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                      Total Sent
+                    </p>
+                    <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                       {formatNumber(notificationAnalytics?.email_delivery?.total_sent || 0)}
                     </p>
                   </div>
@@ -676,39 +754,45 @@ const AdminGeneralStatistics = () => {
                 </div>
               </div>
 
-              <div className='bg-white p-6 rounded-lg border shadow-sm'>
+              <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
                 <div className='flex items-center justify-between'>
                   <div>
-                    <p className='text-sm font-medium text-gray-600'>Direct to SES</p>
-                    <p className='text-2xl font-bold text-gray-900'>
+                    <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                      Direct to SES
+                    </p>
+                    <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                       {formatNumber(
                         notificationAnalytics?.email_delivery?.sent_directly_to_ses || 0
                       )}
                     </p>
-                    <p className='text-sm text-gray-500'>Direct delivery</p>
+                    <p className='text-sm text-gray-500 dark:text-slate-400'>Direct delivery</p>
                   </div>
                   <Mail className='h-8 w-8 text-green-600' />
                 </div>
               </div>
 
-              <div className='bg-white p-6 rounded-lg border shadow-sm'>
+              <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
                 <div className='flex items-center justify-between'>
                   <div>
-                    <p className='text-sm font-medium text-gray-600'>Queued to SQS</p>
-                    <p className='text-2xl font-bold text-gray-900'>
+                    <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                      Queued to SQS
+                    </p>
+                    <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                       {formatNumber(notificationAnalytics?.email_delivery?.queued_to_sqs || 0)}
                     </p>
-                    <p className='text-sm text-gray-500'>Via queue</p>
+                    <p className='text-sm text-gray-500 dark:text-slate-400'>Via queue</p>
                   </div>
                   <BarChart3 className='h-8 w-8 text-purple-600' />
                 </div>
               </div>
 
-              <div className='bg-white p-6 rounded-lg border shadow-sm'>
+              <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
                 <div className='flex items-center justify-between'>
                   <div>
-                    <p className='text-sm font-medium text-gray-600'>Delivery Rate</p>
-                    <p className='text-2xl font-bold text-gray-900'>
+                    <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                      Delivery Rate
+                    </p>
+                    <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                       {formatPercentage(notificationAnalytics?.email_delivery?.delivery_rate || 0)}
                     </p>
                   </div>
@@ -716,11 +800,13 @@ const AdminGeneralStatistics = () => {
                 </div>
               </div>
 
-              <div className='bg-white p-6 rounded-lg border shadow-sm'>
+              <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
                 <div className='flex items-center justify-between'>
                   <div>
-                    <p className='text-sm font-medium text-gray-600'>Avg Delivery Time</p>
-                    <p className='text-2xl font-bold text-gray-900'>
+                    <p className='text-sm font-medium text-gray-600 dark:text-slate-400'>
+                      Avg Delivery Time
+                    </p>
+                    <p className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                       {notificationAnalytics?.email_delivery?.avg_delivery_time_seconds
                         ? `${Math.round(notificationAnalytics.email_delivery.avg_delivery_time_seconds)}s`
                         : 'N/A'}
@@ -735,13 +821,13 @@ const AdminGeneralStatistics = () => {
           {/* Notification Statistics by Category */}
           {notificationAnalytics?.by_category && notificationAnalytics?.by_category?.length > 0 && (
             <div className='mb-6'>
-              <h3 className='text-lg font-semibold text-gray-900 mb-4 flex items-center'>
+              <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 dark:text-slate-100 mb-4 flex items-center'>
                 <BarChart3 className='h-5 w-5 mr-2' />
                 Statistics by Category
               </h3>
-              <div className='bg-white p-6 rounded-lg border shadow-sm overflow-x-auto'>
-                <table className='min-w-full divide-y divide-gray-200'>
-                  <thead className='bg-gray-50'>
+              <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm overflow-x-auto'>
+                <table className='min-w-full divide-y divide-gray-200 dark:divide-slate-700'>
+                  <thead className='bg-gray-50 dark:bg-slate-900/60'>
                     <tr>
                       <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                         Category
@@ -760,22 +846,22 @@ const AdminGeneralStatistics = () => {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className='bg-white divide-y divide-gray-200'>
+                  <tbody className='bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700 dark:divide-slate-700'>
                     {notificationAnalytics.by_category.map((category, index) => (
                       <tr key={index}>
-                        <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>
+                        <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-slate-100 dark:text-slate-100'>
                           {category.category}
                         </td>
-                        <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
+                        <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-slate-400'>
                           {formatNumber(category.total_notifications)}
                         </td>
-                        <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
+                        <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-slate-400'>
                           {formatNumber(category.in_app_sent)}
                         </td>
-                        <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
+                        <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-slate-400'>
                           {formatNumber(category.email_sent)}
                         </td>
-                        <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
+                        <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-slate-400'>
                           {formatPercentage(category.email_delivery_rate)}
                         </td>
                       </tr>
@@ -789,63 +875,81 @@ const AdminGeneralStatistics = () => {
           {/* Time-based Statistics */}
           {notificationAnalytics?.time_stats && (
             <div>
-              <h3 className='text-lg font-semibold text-gray-900 mb-4 flex items-center'>
+              <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 dark:text-slate-100 mb-4 flex items-center'>
                 <Clock className='h-5 w-5 mr-2' />
                 Time-based Statistics
               </h3>
               <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-                <div className='bg-white p-6 rounded-lg border shadow-sm'>
-                  <h4 className='text-md font-semibold text-gray-900 mb-4'>Last 24 Hours</h4>
+                <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
+                  <h4 className='text-md font-semibold text-gray-900 dark:text-slate-100 dark:text-slate-100 mb-4'>
+                    Last 24 Hours
+                  </h4>
                   <div className='space-y-2'>
                     <div className='flex items-center justify-between'>
-                      <span className='text-sm text-gray-600'>Notifications</span>
-                      <span className='text-sm font-medium text-gray-900'>
+                      <span className='text-sm text-gray-600 dark:text-slate-300 dark:text-slate-400'>
+                        Notifications
+                      </span>
+                      <span className='text-sm font-medium text-gray-900 dark:text-slate-100 dark:text-slate-100'>
                         {formatNumber(
                           notificationAnalytics.time_stats.last_24h?.notifications || 0
                         )}
                       </span>
                     </div>
                     <div className='flex items-center justify-between'>
-                      <span className='text-sm text-gray-600'>Emails Sent</span>
-                      <span className='text-sm font-medium text-gray-900'>
+                      <span className='text-sm text-gray-600 dark:text-slate-300 dark:text-slate-400'>
+                        Emails Sent
+                      </span>
+                      <span className='text-sm font-medium text-gray-900 dark:text-slate-100 dark:text-slate-100'>
                         {formatNumber(notificationAnalytics.time_stats.last_24h?.emails_sent || 0)}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div className='bg-white p-6 rounded-lg border shadow-sm'>
-                  <h4 className='text-md font-semibold text-gray-900 mb-4'>Last 7 Days</h4>
+                <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
+                  <h4 className='text-md font-semibold text-gray-900 dark:text-slate-100 dark:text-slate-100 mb-4'>
+                    Last 7 Days
+                  </h4>
                   <div className='space-y-2'>
                     <div className='flex items-center justify-between'>
-                      <span className='text-sm text-gray-600'>Notifications</span>
-                      <span className='text-sm font-medium text-gray-900'>
+                      <span className='text-sm text-gray-600 dark:text-slate-300 dark:text-slate-400'>
+                        Notifications
+                      </span>
+                      <span className='text-sm font-medium text-gray-900 dark:text-slate-100 dark:text-slate-100'>
                         {formatNumber(notificationAnalytics.time_stats.last_7d?.notifications || 0)}
                       </span>
                     </div>
                     <div className='flex items-center justify-between'>
-                      <span className='text-sm text-gray-600'>Emails Sent</span>
-                      <span className='text-sm font-medium text-gray-900'>
+                      <span className='text-sm text-gray-600 dark:text-slate-300 dark:text-slate-400'>
+                        Emails Sent
+                      </span>
+                      <span className='text-sm font-medium text-gray-900 dark:text-slate-100 dark:text-slate-100'>
                         {formatNumber(notificationAnalytics.time_stats.last_7d?.emails_sent || 0)}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div className='bg-white p-6 rounded-lg border shadow-sm'>
-                  <h4 className='text-md font-semibold text-gray-900 mb-4'>Last 30 Days</h4>
+                <div className='bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm'>
+                  <h4 className='text-md font-semibold text-gray-900 dark:text-slate-100 dark:text-slate-100 mb-4'>
+                    Last 30 Days
+                  </h4>
                   <div className='space-y-2'>
                     <div className='flex items-center justify-between'>
-                      <span className='text-sm text-gray-600'>Notifications</span>
-                      <span className='text-sm font-medium text-gray-900'>
+                      <span className='text-sm text-gray-600 dark:text-slate-300 dark:text-slate-400'>
+                        Notifications
+                      </span>
+                      <span className='text-sm font-medium text-gray-900 dark:text-slate-100 dark:text-slate-100'>
                         {formatNumber(
                           notificationAnalytics.time_stats.last_30d?.notifications || 0
                         )}
                       </span>
                     </div>
                     <div className='flex items-center justify-between'>
-                      <span className='text-sm text-gray-600'>Emails Sent</span>
-                      <span className='text-sm font-medium text-gray-900'>
+                      <span className='text-sm text-gray-600 dark:text-slate-300 dark:text-slate-400'>
+                        Emails Sent
+                      </span>
+                      <span className='text-sm font-medium text-gray-900 dark:text-slate-100 dark:text-slate-100'>
                         {formatNumber(notificationAnalytics.time_stats.last_30d?.emails_sent || 0)}
                       </span>
                     </div>

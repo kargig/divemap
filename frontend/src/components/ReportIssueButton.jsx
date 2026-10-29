@@ -142,8 +142,8 @@ const ReportIssueButton = () => {
           e.stopPropagation();
         }
       }}
-      className={`fixed p-2 bg-gray-100 text-gray-600 rounded-full shadow-sm z-50 border border-gray-200
-        transition-all duration-300 ease-in-out hover:opacity-100 hover:bg-white hover:text-black hover:shadow-md
+      className={`fixed p-2 bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 rounded-full shadow-sm z-50 border border-gray-200 dark:border-slate-700
+        transition-all duration-300 ease-in-out hover:opacity-100 hover:bg-white dark:hover:bg-slate-700 hover:text-black dark:hover:text-white hover:shadow-md
         ${isDragging ? 'cursor-grabbing scale-110 shadow-lg z-[100] transition-none' : 'cursor-grab'}
         ${getTranslation()}
       `}
